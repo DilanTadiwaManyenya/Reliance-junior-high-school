@@ -1,0 +1,4 @@
+export default function StudentSelector({ students, value, onChange, query, onQueryChange, loading = false }) {
+  const matches = students.filter((student) => `${student.full_name} ${student.admission_number}`.toLowerCase().includes(query.toLowerCase()))
+  return <div className="portal-student-selector"><label>Find learner<input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="Name or admission number" /></label><label>Learner<select value={value} onChange={(event) => onChange(event.target.value)} disabled={loading || !matches.length}><option value="">{loading ? 'Loading learners…' : matches.length ? 'Select a learner' : 'No matching learners'}</option>{matches.map((student) => <option key={student.id} value={student.id}>{student.full_name} · {student.admission_number}</option>)}</select></label></div>
+}

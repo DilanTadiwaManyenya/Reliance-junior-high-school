@@ -1,0 +1,1 @@
+import {Link} from 'react-router-dom'; import {cn} from '../../lib/cn'; export default function Button({to,children,variant='primary',className='',...props}){const classes=cn('btn',variant,className);return to?<Link to={to} className={classes}>{children}</Link>:<button className={classes}{...props}>{children}</button>}

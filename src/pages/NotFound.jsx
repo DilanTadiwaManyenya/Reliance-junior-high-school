@@ -1,0 +1,1 @@
+import Button from '../components/ui/Button';export default function NotFound(){return <div className="not-found container"><div className="eyebrow">Page not found</div><h1>We could not find that page.</h1><p className="muted">Let’s take you back to Reliance Learning Centre.</p><Button to="/">Back to home</Button></div>}

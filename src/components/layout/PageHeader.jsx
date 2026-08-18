@@ -1,0 +1,1 @@
+export default function PageHeader({eyebrow='Reliance Learning Centre',title,text}){return <section className="page-header"><div className="container"><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{text}</p></div></section>}
