@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FiCheckCircle, FiSearch } from 'react-icons/fi'
 import { countryCodes, defaultCountry } from '../../data/countryCodes'
-import { isInternationalPhone, normalizePhone } from '../../../shared/portalPhone'
+import { isInternationalPhone, normalizePhone } from '../../../shared/portalAuth'
 
 export default function PhoneInput({ id = 'phone', label = 'Phone number', value, onChange, required = false }) {
   const initialCountry = [...countryCodes].sort((a, b) => b.dialCode.length - a.dialCode.length).find(item => value?.startsWith(item.dialCode))

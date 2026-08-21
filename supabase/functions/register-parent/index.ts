@@ -1,5 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { internalEmailForPhone, isInternationalPhone, normalizePhone } from '../../../shared/portalPhone.ts'
+
+const INTERNATIONAL_PHONE = /^\+[1-9]\d{7,14}$/
+const normalizePhone = (raw: unknown) => {
+  const digits = String(raw ?? '').replace(/\D/g, '')
+  return digits ? `+${digits}` : ''
+}
+const isInternationalPhone = (phone: string) => INTERNATIONAL_PHONE.test(phone)
+const buildPortalEmail = (phone: unknown) =>
+  `portal-${normalizePhone(phone).replace(/^\+/, '')}@portal.reliance.local`
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,7 +41,7 @@ Deno.serve(async (request) => {
 
     // createUser never sends an email.  The email is only an internal identifier for phone-based login.
     const { data: created, error: createError } = await serviceClient.auth.admin.createUser({
-      email: internalEmailForPhone(phone),
+      email: buildPortalEmail(phone),
       password,
       email_confirm: true,
       user_metadata: { full_name: fullName, phone },

@@ -1,4 +1,25 @@
 import { useEffect, useState } from 'react'
-import Card from '../../components/ui/Card'
 import { useAuth } from '../../context/useAuth'
-export default function StudentDashboard() { const { supabase, user } = useAuth(); const [student, setStudent] = useState(null); const [records, setRecords] = useState({ academics: [], attendance: [], behavior: [], sports: [] }); useEffect(() => { const load = async () => { const { data } = await supabase.from('students').select('*').eq('auth_user_id', user.id).maybeSingle(); setStudent(data); if (!data) return; const [academics, attendance, behavior, sports] = await Promise.all(['academic_records','attendance','behavior_notes','sports_records'].map(table => supabase.from(table).select('*').eq('student_id', data.id).order('created_at', { ascending: false }))); setRecords({ academics: academics.data ?? [], attendance: attendance.data ?? [], behavior: behavior.data ?? [], sports: sports.data ?? [] }) }; load() }, [supabase, user]); if (!student) return <section className="section white"><div className="container portal-content"><h1>Student dashboard</h1><p className="muted">Loading your records…</p></div></section>; const blocks = [['Academic records', records.academics, r => `${r.subject} · ${r.score} (${r.grade})`], ['Attendance', records.attendance, r => `${r.date} · ${r.status}`], ['Behaviour', records.behavior, r => `${r.category} · ${r.severity}`], ['Sport', records.sports, r => `${r.activity} · ${r.term}`]]; return <section className="section white"><div className="container portal-content"><p className="eyebrow">Student dashboard</p><h1>{student.full_name}</h1><div className="portal-record-grid">{blocks.map(([title, rows, label]) => <Card key={title}><h2>{title}</h2>{rows.length ? <div className="portal-list">{rows.map(r => <p key={r.id}><strong>{label(r)}</strong><br /><span className="muted">{r.comment || r.note || r.description || r.achievement || 'No additional note.'}</span></p>)}</div> : <p className="muted">No records have been shared yet.</p>}</Card>)}</div></div></section> }
+import LearnerRecords, { DisabledLearner } from '../../components/portal/LearnerRecords'
+
+export default function StudentDashboard() {
+  const { supabase, user } = useAuth()
+  const [student, setStudent] = useState(null)
+  const [records, setRecords] = useState({ academics: [], attendance: [], behavior: [], sports: [] })
+  const [fees, setFees] = useState([])
+  useEffect(() => { const load = async () => {
+    const { data } = await supabase.from('students').select('*').eq('auth_user_id', user.id).maybeSingle()
+    setStudent(data); if (!data || data.status !== 'active') return
+    const [academics, attendance, behavior, sports, balances] = await Promise.all([
+      supabase.from('academic_records').select('*').eq('student_id', data.id).order('created_at', { ascending: false }),
+      supabase.from('attendance').select('*').eq('student_id', data.id).order('date', { ascending: false }),
+      supabase.from('behavior_notes').select('*').eq('student_id', data.id).order('created_at', { ascending: false }),
+      supabase.from('sports_records').select('*').eq('student_id', data.id).order('created_at', { ascending: false }),
+      supabase.from('fee_balances').select('*').eq('student_id', data.id),
+    ])
+    setRecords({ academics: academics.data ?? [], attendance: attendance.data ?? [], behavior: behavior.data ?? [], sports: sports.data ?? [] }); setFees(balances.data ?? [])
+  }; load() }, [supabase, user])
+  if (!student) return <section className="section white"><div className="container portal-content">Loading your records…</div></section>
+  if (student.status !== 'active') return <DisabledLearner reason={student.inactive_reason} />
+  return <section className="section white"><div className="container portal-content"><p className="eyebrow">Student dashboard</p><h1>{student.full_name}</h1><LearnerRecords student={student} records={records} fees={fees} /></div></section>
+}
