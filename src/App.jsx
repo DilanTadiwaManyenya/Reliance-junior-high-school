@@ -19,6 +19,7 @@ import ParentDashboard from './pages/portal/ParentDashboard'
 import StaffDashboard from './pages/portal/StaffDashboard'
 import ProtectedRoute from './components/portal/ProtectedRoute'
 import PortalLayout from './components/portal/PortalLayout'
+import StaffPortalLayout from './components/portal/StaffPortalLayout'
 import PortalEntry from './pages/portal/PortalEntry'
 import StudentSignup from './pages/portal/StudentSignup'
 import StudentDashboard from './pages/portal/StudentDashboard'
@@ -35,7 +36,26 @@ function App() {
     <Route path="/news" element={<News />} /><Route path="/contact" element={<Contact />} />
     <Route path="/portal" element={<PortalEntry />} /><Route path="/portal/login" element={<PortalLogin />} /><Route path="/portal/staff-login" element={<PortalLogin staff />} /><Route path="/portal/signup" element={<PortalSignup />} /><Route path="/portal/student-login" element={<PortalLogin student />} /><Route path="/portal/student-signup" element={<StudentSignup />} />
     <Route path="/portal/forgot-password" element={<ForgotPassword />} />
-    <Route element={<ProtectedRoute />}><Route element={<PortalLayout />}><Route path="/portal/dashboard" element={<ParentDashboard />} /><Route element={<ProtectedRoute roles={['student']} />}><Route path="/portal/student-dashboard" element={<StudentDashboard />} /></Route><Route path="/portal/announcements" element={<Announcements />} /><Route element={<ProtectedRoute roles={['admin', 'principal']} />}><Route path="/portal/staff" element={<StaffDashboard />} /></Route><Route element={<ProtectedRoute roles={['teacher']} />}><Route path="/portal/teacher" element={<StaffDashboard />} /></Route><Route element={<ProtectedRoute roles={['accountant']} />}><Route path="/portal/accountant" element={<StaffDashboard />} /></Route></Route></Route>
+    <Route element={<ProtectedRoute />}>
+      <Route element={<PortalLayout />}>
+        <Route path="/portal/dashboard" element={<ParentDashboard />} />
+        <Route element={<ProtectedRoute roles={['student']} />}>
+          <Route path="/portal/student-dashboard" element={<StudentDashboard />} />
+        </Route>
+        <Route path="/portal/announcements" element={<Announcements />} />
+      </Route>
+      <Route element={<StaffPortalLayout />}>
+        <Route element={<ProtectedRoute roles={['admin', 'principal']} />}>
+          <Route path="/portal/staff" element={<StaffDashboard />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['teacher']} />}>
+          <Route path="/portal/teacher" element={<StaffDashboard />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['accountant']} />}>
+          <Route path="/portal/accountant" element={<StaffDashboard />} />
+        </Route>
+      </Route>
+    </Route>
     <Route path="*" element={<NotFound />} />
   </Routes></main>{!portal && <Footer />}</div>
 }

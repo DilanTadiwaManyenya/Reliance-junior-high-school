@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 130" width="520" height="130">
+  <!-- Google Fonts: Inter -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap');
+      .text-main { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; }
+    </style>
+
+    <!-- Circular clip for emblem -->
+    <clipPath id="circle-clip">
+      <circle cx="62" cy="65" r="56"/>
+    </clipPath>
+
+    <!-- Gold ring gradient -->
+    <radialGradient id="gold-ring" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F5D485"/>
+      <stop offset="100%" stop-color="#C9952A"/>
+    </radialGradient>
+
+    <!-- Subtle drop shadow for crest -->
+    <filter id="crest-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000030"/>
+    </filter>
+
+    <!-- Divider gradient -->
+    <linearGradient id="divider-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E3B23C" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#E3B23C" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#E3B23C" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#E3B23C" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- White background -->
+  <rect width="520" height="130" fill="white" rx="8"/>
+
+  <!-- CREST / EMBLEM -->
+  <g filter="url(#crest-shadow)">
+    <!-- Outer gold ring -->
+    <circle cx="62" cy="65" r="58" fill="url(#gold-ring)"/>
+    <!-- White separator ring -->
+    <circle cx="62" cy="65" r="54" fill="white"/>
+    <!-- Navy background circle -->
+    <circle cx="62" cy="65" r="52" fill="#1B2A56"/>
+
+    <!-- Shield body clipped to circle -->
+    <g clip-path="url(#circle-clip)">
+      <!-- Shield outer navy -->
+      <path fill="#1B2A56" d="M62 15 L96 27 L96 63 C96 87 78 103 62 111 C46 103 28 87 28 63 L28 27 Z"/>
+      <!-- Shield red field -->
+      <path fill="#A6302F" d="M62 21 L90 31 L90 61 C90 81 74 96 62 104 C50 96 34 81 34 61 L34 31 Z"/>
+      <!-- Upper gold band -->
+      <rect x="34" y="43" width="56" height="7" fill="#E3B23C" rx="1"/>
+      <!-- Lower gold band -->
+      <rect x="36" y="73" width="52" height="7" fill="#E3B23C" rx="1"/>
+      <!-- White center panel -->
+      <rect x="37" y="51" width="50" height="21" fill="white"/>
+      <!-- Left navy pillar/book -->
+      <rect x="41" y="54" width="15" height="15" fill="#1B2A56" rx="1"/>
+      <!-- Right navy pillar/book -->
+      <rect x="60" y="54" width="15" height="15" fill="#1B2A56" rx="1"/>
+      <!-- Blue banner ribbon -->
+      <rect x="20" y="96" width="84" height="14" fill="#3FA9DA" rx="2"/>
+      <!-- RELIANCE text on banner -->
+      <text x="62" y="107" fill="white" font-size="7.5" font-weight="700" text-anchor="middle"
+            font-family="'Inter','Segoe UI',Arial,sans-serif" letter-spacing="1.2">RELIANCE</text>
+    </g>
+
+    <!-- Inner gold ring accent -->
+    <circle cx="62" cy="65" r="52" fill="none" stroke="#E3B23C" stroke-width="1" stroke-opacity="0.4"/>
+  </g>
+
+  <!-- GOLD VERTICAL DIVIDER -->
+  <line x1="133" y1="22" x2="133" y2="108" stroke="url(#divider-grad)" stroke-width="1.5"/>
+
+  <!-- TEXT BLOCK -->
+  <g>
+    <!-- Primary heading: Reliance Learning Centre -->
+    <text x="148" y="68"
+          font-family="'Inter','Segoe UI',Trebuchet MS,Arial,sans-serif"
+          font-size="28"
+          font-weight="800"
+          fill="#1B2A56"
+          letter-spacing="-0.3"
+          class="text-main">Reliance Learning Centre</text>
+
+    <!-- Thin decorative underline under heading -->
+    <rect x="148" y="74" width="340" height="1.5" fill="#E3B23C" opacity="0.6" rx="1"/>
+
+    <!-- Subtitle: Reliance Junior and Senior -->
+    <text x="150" y="96"
+          font-family="'Inter','Segoe UI',Trebuchet MS,Arial,sans-serif"
+          font-size="16.5"
+          font-weight="700"
+          fill="#C41E3A"
+          letter-spacing="0.8"
+          class="text-main">RELIANCE JUNIOR &amp; SENIOR</text>
+  </g>
+</svg>

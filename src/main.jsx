@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import './portal.css'
 import './portalPolish.css'
+import './staffPortal.css'
+import './feesDashboard.css'
 import App from './App'
 import { AuthProvider } from './context/AuthProvider'
 
