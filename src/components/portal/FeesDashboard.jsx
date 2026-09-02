@@ -303,7 +303,7 @@ function CategorySection({ cat, students, onEdit, onAdd, storageKey }) {
               />
               {q && <button className="fee-search-clear" onClick={() => setQ('')} aria-label="Clear search"><CloseIcon /></button>}
             </div>
-            <button className="fee-add-btn" onClick={onAdd}>
+            <button type="button" className="fee-add-btn" onClick={onAdd}>
               <PlusIcon />
               {cat === 'full' ? 'Add Record' : 'Record Payment'}
             </button>
@@ -715,3 +715,4 @@ export default function FeesDashboard({ students, loading, supabase, user, profi
     </div>
   )
 }
+

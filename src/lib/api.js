@@ -1,0 +1,24 @@
+/** Authenticated Supabase fee data access helpers. */
+const report = (operation, error, fallback = null) => { console.error(`Unable to ${operation}:`, error); return fallback }
+/** @param {object} supabase @param {string|null} campus @returns {Promise<Array>} */
+export async function fetchStudents(supabase, campus = null) { try { let q = supabase.from('students').select('*').order('full_name'); if (campus && campus !== 'all') q = q.eq('campus', campus); const { data, error } = await q; return error ? report('fetch students', error, []) : (data ?? []) } catch (error) { return report('fetch students', error, []) } }
+/** @param {object} supabase @param {string} studentId @param {number} year @param {string} term @returns {Promise<object|null>} */
+export async function fetchFeesByStudent(supabase, studentId, year, term) { try { const { data, error } = await supabase.from('fee_balances').select('*').eq('student_id', studentId).eq('academic_year', year).eq('term', term).maybeSingle(); return error ? report('fetch fee', error) : data } catch (error) { return report('fetch fee', error) } }
+/** @param {object} supabase @param {string} studentId @returns {Promise<Array>} */
+export async function fetchAllFeesByStudent(supabase, studentId) { try { const { data, error } = await supabase.from('fee_balances').select('*').eq('student_id', studentId).order('academic_year', { ascending: false }).order('term', { ascending: false }); return error ? report('fetch fee history', error, []) : (data ?? []) } catch (error) { return report('fetch fee history', error, []) } }
+/** @param {object} supabase @param {string} term @param {number} year @returns {Promise<Array>} */
+export async function fetchFeesBulk(supabase, term, year) { try { const { data, error } = await supabase.from('fee_balances').select('*').eq('term', term).eq('academic_year', year); return error ? report('fetch fees', error, []) : (data ?? []) } catch (error) { return report('fetch fees', error, []) } }
+/** @param {object} supabase @param {string} feeId @param {object} updates @returns {Promise<object|null>} */
+export async function updateFee(supabase, feeId, updates) { try { const { data, error } = await supabase.from('fee_balances').update(updates).eq('id', feeId).select().maybeSingle(); return error ? report('update fee', error) : data } catch (error) { return report('update fee', error) } }
+/** @param {object} supabase @param {object} feeData @returns {Promise<object|null>} */
+export async function upsertFee(supabase, feeData) { try { const { data, error } = await supabase.from('fee_balances').upsert(feeData, { onConflict: 'student_id,term,academic_year' }).select().maybeSingle(); return error ? report('save fee', error) : data } catch (error) { return report('save fee', error) } }
+/** @param {object} supabase @param {string} studentId @param {number} year @param {string} term @param {number} amountDue @param {number} amountPaid @returns {Promise<object|null>} */
+export async function createFee(supabase, studentId, year, term, amountDue, amountPaid = 0) { return upsertFee(supabase, { student_id: studentId, academic_year: year, term, total_fees: amountDue, amount_paid: amountPaid }) }
+/** @param {object} supabase @param {string} parentId @returns {Promise<object|null>} */
+export async function fetchParent(supabase, parentId) { try { const { data, error } = await supabase.from('parents').select('*').eq('id', parentId).maybeSingle(); return error ? report('fetch parent', error) : data } catch (error) { return report('fetch parent', error) } }
+/** @param {object} supabase @param {string} studentId @returns {Promise<object|null>} */
+export async function fetchStudentWithParent(supabase, studentId) { try { const { data, error } = await supabase.from('students').select('*, parent_student(parent:parents(*))').eq('id', studentId).maybeSingle(); return error ? report('fetch student with parent', error) : data } catch (error) { return report('fetch student with parent', error) } }
+/** @param {object} supabase @param {string|null} campus @returns {Promise<Array>} */
+export async function fetchParentsByCampus(supabase, campus = null) { try { const { data, error } = await supabase.from('parents').select('*, parent_student(student:students(id,campus))'); if (error) return report('fetch parents', error, []); return campus && campus !== 'all' ? data.filter(p => p.parent_student?.some(x => x.student?.campus === campus)) : (data ?? []) } catch (error) { return report('fetch parents', error, []) } }
+/** @param {object} supabase @param {string} feeId @returns {Promise<object|null>} */
+export async function deleteFee(supabase, feeId) { try { const { data, error } = await supabase.from('fee_balances').delete().eq('id', feeId).select().maybeSingle(); return error ? report('delete fee', error) : data } catch (error) { return report('delete fee', error) } }
