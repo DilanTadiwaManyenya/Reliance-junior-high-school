@@ -1,0 +1,1 @@
+export default function GradeCard({ subject, grade, percentage, status = 'good', comment }) { return <div className={`grade-card ${status}`}><span>{subject}</span><strong>{grade}</strong><small>{Number(percentage || 0).toFixed(0)}%</small>{comment && <p>{comment}</p>}</div> }

@@ -93,6 +93,7 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
 
       {/* ── Nav ── */}
       <nav className="sidebar-nav" aria-label="Main navigation">
+        {!collapsed && <span className="sidebar-nav-heading">Workspace</span>}
         {navItems.map(item => (
           <NavItem
             key={item.id}

@@ -716,3 +716,78 @@
   font-size: 1.1rem !important;
   margin: 0 0 12px !important;
 }
+
+/* Dashboard experience refinements */
+.staff-main { background: linear-gradient(135deg, #f7f9fd 0%, #f1f4fa 100%); }
+.staff-content-area { width: 100%; max-width: 1320px; margin: 0 auto; padding: 36px clamp(20px, 3vw, 44px) 48px; }
+.dash-home, .dash-section { gap: 28px; }
+.dash-page-header { padding-bottom: 4px; }
+.dash-page-title { font-size: clamp(1.75rem, 2.5vw, 2.25rem); letter-spacing: -0.035em; }
+.dash-page-sub { max-width: 600px; line-height: 1.55; }
+.dash-stats-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.dash-stat-card { position: relative; min-height: 122px; padding: 22px; overflow: hidden; }
+.dash-stat-card::after { content: ''; position: absolute; right: -25px; bottom: -36px; width: 116px; height: 116px; border-radius: 50%; background: linear-gradient(135deg, rgba(27,42,86,.055), transparent); pointer-events: none; }
+.dash-stat-card:focus-within, .dash-stat-card:hover { border-color: rgba(27,42,86,.13); }
+.dash-stat-value { font-size: clamp(1.65rem, 2.5vw, 2.1rem); letter-spacing: -0.04em; }
+.dash-card { border-radius: 14px; box-shadow: 0 8px 24px rgba(26,40,71,.06); }
+.dash-card-header { padding: 19px 22px; background: linear-gradient(180deg, #fff, #fcfdff); }
+.dash-card-title { letter-spacing: -.015em; }
+.dash-view-all { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+.dash-view-all:hover { color: #a51c36; }
+.portal-table th { white-space: nowrap; }
+.portal-table td { vertical-align: middle; }
+.portal-table tr:last-child td { border-bottom: 0; }
+.portal-form input, .portal-form select, .portal-form textarea, .portal-student-selector input, .portal-student-selector select { transition: border-color .16s ease, box-shadow .16s ease; }
+.portal-form input:focus, .portal-form select:focus, .portal-form textarea:focus, .portal-student-selector input:focus, .portal-student-selector select:focus { outline: none; border-color: #3f6bd8; box-shadow: 0 0 0 3px rgba(63,107,216,.13); }
+.portal-tabs .btn { border-radius: 8px; }
+.top-bar-avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #c41e3a, #8f1831); color: #fff; font-size: .72rem; font-weight: 800; letter-spacing: .04em; box-shadow: 0 3px 8px rgba(196,30,58,.2); }
+.top-bar-user { gap: 10px; }
+.sidebar-nav-heading { display: block; margin: 10px 14px 7px; color: rgba(225,232,249,.48); font-size: .65rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.sidebar-help { margin: auto 18px 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); color: rgba(225,232,249,.56); font-size: .7rem; line-height: 1.5; }
+.portal-sidebar { display: flex; flex-direction: column; }
+.sidebar-nav { flex: 1; }
+.sidebar-nav-item:focus-visible, .top-bar-toggle:focus-visible, .top-bar-logout:focus-visible, .dash-view-all:focus-visible { outline: 3px solid rgba(227,178,60,.72); outline-offset: 2px; }
+@media (max-width: 900px) { .sidebar-nav-heading, .sidebar-help { display: none; } }
+@media (max-width: 700px) { .dash-stats-row { grid-template-columns: 1fr 1fr; } .dash-stat-card { min-height: 112px; padding: 18px; gap: 12px; } .dash-stat-icon { width: 42px; height: 42px; } }
+@media (max-width: 480px) { .staff-content-area { padding: 22px 14px 34px; } .dash-stats-row { grid-template-columns: 1fr; } .top-bar-avatar { display: none; } .dash-card-header { padding: 16px; } .dash-preview-table th, .dash-preview-table td { padding: 11px 12px; } }
+
+/* Teacher grade entry */
+.grade-entry { max-width: 1080px; color: #1b2a56; }
+.grade-entry-heading { margin-bottom: 24px; }
+.grade-entry .eyebrow { margin: 0 0 7px; color: #c41e3a; font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.grade-entry h1 { margin: 0; color: #1b2a56; font-family: var(--font-ui) !important; font-size: clamp(1.8rem, 3vw, 2.5rem) !important; font-weight: 800; line-height: 1.12; letter-spacing: -.045em; }
+.grade-entry-heading > div > p:last-child { margin: 9px 0 0; color: #697795; font-size: .95rem; line-height: 1.55; }
+.grade-entry-form { display: grid; gap: 22px; padding: clamp(20px, 3vw, 32px); background: #fff; border: 1px solid rgba(27,42,86,.08); border-radius: 16px; box-shadow: 0 10px 30px rgba(26,40,71,.07); }
+.grade-entry-form label { display: grid; gap: 7px; color: #425273; font-size: .78rem; font-weight: 700; letter-spacing: .02em; }
+.grade-entry-form > label { max-width: 460px; }
+.grade-entry-form input, .grade-entry-form select, .grade-entry-form textarea { box-sizing: border-box; width: 100%; min-height: 43px; padding: 10px 12px; border: 1px solid #dbe1ec; border-radius: 8px; background: #fff; color: #1b2a56; font: inherit; font-size: .9rem; font-weight: 500; transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.grade-entry-form textarea { min-height: 98px; resize: vertical; }
+.grade-entry-form input[readonly] { background: #f5f7fb; color: #64718c; }
+.grade-entry-form input:focus, .grade-entry-form select:focus, .grade-entry-form textarea:focus { outline: none; border-color: #3f6bd8; box-shadow: 0 0 0 3px rgba(63,107,216,.13); }
+.grade-entry-form select:disabled { cursor: not-allowed; background: #f4f6fa; color: #98a3b8; }
+.learner-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 13px 16px; border: 1px solid #d9e4fb; border-radius: 10px; background: #f5f8ff; color: #52617f; font-size: .84rem; }
+.learner-summary strong { color: #1b2a56; font-size: .92rem; }
+.learner-summary span + span { padding-left: 16px; border-left: 1px solid #d9e4fb; }
+.grade-tabs { display: inline-flex; width: fit-content; padding: 4px; border-radius: 10px; background: #f1f4f9; }
+.grade-tabs button { min-height: 38px; padding: 0 18px; border: 0; border-radius: 7px; background: transparent; color: #62708c; font: 700 .84rem var(--font-ui); cursor: pointer; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
+.grade-tabs button.active { background: #fff; color: #c41e3a; box-shadow: 0 2px 7px rgba(26,40,71,.12); }
+.grade-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; padding-top: 2px; }
+.grade-fields .wide { grid-column: span 2; }
+.grade-outcome { grid-column: 1 / -1; margin: -2px 0 0; padding: 11px 14px; border-left: 3px solid #e3b23c; border-radius: 6px; background: #fff9e9; color: #735500; font-size: .86rem; }
+.grade-entry-form .btn.primary { justify-self: start; min-height: 45px; padding: 0 21px; border: 0; border-radius: 8px; background: #b52f32; color: #fff; font: 700 .88rem var(--font-ui); cursor: pointer; box-shadow: 0 5px 12px rgba(181,47,50,.2); }
+.grade-entry-form .btn.primary:hover:not(:disabled) { background: #9f252b; transform: translateY(-1px); }
+.grade-entry-form .btn.primary:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; }
+@media (max-width: 900px) { .grade-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .grade-entry-form { gap: 18px; padding: 18px; border-radius: 12px; } .grade-fields { grid-template-columns: 1fr; gap: 15px; } .grade-fields .wide { grid-column: auto; } .learner-summary { align-items: flex-start; flex-direction: column; gap: 5px; } .learner-summary span + span { padding-left: 0; border-left: 0; } }
+
+/* Role-aware dashboard refinements */
+.dash-kicker { margin: 0 0 7px; color: #c41e3a; font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.dash-page-header .btn { min-height: 42px; padding: 0 18px; border-radius: 8px; white-space: nowrap; }
+.dash-card-header > div { min-width: 0; }
+.dash-card-subtitle { margin: 4px 0 0; color: #8390a9; font-size: .78rem; line-height: 1.45; }
+.dash-empty-state { display: grid; justify-items: center; gap: 9px; padding: 48px 24px; text-align: center; color: #75829d; }
+.dash-empty-state strong { color: #1b2a56; font-size: 1rem; }
+.dash-empty-state span { max-width: 430px; font-size: .86rem; line-height: 1.5; }
+.dash-empty-action { margin-top: 7px; min-height: 37px; padding: 0 14px; border: 1px solid rgba(196,30,58,.22); border-radius: 7px; background: #fff6f7; color: #b52f32; font: 700 .8rem var(--font-ui); cursor: pointer; }
+.dash-empty-action:hover { background: #c41e3a; color: #fff; border-color: #c41e3a; }
+@media (max-width: 560px) { .dash-page-header .btn { width: 100%; } .dash-card-header { align-items: flex-start; gap: 12px; flex-direction: column; } }

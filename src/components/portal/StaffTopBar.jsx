@@ -36,6 +36,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
     accountant:'Accountant Portal',
   }[profile?.role] ?? 'Staff Portal'
 
+  const initials = (profile?.full_name || 'Portal User').split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase()
+
   return (
     <header className="staff-top-bar" role="banner">
       {/* ── Left: toggle + brand ───────────── */}
@@ -77,6 +79,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
       {/* ── Right: user info + logout ──────── */}
       <div className="top-bar-user">
+        <div className="top-bar-avatar" aria-hidden="true">{initials}</div>
         <div className="top-bar-user-info">
           <span className="top-bar-username">{profile?.full_name || 'Portal User'}</span>
           <span className="top-bar-role-badge">{profile?.role || 'staff'}</span>

@@ -21,7 +21,7 @@ export default function StudentSignup() {
   const streams = useMemo(() => getStreamsForLevel(form.classLevel), [form.classLevel])
   const update = field => event => {
     const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value
-    setForm(current => ({ ...current, [field]: value, ...(field === 'classLevel' ? { classStream: '' } : {}) }))
+    setForm(current => ({ ...current, [field]: value, ...(field === 'classLevel' ? { classStream: getStreamsForLevel(value).length ? '' : 'N/A' } : {}) }))
     setErrors(current => ({ ...current, [field]: '' }))
   }
   const validate = () => {
@@ -32,7 +32,7 @@ export default function StudentSignup() {
     if (!admissionPattern.test(form.admissionNumber.trim())) next.admissionNumber = 'Admission number must contain 4 to 6 digits.'
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.dateOfBirth) || Number.isNaN(Date.parse(`${form.dateOfBirth}T00:00:00Z`))) next.dateOfBirth = 'Choose a valid date of birth.'
     if (!CLASS_LEVELS.includes(form.classLevel)) next.classLevel = 'Choose a class level.'
-    if (!streams.includes(form.classStream)) next.classStream = 'Choose a class stream.'
+    if (streams.length ? !streams.includes(form.classStream) : form.classStream !== 'N/A') next.classStream = 'Choose a class stream.'
     if (!form.acceptedTerms) next.acceptedTerms = 'You must accept the terms and conditions.'
     return next
   }
@@ -57,8 +57,8 @@ export default function StudentSignup() {
     <label>Confirm password <span className="required-mark">*</span><PasswordInput id="student-confirm-password" label="" value={form.confirmPassword} onChange={update('confirmPassword')} required /></label>{errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
     <label>Admission number <span className="required-mark">*</span><input inputMode="numeric" maxLength="6" value={form.admissionNumber} onChange={update('admissionNumber')} /></label>{errors.admissionNumber && <p className="field-error">{errors.admissionNumber}</p>}
     <label>Date of birth <span className="required-mark">*</span><input type="date" value={form.dateOfBirth} onChange={update('dateOfBirth')} /></label>{errors.dateOfBirth && <p className="field-error">{errors.dateOfBirth}</p>}
-    <label>Class level <span className="required-mark">*</span><select value={form.classLevel} onChange={update('classLevel')}><option value="">Select class level</option>{CLASS_LEVELS.filter(level => !level.startsWith('ECD')).map(level => <option key={level} value={level}>{level}</option>)}</select></label>{errors.classLevel && <p className="field-error">{errors.classLevel}</p>}
-    <label>Class stream <span className="required-mark">*</span><select value={form.classStream} onChange={update('classStream')} disabled={!form.classLevel}><option value="">{form.classLevel ? 'Select class stream' : 'Choose a class level first'}</option>{streams.map(stream => <option key={stream} value={stream}>{stream}</option>)}</select></label>{errors.classStream && <p className="field-error">{errors.classStream}</p>}
+    <label>Class level <span className="required-mark">*</span><select value={form.classLevel} onChange={update('classLevel')}><option value="">Select class level</option>{CLASS_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}</select></label>{errors.classLevel && <p className="field-error">{errors.classLevel}</p>}
+    <label>Class stream <span className="required-mark">*</span><select value={form.classStream} onChange={update('classStream')} disabled={!form.classLevel || !streams.length}><option value="">{form.classLevel ? (streams.length ? 'Select class stream' : 'N/A (single ECD class)') : 'Choose a class level first'}</option>{!streams.length && form.classLevel && <option value="N/A">N/A (single ECD class)</option>}{streams.map(stream => <option key={stream} value={stream}>{stream}</option>)}</select></label>{errors.classStream && <p className="field-error">{errors.classStream}</p>}
     <label className="terms-check"><input type="checkbox" checked={form.acceptedTerms} onChange={update('acceptedTerms')} /> I accept the terms and conditions <span className="required-mark">*</span></label>{errors.acceptedTerms && <p className="field-error">{errors.acceptedTerms}</p>}
-    <button className="btn primary" disabled={submitting}>{submitting && <span className="button-spinner" aria-hidden="true" />} {submitting ? 'Creating account�' : 'Create account'}</button></form><p>Already registered? <Link to="/portal/student-login">Sign in</Link></p></section></main>
+    <button className="btn primary" disabled={submitting}>{submitting && <span className="button-spinner" aria-hidden="true" />} {submitting ? 'Creating accountï¿½' : 'Create account'}</button></form><p>Already registered? <Link to="/portal/student-login">Sign in</Link></p></section></main>
 }

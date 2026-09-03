@@ -2,9 +2,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
 const reply = (body: object, status = 200) => new Response(JSON.stringify(body), { status, headers })
-const levels = ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 6']
+const levels = ['ECD A', 'ECD B', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 6']
 const normalizePhone = (value: unknown) => { const raw = String(value ?? '').trim().replace(/[\s-]/g, ''); return raw.startsWith('0') ? `+263${raw.slice(1)}` : raw.startsWith('263') ? `+${raw}` : raw }
-const validStream = (level: string, stream: string) => (['Form 5', 'Form 6'].includes(level) ? ['Commercials', 'Arts', 'Sciences'] : ['Blue', 'Green', 'White']).includes(stream)
+const validStream = (level: string, stream: string) => (['ECD A', 'ECD B'].includes(level) ? ['N/A', ''] : ['Form 5', 'Form 6'].includes(level) ? ['Commercials', 'Arts', 'Sciences'] : ['Blue', 'Green', 'White']).includes(stream)
 const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
 const portalEmail = (phone: string) => `portal-${phone.slice(1)}@portal.reliance.local`
 
