@@ -453,6 +453,7 @@ export default function FeesDashboard({ students, loading, supabase, user, profi
   const [feeRecords,  setFeeRecords]  = useState([])
   const [term,        setTerm]        = useState(CURRENT_TERM)
   const [year,        setYear]        = useState(CURRENT_YEAR)
+  const [enrolledYear, setEnrolledYear] = useState(null)
   const [campus,      setCampus]      = useState(() => {
     // Accountants scoped to their campus by default
     if (profile?.campus === 'junior') return 'junior'
@@ -465,6 +466,17 @@ export default function FeesDashboard({ students, loading, supabase, user, profi
   const [saving,      setSaving]      = useState(false)
   const [feeLoading,  setFeeLoading]  = useState(true)
   const [toast,       setToast]       = useState(null)
+
+  const isStudent = profile?.role === 'student'
+
+  useEffect(() => {
+    if (!isStudent || !user?.id) return
+    const loadEnrollmentYear = async () => {
+      const { data } = await supabase.from('student_accounts').select('enrolled_year').eq('user_id', user.id).maybeSingle()
+      if (data?.enrolled_year) { setEnrolledYear(data.enrolled_year); setYear(current => Math.max(current, data.enrolled_year)) }
+    }
+    loadEnrollmentYear()
+  }, [isStudent, supabase, user?.id])
 
   // Storage key for section expand state (per term/year)
   const storageKey = `${term}_${year}`
@@ -479,10 +491,11 @@ export default function FeesDashboard({ students, loading, supabase, user, profi
       .select('*')
       .eq('term', term)
       .eq('academic_year', year)
+      .gte('academic_year', enrolledYear ?? 0)
     if (err) setError(err.message)
     else setFeeRecords(data ?? [])
     setFeeLoading(false)
-  }, [supabase, term, year])
+  }, [supabase, term, year, enrolledYear])
 
   useEffect(() => { loadFees() }, [loadFees])
 
@@ -595,8 +608,8 @@ export default function FeesDashboard({ students, loading, supabase, user, profi
           </div>
           <div className="fees-control-group">
             <label className="fees-control-label">Year</label>
-            <select className="fees-select" value={year} onChange={e => setYear(Number(e.target.value))}>
-              {[2025, 2026, 2027].map(y => <option key={y}>{y}</option>)}
+            <select className="fees-select" value={year} onChange={e => setYear(Number(e.target.value))} disabled={isStudent}>
+              {[2025, 2026, 2027].filter(y => !isStudent || y >= (enrolledYear ?? CURRENT_YEAR)).map(y => <option key={y}>{y}</option>)}
             </select>
           </div>
           {!campusLocked && (
@@ -715,4 +728,3 @@ export default function FeesDashboard({ students, loading, supabase, user, profi
     </div>
   )
 }
-

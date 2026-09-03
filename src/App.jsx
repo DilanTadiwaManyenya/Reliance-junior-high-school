@@ -41,6 +41,7 @@ function App() {
         <Route path="/portal/dashboard" element={<ParentDashboard />} />
         <Route element={<ProtectedRoute roles={['student']} />}>
           <Route path="/portal/student-dashboard" element={<StudentDashboard />} />
+          <Route path="/portal/staff/dashboard" element={<StudentDashboard />} />
         </Route>
         <Route path="/portal/announcements" element={<Announcements />} />
       </Route>
