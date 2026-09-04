@@ -1,0 +1,18 @@
+*** Begin Patch
+*** Update File: src/components/portal/FeesDashboard.jsx
+@@
+-const JUNIOR_GRADES = ['ECD A', 'ECD B', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Form 1', 'Form 2']
+ const money = value => `$${Number(value ?? 0).toFixed(2)}`
+-const isJunior = level => JUNIOR_GRADES.includes(level)
+-const defaultFee = level => isJunior(level) ? 170 : 200
++const defaultFee = level => ({ 'ECD A': 120, 'ECD B': 120, 'Grade 1': 120, 'Grade 2': 120, 'Grade 3': 120, 'Grade 4': 120, 'Grade 5': 120, 'Grade 6': 120, 'Grade 7': 120, 'Form 1': 170, 'Form 2': 170, 'Form 3': 180, 'Form 4': 180, 'Form 5': 210, 'Form 6': 210 }[level] ?? 0)
+@@
+-    const matchesFilter = filters.includes('all') || filters.includes(student.category) || filters.includes(isJunior(student.class_level) ? 'junior' : 'senior')
++    const matchesFilter = filters.includes('all') || filters.includes(student.category) || filters.includes(student.campus)
+@@
+-  const enriched = useMemo(() => students.filter(student => campus === 'all' || (campus === 'junior' ? isJunior(student.class_level) : !isJunior(student.class_level))).map(student => {
++  const enriched = useMemo(() => students.filter(student => campus === 'all' || student.campus === campus).map(student => {
+@@
+-    const csv = [headings, ...rows.map(student => [student.full_name, student.admission_number, student.class_level, isJunior(student.class_level) ? 'Junior' : 'Senior', student.totalFees, student.amountPaid, student.balance, statusMeta[student.category].label])].map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
++    const csv = [headings, ...rows.map(student => [student.full_name, student.admission_number, student.class_level, student.campus, student.totalFees, student.amountPaid, student.balance, statusMeta[student.category].label])].map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
+*** End Patch
