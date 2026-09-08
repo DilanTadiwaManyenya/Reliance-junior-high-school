@@ -1,18 +1,17 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LuBuilding2, LuChevronLeft, LuChevronRight, LuCircleAlert, LuCircleCheck,
   LuCircleX, LuCreditCard, LuDownload, LuEllipsisVertical, LuFilter,
   LuHistory, LuPencil, LuSearch, LuSend, LuWallet,
 } from 'react-icons/lu'
 import PortalNotice from './PortalNotice'
+import { getFeeAmount } from '../../lib/FeeStructure'
 
 const CURRENT_YEAR = 2026
 const CURRENT_TERM = 'Term 3'
 const TERMS = ['Term 1', 'Term 2', 'Term 3']
-const JUNIOR_GRADES = ['ECD A', 'ECD B', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Form 1', 'Form 2']
 const money = value => `$${Number(value ?? 0).toFixed(2)}`
-const isJunior = level => JUNIOR_GRADES.includes(level)
-const defaultFee = level => isJunior(level) ? 170 : 200
+const defaultFee = level => getFeeAmount(level)
 const initials = name => (name ?? '?').split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase()
 
 const statusMeta = {
@@ -69,7 +68,7 @@ function MasterTable({ students, onEdit, onReminder, onHistory, onExport }) {
   }
   const filtered = useMemo(() => students.filter(student => {
     const matchesSearch = `${student.full_name} ${student.admission_number} ${student.class_level}`.toLowerCase().includes(query.toLowerCase())
-    const matchesFilter = filters.includes('all') || filters.includes(student.category) || filters.includes(isJunior(student.class_level) ? 'junior' : 'senior')
+    const matchesFilter = filters.includes('all') || filters.includes(student.category) || filters.includes(student.campus)
     return matchesSearch && matchesFilter
   }), [students, query, filters])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
@@ -92,7 +91,7 @@ function MasterTable({ students, onEdit, onReminder, onHistory, onExport }) {
           <thead><tr><th>Student name</th><th>Admission ID</th><th>Class / Grade</th><th>Campus</th><th className="currency">Total term fee</th><th className="currency">Amount paid</th><th className="currency">Balance owed</th><th>Status</th><th className="actions-column">Actions</th></tr></thead>
           <tbody>{visible.length ? visible.map(student => {
             const meta = statusMeta[student.category]; const StatusIcon = meta.icon
-            return <tr key={student.id}><td><div className="fee-student"><span className="fee-avatar">{initials(student.full_name)}</span><strong>{student.full_name}</strong></div></td><td className="fee-mono">{student.admission_number || '—'}</td><td>{student.class_level}{student.class_stream ? ` · ${student.class_stream}` : ''}</td><td><span className={`fee-campus-badge ${isJunior(student.class_level) ? 'junior' : 'senior'}`}><LuBuilding2 size={13} />{isJunior(student.class_level) ? 'Junior' : 'Senior'}</span></td><td className="currency">{money(student.totalFees)}</td><td className="currency paid-value">{money(student.amountPaid)}</td><td className={`currency balance-value ${student.balance > 0 ? 'owing' : ''}`}>{money(student.balance)}</td><td><span className={`fee-status ${meta.card}`}><StatusIcon size={15} />{meta.label}</span></td><td className="actions-column"><div className="fee-action-menu"><button type="button" className="fee-action-trigger" aria-label={`Actions for ${student.full_name}`} onClick={() => setOpenAction(openAction === student.id ? null : student.id)}><LuEllipsisVertical size={19} /></button>{openAction === student.id && <div className="fee-action-popover"><button onClick={() => { onEdit(student); setOpenAction(null) }}><LuPencil size={15} /> Update payment</button><button onClick={() => { onReminder(student); setOpenAction(null) }}><LuSend size={15} /> Send reminder</button><button onClick={() => { onHistory(student); setOpenAction(null) }}><LuHistory size={15} /> View history</button></div>}</div></td></tr>
+            return <tr key={student.id}><td><div className="fee-student"><span className="fee-avatar">{initials(student.full_name)}</span><strong>{student.full_name}</strong></div></td><td className="fee-mono">{student.admission_number || '—'}</td><td>{student.class_level}{student.class_stream ? ` · ${student.class_stream}` : ''}</td><td><span className={`fee-campus-badge ${student.campus === 'junior' ? 'junior' : 'senior'}`}><LuBuilding2 size={13} />{student.campus === 'junior' ? 'Junior' : 'Senior'}</span></td><td className="currency">{money(student.totalFees)}</td><td className="currency paid-value">{money(student.amountPaid)}</td><td className={`currency balance-value ${student.balance > 0 ? 'owing' : ''}`}>{money(student.balance)}</td><td><span className={`fee-status ${meta.card}`}><StatusIcon size={15} />{meta.label}</span></td><td className="actions-column"><div className="fee-action-menu"><button type="button" className="fee-action-trigger" aria-label={`Actions for ${student.full_name}`} onClick={() => setOpenAction(openAction === student.id ? null : student.id)}><LuEllipsisVertical size={19} /></button>{openAction === student.id && <div className="fee-action-popover"><button onClick={() => { onEdit(student); setOpenAction(null) }}><LuPencil size={15} /> Update payment</button><button onClick={() => { onReminder(student); setOpenAction(null) }}><LuSend size={15} /> Send reminder</button><button onClick={() => { onHistory(student); setOpenAction(null) }}><LuHistory size={15} /> View history</button></div>}</div></td></tr>
           }) : <tr><td colSpan="9" className="fee-empty-state">No students match the current search and filters.</td></tr>}</tbody>
         </table>
       </div>
@@ -124,9 +123,9 @@ export default function FeesDashboard({ students = [], loading, supabase, user, 
   useEffect(() => { loadFees() }, [loadFees])
   useEffect(() => { if (toast) { const timer = setTimeout(() => setToast(''), 3500); return () => clearTimeout(timer) } }, [toast])
 
-  const enriched = useMemo(() => students.filter(student => campus === 'all' || (campus === 'junior' ? isJunior(student.class_level) : !isJunior(student.class_level))).map(student => {
+  const enriched = useMemo(() => students.filter(student => campus === 'all' || student.campus === campus).map(student => {
     const fee = feeRecords.find(record => record.student_id === student.id)
-    const totalFees = fee ? Number(fee.total_fees) : defaultFee(student.class_level)
+    const totalFees = fee ? Number(fee.total_fees) : getFeeAmount(student.class_level)
     const amountPaid = fee ? Number(fee.amount_paid) : 0
     const balance = Math.max(0, totalFees - amountPaid)
     return { ...student, totalFees, amountPaid, balance, category: amountPaid >= totalFees ? 'full' : amountPaid > 0 ? 'half' : 'unpaid' }
@@ -144,7 +143,7 @@ export default function FeesDashboard({ students = [], loading, supabase, user, 
   }
   const exportReport = rows => {
     const headings = ['Student Name', 'Admission ID', 'Class', 'Campus', 'Total Term Fee', 'Amount Paid', 'Balance Owed', 'Status']
-    const csv = [headings, ...rows.map(student => [student.full_name, student.admission_number, student.class_level, isJunior(student.class_level) ? 'Junior' : 'Senior', student.totalFees, student.amountPaid, student.balance, statusMeta[student.category].label])].map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
+    const csv = [headings, ...rows.map(student => [student.full_name, student.admission_number, student.class_level, student.campus === 'junior' ? 'Junior' : 'Senior', student.totalFees, student.amountPaid, student.balance, statusMeta[student.category].label])].map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
     const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = `fees-report-${term.toLowerCase().replace(' ', '-')}-${year}.csv`; link.click(); URL.revokeObjectURL(link.href)
   }
 

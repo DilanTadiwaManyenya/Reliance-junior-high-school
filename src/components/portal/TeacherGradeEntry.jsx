@@ -3,6 +3,7 @@ import { CURRICULUM_STRUCTURE, getSubjectsByGradeStream } from '../../utils/Curr
 import { calculateGrade } from '../../utils/GradeCalculator'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
+import { parseClassKey } from './ClassSelector'
 
 const currentYear = new Date().getFullYear()
 const blankAcademic = { subject: '', percentage: '', term: '1', year: currentYear, comment: '' }
@@ -15,7 +16,15 @@ export default function TeacherGradeEntry() {
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(''); const [success, setSuccess] = useState('')
   useEffect(() => { let active = true; (async () => { const { data, error: loadError } = await supabase.from('students').select('id, full_name, admission_number, class_level, class_stream').order('full_name'); if (!active) return; setStudents(data ?? []); setError(loadError ? 'Unable to load learners assigned to you.' : ''); setLoading(false) })(); return () => { active = false } }, [supabase])
   useEffect(() => { if (success) { const timer = setTimeout(() => setSuccess(''), 3000); return () => clearTimeout(timer) } }, [success])
-  const selected = students.find(student => student.id === studentId)
+  const activeClassKey = sessionStorage.getItem('reliance_active_portal_class') || ''
+  
+  const filteredStudents = useMemo(() => {
+    const { level, stream } = parseClassKey(activeClassKey)
+    if (!level) return students
+    return students.filter(s => s.class_level === level && (stream ? s.class_stream === stream : true))
+  }, [students, activeClassKey])
+
+  const selected = filteredStudents.find(student => student.id === studentId)
   const subjects = useMemo(() => selected ? getSubjectsByGradeStream(selected.class_level, selected.class_stream) : [], [selected])
   const outcome = selected ? calculateGrade(academic.percentage, selected.class_level) : null
   const updateAcademic = field => event => setAcademic(value => ({ ...value, [field]: event.target.value }))
@@ -33,7 +42,7 @@ export default function TeacherGradeEntry() {
   }
   if (loading) return <div className="grade-entry"><p>Loading assigned learners…</p></div>
   return <section className="grade-entry"><div className="grade-entry-heading"><div><p className="eyebrow">Academic records</p><h1>Enter learner performance</h1><p>Select a learner to reveal the appropriate curriculum and grading scale.</p></div></div>{error && <PortalNotice tone="error">{error}</PortalNotice>}{success && <PortalNotice tone="success">{success}</PortalNotice>}
-    <form onSubmit={save} className="grade-entry-form" noValidate><label>Learner<select value={studentId} onChange={event => setStudentId(event.target.value)}><option value="">Select a learner</option>{students.map(student => <option key={student.id} value={student.id}>{student.full_name} — {student.admission_number}</option>)}</select></label>
+    <form onSubmit={save} className="grade-entry-form" noValidate><label>Learner<select value={studentId} onChange={event => setStudentId(event.target.value)}><option value="">Select a learner</option>{filteredStudents.map(student => <option key={student.id} value={student.id}>{student.full_name} — {student.admission_number}</option>)}</select></label>
       {selected && <div className="learner-summary"><strong>{selected.full_name}</strong><span>{selected.admission_number}</span><span>{selected.class_level} {selected.class_stream && `· ${selected.class_stream}`}</span></div>}
       <div className="grade-tabs" role="tablist"><button type="button" className={tab === 'academic' ? 'active' : ''} onClick={() => setTab('academic')}>Academics</button><button type="button" className={tab === 'sports' ? 'active' : ''} onClick={() => setTab('sports')}>Sports</button></div>
       {tab === 'academic' ? <div className="grade-fields"><label>Subject<select value={academic.subject} onChange={updateAcademic('subject')} disabled={!selected}><option value="">Select subject</option>{subjects.map(subject => <option key={subject}>{subject}</option>)}</select></label><label>Possible mark<input value="100" readOnly /></label><label>Actual mark (%)<input type="number" min="0" max="100" step="0.01" value={academic.percentage} onChange={updateAcademic('percentage')} /></label><label>Grade / unit<input value={outcome?.grade ?? ''} readOnly /></label><label>Points<input value={outcome?.points ?? ''} readOnly /></label><label>Term<select value={academic.term} onChange={updateAcademic('term')}><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label><label>Year<input type="number" min="2020" value={academic.year} onChange={updateAcademic('year')} /></label><label className="wide">Teacher's comment<textarea value={academic.comment} onChange={updateAcademic('comment')} /></label>{outcome && <p className="grade-outcome">{outcome.description}</p>}</div> : <div className="grade-fields"><label>Sport<select value={sports.sport} onChange={event => setSports(value => ({ ...value, sport: event.target.value }))} disabled={!selected}><option value="">Select sport</option>{CURRICULUM_STRUCTURE.sports.map(sport => <option key={sport}>{sport}</option>)}</select></label><label>Participation<select value={String(sports.participated)} onChange={event => setSports(value => ({ ...value, participated: event.target.value === 'true' }))}><option value="true">Participated</option><option value="false">Did not participate</option></select></label><label>Term<select value={sports.term} onChange={event => setSports(value => ({ ...value, term: event.target.value }))}><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label><label>Year<input type="number" min="2020" value={sports.year} onChange={event => setSports(value => ({ ...value, year: event.target.value }))} /></label><label className="wide">Performance note<textarea value={sports.note} onChange={event => setSports(value => ({ ...value, note: event.target.value }))} /></label></div>}

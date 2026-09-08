@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getFeeAmount } from '../../lib/FeeStructure'
 import { supabase } from '../../lib/supabaseClient'
 import Button from '../ui/Button'
 import PortalNotice from './PortalNotice'
@@ -22,7 +23,7 @@ export default function BulkAddStudentsForm({ onSaved }) {
     const student = { full_name: `${form.first_name.trim()} ${form.last_name.trim()}`.trim(), admission_number: form.admission_number, date_of_birth: form.date_of_birth, sex: form.sex, birth_cert_no: form.birth_cert_no || null, parent_phone: form.parent_phone || null, address: form.address || null, class_level: 'Form 1', class_stream: form.class_stream, campus: 'senior', enrolled_year: 2026, status: 'active' }
     const { data, error: studentError } = await supabase.from('students').insert(student).select('id').single()
     if (studentError) { setSaving(false); return setError(studentError.message) }
-    const { error: feeError } = await supabase.from('fee_balances').insert({ student_id: data.id, term: 3, academic_year: 2026, total_fees: 170, amount_paid: 0 })
+    const { error: feeError } = await supabase.from('fee_balances').insert({ student_id: data.id, term: 'Term 3', academic_year: 2026, total_fees: getFeeAmount('Form 1'), amount_paid: 0 })
     if (feeError) { await supabase.from('students').delete().eq('id', data.id); setSaving(false); return setError(`Fee record could not be created: ${feeError.message}`) }
     setNotice(`${form.admission_number} added with a Term 3 fee balance of $170.00.`); setForm(current => ({ ...empty(), admission_number: current.admission_number === 'F1-2026-048' ? 'F1-2026-049' : 'F1-2026-048' })); setSaving(false); onSaved?.()
   }

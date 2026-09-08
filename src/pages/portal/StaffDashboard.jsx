@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
 import PortalNotice from '../../components/portal/PortalNotice'
@@ -8,7 +8,29 @@ import { useSection } from '../../components/portal/StaffPortalLayout'
 import { useAuth } from '../../context/useAuth'
 import { invokeEdgeFunction } from '../../lib/edgeFunction'
 import { CLASS_LEVELS, getStreamsForLevel } from '../../data/classOptions'
-import TeacherGradeEntry from '../../components/portal/TeacherGradeEntry'
+import ClassSelector, { parseClassKey } from '../../components/portal/ClassSelector'
+
+const ALL_CLASS_OPTIONS = [
+  { class_level: 'Form 1', class_stream: 'Green' },
+  { class_level: 'Form 1', class_stream: 'White' },
+  { class_level: 'Form 1', class_stream: 'Blue' },
+  { class_level: 'Form 2', class_stream: 'Green' },
+  { class_level: 'Form 2', class_stream: 'White' },
+  { class_level: 'Form 2', class_stream: 'Blue' },
+  { class_level: 'Form 3', class_stream: 'Green' },
+  { class_level: 'Form 3', class_stream: 'White' },
+  { class_level: 'Form 3', class_stream: 'Blue' },
+  { class_level: 'Form 4', class_stream: 'Green' },
+  { class_level: 'Form 4', class_stream: 'White' },
+  { class_level: 'Form 4', class_stream: 'Blue' },
+  { class_level: 'Grade 1', class_stream: 'Blue' },
+  { class_level: 'Grade 2', class_stream: 'Blue' },
+  { class_level: 'Grade 3', class_stream: 'Blue' },
+  { class_level: 'Grade 4', class_stream: 'Blue' },
+  { class_level: 'Grade 5', class_stream: 'Blue' },
+  { class_level: 'Grade 6', class_stream: 'Blue' },
+  { class_level: 'Grade 7', class_stream: 'Blue' }
+]
 
 const records     = { attendance: 'attendance', academic: 'academic_records', behavior: 'behavior_notes', sports: 'sports_records' }
 const today       = () => new Date().toISOString().slice(0, 10)
@@ -202,36 +224,109 @@ export default function StaffDashboard() {
     loadStaff()
   }
 
-  const visible = students.filter(row =>
+  const [activeClassKey, setActiveClassKey] = useState(() => sessionStorage.getItem('reliance_active_portal_class') || 'ALL')
+  const [teacherAssignments, setTeacherAssignments] = useState([])
+
+  const isTeacher = profile?.role === 'teacher'
+
+  // Load teacher class assignments if teacher role
+  useEffect(() => {
+    if (!isTeacher || !user?.id || !supabase) return
+    let active = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('teacher_class_assignments')
+        .select('class_level, class_stream')
+        .eq('teacher_id', user.id)
+      if (active && data) {
+        setTeacherAssignments(data)
+      }
+    })()
+    return () => { active = false }
+  }, [isTeacher, user?.id, supabase])
+
+  const handleClassChange = (key, option) => {
+    console.log('[ClassSelector Switch Event]', {
+      sessionStorageKey: key,
+      activeClassKey: key,
+      label: option?.label || key
+    })
+    setActiveClassKey(key)
+    sessionStorage.setItem('reliance_active_portal_class', key)
+  }
+
+  // Filter students based on active class selection (class_level & class_stream)
+  const filteredStudents = useMemo(() => {
+    const { level, stream } = parseClassKey(activeClassKey)
+    const filterApplied = level 
+      ? `class_level = '${level}' AND class_stream = '${stream || ''}'` 
+      : 'NONE (Showing all students)'
+
+    console.log('[Admin/Teacher Class Filter Applied]', {
+      sessionStorageValue: sessionStorage.getItem('reliance_active_portal_class'),
+      activeClassKey,
+      parsedFilter: { class_level: level, class_stream: stream },
+      filterApplied,
+      matchingStudentsCount: level 
+        ? students.filter(s => s.class_level === level && (stream ? s.class_stream === stream : true)).length 
+        : students.length
+    })
+
+    if (!level) return students
+    return students.filter(s => s.class_level === level && (stream ? s.class_stream === stream : true))
+  }, [students, activeClassKey])
+
+  const visible = filteredStudents.filter(row =>
     `${row.full_name} ${row.admission_number}`.toLowerCase().includes(query.toLowerCase())
   )
 
 
-  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Accountant: always show fees dashboard ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  /* Accountant: show fees dashboard with class selector */
   if (accountant) return (
     <div className="staff-content-area">
-      <FeesDashboard students={students} loading={loading} supabase={supabase} user={user} profile={profile} />
+      <ClassSelector 
+        role={profile?.role}
+        assignedClasses={teacherAssignments}
+        allClasses={ALL_CLASS_OPTIONS}
+        activeClassKey={activeClassKey}
+        onClassChange={handleClassChange}
+      />
+      <FeesDashboard students={filteredStudents} loading={loading} supabase={supabase} user={user} profile={profile} />
     </div>
   )
 
-  /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Section: Fees ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
+  /* Section: Fees */
   if (section === 'fees') return (
     <div className="staff-content-area">
-      <FeesDashboard students={students} loading={loading} supabase={supabase} user={user} profile={profile} />
+      <ClassSelector 
+        role={profile?.role}
+        assignedClasses={teacherAssignments}
+        allClasses={ALL_CLASS_OPTIONS}
+        activeClassKey={activeClassKey}
+        onClassChange={handleClassChange}
+      />
+      <FeesDashboard students={filteredStudents} loading={loading} supabase={supabase} user={user} profile={profile} />
     </div>
   )
 
   return (
     <div className="staff-content-area">
+      <ClassSelector 
+        role={profile?.role}
+        assignedClasses={teacherAssignments}
+        allClasses={ALL_CLASS_OPTIONS}
+        activeClassKey={activeClassKey}
+        onClassChange={handleClassChange}
+      />
       {notice && <PortalNotice>{notice}</PortalNotice>}
       {error && <PortalNotice tone="error">{error}</PortalNotice>}
 
-      {/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Dashboard Home ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â */}
+      {/* Dashboard Home */}
       {section === 'dashboard' && (
-        <DashboardHome students={students} staff={staff} loading={loading} setSection={setSection} role={profile?.role} />
+        <DashboardHome students={filteredStudents} staff={staff} loading={loading} setSection={setSection} role={profile?.role} />
       )}
 
-      {/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Roster ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â */}
+      {/* Roster */}
       {section === 'roster' && (
         <div className="dash-section">
           <div className="dash-page-header">
@@ -335,7 +430,7 @@ export default function StaffDashboard() {
           <div className="portal-workspace">
             <Card>
               <h2>Record data</h2>
-              <StudentSelector students={students} value={selectedId} onChange={setSelectedId} query={query} onQueryChange={setQuery} loading={loading} />
+              <StudentSelector students={filteredStudents} value={selectedId} onChange={setSelectedId} query={query} onQueryChange={setQuery} loading={loading} />
               <div className="portal-tabs portal-entry-tabs">
                 {Object.keys(records).map(key => (
                   <Button key={key} variant={tab === key ? 'primary' : 'secondary'} onClick={() => setTab(key)}>
