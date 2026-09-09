@@ -24,6 +24,7 @@ import PortalEntry from './pages/portal/PortalEntry'
 import StudentSignup from './pages/portal/StudentSignup'
 import StudentDashboard from './pages/portal/StudentDashboard'
 import Announcements from './pages/portal/Announcements'
+import TeacherFirstLogin from './pages/portal/TeacherFirstLogin'
 
 function App() {
   const location = useLocation()
@@ -37,6 +38,7 @@ function App() {
     <Route path="/portal" element={<PortalEntry />} /><Route path="/portal/login" element={<PortalLogin />} /><Route path="/portal/staff-login" element={<PortalLogin staff />} /><Route path="/portal/signup" element={<PortalSignup />} /><Route path="/portal/student-login" element={<PortalLogin student />} /><Route path="/portal/student-signup" element={<StudentSignup />} />
     <Route path="/portal/forgot-password" element={<ForgotPassword />} />
     <Route element={<ProtectedRoute />}>
+      <Route path="/portal/first-login" element={<TeacherFirstLogin />} />
       <Route element={<PortalLayout />}>
         <Route path="/portal/dashboard" element={<ParentDashboard />} />
         <Route element={<ProtectedRoute roles={['student']} />}>

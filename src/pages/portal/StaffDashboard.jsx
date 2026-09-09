@@ -8,7 +8,8 @@ import { useSection } from '../../components/portal/StaffPortalLayout'
 import { useAuth } from '../../context/useAuth'
 import { invokeEdgeFunction } from '../../lib/edgeFunction'
 import { CLASS_LEVELS, getStreamsForLevel } from '../../data/classOptions'
-import ClassSelector, { parseClassKey } from '../../components/portal/ClassSelector'
+import ClassSelector, { parseClassKey } from '../../components/portal/ClassSelector';
+import TeacherGradeEntry from '../../components/portal/TeacherGradeEntry';
 
 const ALL_CLASS_OPTIONS = [
   { class_level: 'Form 1', class_stream: 'Green' },
@@ -144,6 +145,7 @@ export default function StaffDashboard() {
   const [notice,     setNotice]     = useState('')
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(true)
+  const [seeding,    setSeeding]    = useState(false)
 
   const selected  = students.find(row => row.id === selectedId)
   const showError = value => { setNotice(''); setError(value) }
@@ -159,12 +161,13 @@ export default function StaffDashboard() {
   const loadStaff = useCallback(async () => {
     if (!manager) return
     const { data, error: requestError } = await supabase
-      .from('profiles').select('id, full_name, phone, role, class_level, class_stream')
-      .in('role', ['admin', 'principal', 'teacher', 'accountant']).order('full_name')
+      .from('profiles')
+      .select('id, full_name, phone, role, teacher_class_assignments!inner (class_level, class_stream)')
+      .order('full_name')
     if (requestError) showError(requestError.message)
-    else setStaff(data ?? [])
+    else setStaff(data ?? []); console.log('Loaded staff data', data);
+    console.log('Loaded staff count', (data ?? []).length, data)
   }, [manager, supabase])
-
   useEffect(() => {
     const timer = setTimeout(() => { loadStudents(); loadStaff() }, 0)
     return () => clearTimeout(timer)
@@ -221,6 +224,17 @@ export default function StaffDashboard() {
     if (requestError || data?.error) return showError(data?.error || requestError.message)
     setNotice(data?.message || 'Staff account created successfully.')
     setStaffForm({ fullName: '', phone: '', password: '', role: 'teacher', classLevel: '', classStream: '' })
+    loadStaff()
+  }
+
+
+  const seedStaffing = async () => {
+    if (seeding) return
+    setError(''); setNotice(''); setSeeding(true)
+    const { data, error: requestError } = await invokeEdgeFunction(supabase, 'seed_reliance_staffing', {})
+    setSeeding(false)
+    if (requestError || data?.success === false || data?.error) return showError(data?.error || requestError?.message || 'Seeding failed.')
+    setNotice('Staffing data seeded successfully.')
     loadStaff()
   }
 
@@ -368,8 +382,8 @@ export default function StaffDashboard() {
                               {row.full_name}
                             </td>
                             <td className="mono">{row.admission_number}</td>
-                            <td>{row.class_level}</td>
-                            <td>{row.class_stream || 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'}</td>
+                            <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_level).join(', ') || '-') : row.class_level}</td>
+                        <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_stream).filter(Boolean).join(', ') || '-') : (row.class_stream || '-')}</td>
                             <td><StatusPill status={row.status} /></td>
                             {manager && (
                               <td>
@@ -484,6 +498,7 @@ export default function StaffDashboard() {
             <div>
               <h1 className="dash-page-title">Staff Management</h1>
               <p className="dash-page-sub">Create and manage staff accounts</p>
+            <Button type="button" disabled={seeding} onClick={seedStaffing}>{seeding ? 'Seeding staffing data…' : 'Seed Staffing Data'}</Button>
             </div>
           </div>
 
@@ -533,7 +548,7 @@ export default function StaffDashboard() {
                         <td>{row.full_name}</td>
                         <td>{row.phone}</td>
                         <td>{row.role}</td>
-                        <td>{row.role === 'teacher' ? `${row.class_level} ${row.class_stream}` : 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'}</td>
+                        <td>{row.role === 'teacher' ? [row.class_level, row.class_stream].filter(Boolean).join(' ') : ''}</td>
                       </tr>
                     ))}
                   </tbody>
