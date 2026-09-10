@@ -10,6 +10,7 @@ import { invokeEdgeFunction } from '../../lib/edgeFunction'
 import { CLASS_LEVELS, getStreamsForLevel } from '../../data/classOptions'
 import ClassSelector, { parseClassKey } from '../../components/portal/ClassSelector';
 import TeacherGradeEntry from '../../components/portal/TeacherGradeEntry';
+import SlideOver from '../../components/ui/SlideOver';
 
 const ALL_CLASS_OPTIONS = [
   { class_level: 'Form 1', class_stream: 'Green' },
@@ -66,15 +67,51 @@ function StatusPill({ status }) {
 }
 
 /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Dashboard home ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
-function DashboardHome({ students, staff, loading, setSection, role }) {
+function DashboardHome({ students, staff, loading, setSection, role, supabase, classControl }) {
   const isTeacher = role === 'teacher'
   const active = students.filter(student => student.status === 'active').length
   const pending = students.filter(student => student.status !== 'active').length
   const recent = students.slice(0, 6)
+  const [overview, setOverview] = useState({ attendance: [], linkedParents: null, feesCollected: null })
   const title = isTeacher ? 'Teaching dashboard' : 'School dashboard'
   const subtitle = isTeacher ? 'Your learner records and marking workspace' : 'A clear overview of learners and school operations'
   const actionLabel = isTeacher ? 'Enter learner grades' : 'Manage learners'
   const listTitle = isTeacher ? 'Your learners' : 'Recent learners'
+
+  useEffect(() => {
+    let mounted = true
+    const loadOverview = async () => {
+      const year = new Date().getFullYear()
+      const [attendanceResult, parentResult, feesResult] = await Promise.all([
+        supabase.from('attendance').select('date, status').order('date', { ascending: true }),
+        isTeacher ? Promise.resolve({ data: null }) : supabase.from('parent_student').select('id', { count: 'exact', head: true }).not('verified_at', 'is', null),
+        isTeacher ? Promise.resolve({ data: null }) : supabase.from('fee_balances').select('amount_paid').eq('academic_year', year),
+      ])
+      if (!mounted) return
+      const months = Array.from({ length: 6 }, (_, index) => {
+        const date = new Date(year, new Date().getMonth() - 5 + index, 1)
+        return { key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`, label: date.toLocaleString('en', { month: 'short' }) }
+      })
+      setOverview({
+        attendance: months.map(month => {
+          const records = (attendanceResult.data ?? []).filter(row => row.date?.startsWith(month.key))
+          return { ...month, present: records.filter(row => row.status === 'present' || row.status === 'late').length, absent: records.filter(row => row.status === 'absent').length }
+        }),
+        linkedParents: parentResult.count ?? null,
+        feesCollected: feesResult.data?.reduce((sum, row) => sum + Number(row.amount_paid || 0), 0) ?? null,
+      })
+    }
+    loadOverview()
+    return () => { mounted = false }
+  }, [isTeacher, supabase])
+
+  const distribution = Object.entries(students.reduce((counts, student) => {
+    const label = student.class_level || 'Unassigned'
+    counts[label] = (counts[label] || 0) + 1
+    return counts
+  }, {})).sort((a, b) => b[1] - a[1]).slice(0, 4)
+  const maxAttendance = Math.max(1, ...overview.attendance.flatMap(item => [item.present, item.absent]))
+  const money = value => new Intl.NumberFormat('en-ZW', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value || 0)
 
   return (
     <div className="dash-home">
@@ -84,42 +121,31 @@ function DashboardHome({ students, staff, loading, setSection, role }) {
           <h1 className="dash-page-title">{title}</h1>
           <p className="dash-page-sub">{subtitle}</p>
         </div>
-        <Button onClick={() => setSection(isTeacher ? 'entry' : 'roster')}>{actionLabel}</Button>
+        <div className="dashboard-header-controls">{classControl}<Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection(isTeacher ? 'entry' : 'roster')}>{actionLabel}</Button></div>
       </div>
 
       <div className="dash-stats-row">
-        <StatCard label={isTeacher ? 'Your Learners' : 'Total Learners'} value={loading ? '-' : students.length} sub={loading ? 'Loading records' : `${active} active`} accent="#C41E3A" icon={<UsersIcon />} />
-        <StatCard label={isTeacher ? 'Active Learners' : 'Active Staff'} value={loading ? '-' : (isTeacher ? active : staff.length)} sub={isTeacher ? 'ready for marking' : 'all roles'} accent="#1B2A56" icon={<StaffIcon />} />
-        <StatCard label={isTeacher ? 'Learner Status' : 'Pending Status'} value={loading ? '-' : pending} sub={isTeacher ? (pending ? 'need attention' : 'all learners active') : 'inactive learners'} accent="#E3B23C" icon={<FeesIcon />} />
+        <StatCard label={isTeacher ? 'Your Learners' : 'Total Learners'} value={loading ? '-' : students.length} sub={loading ? 'Loading records' : `${active} active`} accent="#1B2A56" icon={<UsersIcon />} />
+        <StatCard label={isTeacher ? 'Active Learners' : 'Teaching Staff'} value={loading ? '-' : (isTeacher ? active : staff.filter(member => member.role === 'teacher').length)} sub={isTeacher ? 'ready for marking' : 'active teaching team'} accent="#A67C00" icon={<StaffIcon />} />
+        {!isTeacher && <StatCard label="Parents Linked" value={overview.linkedParents ?? '—'} sub="verified family links" accent="#7A3E1D" icon={<UsersIcon />} />}
+        {!isTeacher && <StatCard label="Fees Collected" value={overview.feesCollected === null ? '—' : money(overview.feesCollected)} sub={`${new Date().getFullYear()} academic year`} accent="#1B2A56" icon={<FeesIcon />} />}
+        {isTeacher && <StatCard label="Learner Status" value={loading ? '-' : pending} sub={pending ? 'need attention' : 'all learners active'} accent="#A67C00" icon={<FeesIcon />} />}
+      </div>
+
+      <div className="dash-insights-grid">
+        <section className="dash-card dash-chart-card">
+          <div className="dash-card-header"><div><h2 className="dash-card-title">Attendance trend</h2><p className="dash-card-subtitle">Present and absent records over the last six months.</p></div><div className="dash-chart-key"><span><i className="present" />Present</span><span><i className="absent" />Absent</span></div></div>
+          <div className="dash-bar-chart" aria-label="Attendance trend chart">{overview.attendance.map(month => <div className="dash-bar-group" key={month.key}><div className="dash-bars"><span className="dash-bar present" style={{ height: `${Math.max(4, (month.present / maxAttendance) * 100)}%` }} title={`${month.present} present`} /><span className="dash-bar absent" style={{ height: `${Math.max(4, (month.absent / maxAttendance) * 100)}%` }} title={`${month.absent} absent`} /></div><span>{month.label}</span></div>)}</div>
+        </section>
+        <section className="dash-card dash-distribution-card">
+          <div className="dash-card-header"><div><h2 className="dash-card-title">Learner distribution</h2><p className="dash-card-subtitle">Largest class levels in the current register.</p></div></div>
+          <div className="dash-distribution-body"><div className="dash-donut" style={{ '--distribution': `${Math.min(100, Math.round(((distribution[0]?.[1] || 0) / Math.max(1, students.length)) * 100))}%` }}><div><strong>{students.length}</strong><span>learners</span></div></div><div className="dash-distribution-legend">{distribution.map(([label, count], index) => <div key={label}><i className={`level-${index}`} /><span>{label}</span><strong>{count}</strong></div>)}</div></div>
+        </section>
       </div>
 
       <div className="dash-card dash-table-card">
-        <div className="dash-card-header">
-          <div>
-            <h2 className="dash-card-title">{listTitle}</h2>
-            <p className="dash-card-subtitle">{isTeacher ? 'Select a learner from the roster, then record a grade.' : 'The latest learners added to the school register.'}</p>
-          </div>
-          {!loading && recent.length > 0 && <button className="dash-view-all" onClick={() => setSection('roster')}>Open roster</button>}
-        </div>
-        {loading ? <p className="dash-loading-msg">Loading learners...</p> : recent.length === 0 ? (
-          <div className="dash-empty-state">
-            <strong>{isTeacher ? 'No learners are assigned yet' : 'No learners have been added yet'}</strong>
-            <span>{isTeacher ? 'Once learners are assigned to your class, they will appear here.' : 'Add a learner to begin building the school register.'}</span>
-            <button className="dash-empty-action" onClick={() => setSection(isTeacher ? 'entry' : 'roster')}>{isTeacher ? 'Open grade entry' : 'Open learner roster'}</button>
-          </div>
-        ) : (
-          <div className="portal-table-wrap">
-            <table className="portal-table dash-preview-table">
-              <thead><tr><th>Name</th><th>Admission no.</th><th>Class</th><th>Stream</th><th>Status</th></tr></thead>
-              <tbody>{recent.map(row => (
-                <tr key={row.id} className="dash-table-row">
-                  <td className="dash-td-name"><span className="dash-learner-avatar">{row.full_name?.[0] ?? '?'}</span>{row.full_name}</td>
-                  <td className="mono">{row.admission_number}</td><td>{row.class_level}</td><td>{row.class_stream || '-'}</td><td><StatusPill status={row.status} /></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )}
+        <div className="dash-card-header"><div><h2 className="dash-card-title">{listTitle}</h2><p className="dash-card-subtitle">{isTeacher ? 'Select a learner from the roster, then record a grade.' : 'The latest learners added to the school register.'}</p></div>{!loading && recent.length > 0 && <button className="dash-view-all" onClick={() => setSection('roster')}>Open roster</button>}</div>
+        {loading ? <p className="dash-loading-msg">Loading learners...</p> : recent.length === 0 ? <div className="dash-empty-state"><strong>{isTeacher ? 'No learners are assigned yet' : 'No learners have been added yet'}</strong><span>{isTeacher ? 'Once learners are assigned to your class, they will appear here.' : 'Add a learner to begin building the school register.'}</span><button className="dash-empty-action" onClick={() => setSection(isTeacher ? 'entry' : 'roster')}>{isTeacher ? 'Open grade entry' : 'Open learner roster'}</button></div> : <div className="portal-table-wrap"><table className="portal-table dash-preview-table"><thead><tr><th>Name</th><th>Admission no.</th><th>Class</th><th>Stream</th><th>Status</th></tr></thead><tbody>{recent.map(row => <tr key={row.id} className="dash-table-row"><td className="dash-td-name"><span className="dash-learner-avatar">{row.full_name?.[0] ?? '?'}</span>{row.full_name}</td><td className="mono">{row.admission_number}</td><td>{row.class_level}</td><td>{row.class_stream || '-'}</td><td><StatusPill status={row.status} /></td></tr>)}</tbody></table></div>}
       </div>
     </div>
   )
@@ -130,6 +156,7 @@ export default function StaffDashboard() {
   const { section, setSection }    = useSection()
 
   const manager    = ['admin', 'principal'].includes(profile?.role)
+  const isAdmin    = profile?.role === 'admin'
   const accountant = profile?.role === 'accountant'
 
   const [students,   setStudents]   = useState([])
@@ -146,8 +173,12 @@ export default function StaffDashboard() {
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(true)
   const [seeding,    setSeeding]    = useState(false)
+  const [resetModal, setResetModal] = useState({ open: false, staff: null, phone: '', password: '', saving: false })
+  const [staffModal, setStaffModal] = useState(false)
+  const [staffQuery, setStaffQuery] = useState('')
 
   const selected  = students.find(row => row.id === selectedId)
+  const visibleStaff = staff.filter(row => [row.full_name, row.phone, row.role].some(value => value?.toLowerCase().includes(staffQuery.toLowerCase())))
   const showError = value => { setNotice(''); setError(value) }
 
   const loadStudents = useCallback(async () => {
@@ -162,7 +193,7 @@ export default function StaffDashboard() {
     if (!manager) return
     const { data, error: requestError } = await supabase
       .from('profiles')
-      .select('id, full_name, phone, role, teacher_class_assignments!inner (class_level, class_stream)')
+      .select('id, full_name, phone, role, teacher_class_assignments (class_level, class_stream)')
       .order('full_name')
     if (requestError) showError(requestError.message)
     else setStaff(data ?? []); console.log('Loaded staff data', data);
@@ -205,7 +236,7 @@ export default function StaffDashboard() {
   }
 
   const saveStudent = async event => {
-    event.preventDefault()
+    event.preventDefault(); if (!isAdmin) return showError('Only administrators can manage learners.')
     const row = { ...student, enrolled_year: Number(student.enrolled_year), class_stream: student.class_stream || null, inactive_reason: student.status === 'inactive' ? student.inactive_reason : null }
     const request = editingId
       ? supabase.from('students').update(row).eq('id', editingId)
@@ -219,22 +250,47 @@ export default function StaffDashboard() {
   const editStudent = row => { setStudent({ ...row, class_stream: row.class_stream ?? '' }); setEditingId(row.id) }
 
   const createStaff = async event => {
-    event.preventDefault(); setError(''); setNotice('')
+    event.preventDefault(); if (!isAdmin) return showError('Only administrators can create staff accounts.'); setError(''); setNotice('')
     const { data, error: requestError } = await invokeEdgeFunction(supabase, 'create-staff-account', staffForm)
     if (requestError || data?.error) return showError(data?.error || requestError.message)
     setNotice(data?.message || 'Staff account created successfully.')
     setStaffForm({ fullName: '', phone: '', password: '', role: 'teacher', classLevel: '', classStream: '' })
     loadStaff()
+    setStaffModal(false)
   }
 
 
   const seedStaffing = async () => {
+    if (!isAdmin) return showError('Only administrators can seed staffing data.');
     if (seeding) return
     setError(''); setNotice(''); setSeeding(true)
     const { data, error: requestError } = await invokeEdgeFunction(supabase, 'seed_reliance_staffing', {})
     setSeeding(false)
     if (requestError || data?.success === false || data?.error) return showError(data?.error || requestError?.message || 'Seeding failed.')
     setNotice('Staffing data seeded successfully.')
+    loadStaff()
+  }
+
+  const openResetModal = row => {
+    setResetModal({ open: true, staff: row, phone: row.phone || '', password: '', saving: false })
+  }
+
+  const handleResetSubmit = async event => {
+    event.preventDefault()
+    if (!isAdmin) return showError('Only administrators can update credentials.')
+    setError(''); setNotice('')
+    setResetModal(m => ({ ...m, saving: true }))
+    const { data, error: requestError } = await invokeEdgeFunction(supabase, 'update_teacher_credentials', {
+      user_id: resetModal.staff.id,
+      phone: resetModal.phone,
+      password: resetModal.password
+    })
+    setResetModal(m => ({ ...m, saving: false }))
+    if (requestError || data?.success === false || data?.error) {
+      return showError(data?.error || requestError?.message || 'Failed to update credentials.')
+    }
+    setNotice(`Credentials updated and email synced to ${data.email || 'new portal email'} for ${resetModal.staff.full_name}.`)
+    setResetModal({ open: false, staff: null, phone: '', password: '', saving: false })
     loadStaff()
   }
 
@@ -337,7 +393,7 @@ export default function StaffDashboard() {
 
       {/* Dashboard Home */}
       {section === 'dashboard' && (
-        <DashboardHome students={filteredStudents} staff={staff} loading={loading} setSection={setSection} role={profile?.role} />
+        <DashboardHome students={filteredStudents} staff={staff} loading={loading} setSection={setSection} role={profile?.role} supabase={supabase} classControl={<ClassSelector role={profile?.role} assignedClasses={teacherAssignments} allClasses={ALL_CLASS_OPTIONS} activeClassKey={activeClassKey} onClassChange={handleClassChange} />} />
       )}
 
       {/* Roster */}
@@ -371,7 +427,7 @@ export default function StaffDashboard() {
                           <th>Class</th>
                           <th>Stream</th>
                           <th>Status</th>
-                          {manager && <th />}
+                          {isAdmin && <th />}
                         </tr>
                       </thead>
                       <tbody>
@@ -385,7 +441,7 @@ export default function StaffDashboard() {
                             <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_level).join(', ') || '-') : row.class_level}</td>
                         <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_stream).filter(Boolean).join(', ') || '-') : (row.class_stream || '-')}</td>
                             <td><StatusPill status={row.status} /></td>
-                            {manager && (
+                            {isAdmin && (
                               <td>
                                 <Button variant="secondary" onClick={() => editStudent(row)}>Edit</Button>
                               </td>
@@ -399,7 +455,7 @@ export default function StaffDashboard() {
               }
             </Card>
 
-            {manager && (
+            {isAdmin && (
               <Card>
                 <h2>{editingId ? 'Edit learner' : 'Add learner'}</h2>
                 <form className="form portal-form" onSubmit={saveStudent}>
@@ -498,62 +554,91 @@ export default function StaffDashboard() {
             <div>
               <h1 className="dash-page-title">Staff Management</h1>
               <p className="dash-page-sub">Create and manage staff accounts</p>
-            <Button type="button" disabled={seeding} onClick={seedStaffing}>{seeding ? 'Seeding staffing data…' : 'Seed Staffing Data'}</Button>
+            {isAdmin && <Button type="button" onClick={() => setStaffModal(true)}>+ Add Staff Member</Button>}
             </div>
           </div>
 
           <div className="portal-workspace">
-            <Card>
-              <h2>Create staff account</h2>
+            {isAdmin && <SlideOver open={staffModal} onClose={() => setStaffModal(false)} title="Add staff member" description="Create a secure portal account and set the appropriate role.">
               <form className="form portal-form" onSubmit={createStaff}>
                 <label>Full name<input required value={staffForm.fullName} onChange={e => setStaffForm(x => ({ ...x, fullName: e.target.value }))} /></label>
                 <label>Phone<input required value={staffForm.phone} onChange={e => setStaffForm(x => ({ ...x, phone: e.target.value }))} /></label>
                 <label>Password<input required minLength="8" type="password" value={staffForm.password} onChange={e => setStaffForm(x => ({ ...x, password: e.target.value }))} /></label>
-                <label>Role
-                  <select value={staffForm.role} onChange={e => setStaffForm(x => ({ ...x, role: e.target.value, classLevel: '', classStream: '' }))}>
-                    <option value="teacher">Teacher</option>
-                    <option value="accountant">Accountant</option>
-                    <option value="admin">Admin</option>
-                    <option value="principal">Principal</option>
-                  </select>
-                </label>
-                {staffForm.role === 'teacher' && <>
-                  <label>Class level
-                    <select required value={staffForm.classLevel} onChange={e => setStaffForm(x => ({ ...x, classLevel: e.target.value, classStream: '' }))}>
-                      <option value="">Choose class level</option>
-                      {CLASS_LEVELS.map(level => <option key={level}>{level}</option>)}
-                    </select>
-                  </label>
-                  <label>Class stream
-                    <select required disabled={!staffForm.classLevel} value={staffForm.classStream} onChange={e => setStaffForm(x => ({ ...x, classStream: e.target.value }))}>
-                      <option value="">Choose class stream</option>
-                      {getStreamsForLevel(staffForm.classLevel).map(stream => <option key={stream}>{stream}</option>)}
-                    </select>
-                  </label>
-                </>}
-                <Button type="submit">Create account</Button>
+                <label>Role<select value={staffForm.role} onChange={e => setStaffForm(x => ({ ...x, role: e.target.value, classLevel: '', classStream: '' }))}><option value="teacher">Teacher</option><option value="accountant">Accountant</option><option value="admin">Admin</option><option value="principal">Principal</option></select></label>
+                {staffForm.role === 'teacher' && <><label>Class level<select required value={staffForm.classLevel} onChange={e => setStaffForm(x => ({ ...x, classLevel: e.target.value, classStream: '' }))}><option value="">Choose class level</option>{CLASS_LEVELS.map(level => <option key={level}>{level}</option>)}</select></label><label>Class stream<select required disabled={!staffForm.classLevel} value={staffForm.classStream} onChange={e => setStaffForm(x => ({ ...x, classStream: e.target.value }))}><option value="">Choose class stream</option>{getStreamsForLevel(staffForm.classLevel).map(stream => <option key={stream}>{stream}</option>)}</select></label></>}
+                <div className="portal-action-row"><Button type="submit">Create account</Button><Button type="button" variant="secondary" onClick={() => setStaffModal(false)}>Cancel</Button></div>
               </form>
-            </Card>
+            </SlideOver>}
+
+            {isAdmin && resetModal.open && (
+              <Card>
+                <h2>Reset credentials: {resetModal.staff?.full_name}</h2>
+                <p className="muted" style={{ marginBottom: '1rem' }}>
+                  Updating the phone number will automatically update their login email to match <code>portal-&lt;phone&gt;@portal.reliance.local</code>.
+                </p>
+                <form className="form portal-form" onSubmit={handleResetSubmit}>
+                  <label>
+                    Phone number
+                    <input
+                      required
+                      value={resetModal.phone}
+                      onChange={e => setResetModal(m => ({ ...m, phone: e.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    New password
+                    <input
+                      required
+                      minLength="8"
+                      type="password"
+                      placeholder="At least 8 characters"
+                      value={resetModal.password}
+                      onChange={e => setResetModal(m => ({ ...m, password: e.target.value }))}
+                    />
+                  </label>
+                  <div className="portal-action-row" style={{ marginTop: '1rem' }}>
+                    <Button type="submit" disabled={resetModal.saving}>
+                      {resetModal.saving ? 'Updating…' : 'Save & Sync Email'}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setResetModal({ open: false, staff: null, phone: '', password: '', saving: false })}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            )}
 
             <Card>
-              <h2>Existing staff</h2>
+              <div className="staff-directory-controls"><h2>Existing staff</h2><label className="portal-inline-search">Search staff<input value={staffQuery} onChange={e => setStaffQuery(e.target.value)} placeholder="Name, phone or role" /></label></div>
               <div className="portal-table-wrap">
                 <table className="portal-table">
                   <thead>
-                    <tr><th>Name</th><th>Phone</th><th>Role</th><th>Class</th></tr>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Role</th>
+                      <th>Class</th>
+                      {isAdmin && <th>Action</th>}
+                    </tr>
                   </thead>
                   <tbody>
-                    {staff.map(row => (
+                    {visibleStaff.map(row => (
                       <tr key={row.id}>
                         <td>{row.full_name}</td>
                         <td>{row.phone}</td>
                         <td>{row.role}</td>
-                        <td>{row.role === 'teacher' ? [row.class_level, row.class_stream].filter(Boolean).join(' ') : ''}</td>
+                        <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => `${a.class_level} ${a.class_stream || ''}`).join(', ') || [row.class_level, row.class_stream].filter(Boolean).join(' ') || '-') : ''}</td>
+                        {isAdmin && (
+                          <td>
+                            <Button variant="secondary" onClick={() => openResetModal(row)}>Reset Credentials</Button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              <div className="data-table-footer"><span>{visibleStaff.length} result{visibleStaff.length === 1 ? '' : 's'}</span><span>Page 1 of 1</span></div>
             </Card>
           </div>
         </div>

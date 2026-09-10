@@ -25,7 +25,7 @@ import StudentSignup from './pages/portal/StudentSignup'
 import StudentDashboard from './pages/portal/StudentDashboard'
 import Announcements from './pages/portal/Announcements'
 import TeacherFirstLogin from './pages/portal/TeacherFirstLogin'
-
+import RoleDashboard from './pages/portal/RoleDashboard.jsx'
 function App() {
   const location = useLocation()
   const portal = location.pathname.startsWith('/portal')
@@ -43,13 +43,15 @@ function App() {
         <Route path="/portal/dashboard" element={<ParentDashboard />} />
         <Route element={<ProtectedRoute roles={['student']} />}>
           <Route path="/portal/student-dashboard" element={<StudentDashboard />} />
+          <Route path="/portal/student-dashboard" element={<StudentDashboard />} />
           <Route path="/portal/staff/dashboard" element={<StudentDashboard />} />
         </Route>
         <Route path="/portal/announcements" element={<Announcements />} />
       </Route>
       <Route element={<StaffPortalLayout />}>
         <Route element={<ProtectedRoute roles={['admin', 'principal']} />}>
-          <Route path="/portal/staff" element={<StaffDashboard />} />
+            <Route path="/portal/staff" element={<StaffDashboard />} />
+            <Route path="/portal/admin-dashboard" element={<RoleDashboard role='admin' />} />
         </Route>
         <Route element={<ProtectedRoute roles={['teacher']} />}>
           <Route path="/portal/teacher" element={<StaffDashboard />} />

@@ -8,7 +8,7 @@ import { buildPortalEmail, isInternationalPhone, normalizePhone } from '../../..
 import { resolvePortalDestination } from '../../lib/portalRedirect'
 
 export default function PortalLogin({ student = false, staff = false }) {
-  const { supabase } = useAuth(); const navigate = useNavigate(); const [phone, setPhone] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
+  const { supabase, refreshProfile } = useAuth(); const navigate = useNavigate(); const [phone, setPhone] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
   const submit = async (event) => {
     event.preventDefault(); setError(''); const normalized = normalizePhone(phone)
     if (!isInternationalPhone(normalized)) return setError('Phone number or password is incorrect.')
@@ -16,7 +16,9 @@ export default function PortalLogin({ student = false, staff = false }) {
     const email = buildPortalEmail(normalized)
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) { setSubmitting(false); return setError('Phone number or password is incorrect.') }
+    const resolvedProfile = await refreshProfile(data.user)
     const { destination, error: profileError } = await resolvePortalDestination(supabase, data.user.id)
+    if (!resolvedProfile) { await supabase.auth.signOut(); setSubmitting(false); return setError('We could not load your portal access. Please contact the school office.') }
     if (profileError || !destination) { await supabase.auth.signOut(); setSubmitting(false); return setError(profileError ? 'We could not load your portal access. Please contact the school office.' : 'This account does not have a recognised portal role.') }
     navigate(destination, { replace: true })
   }

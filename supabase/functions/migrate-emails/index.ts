@@ -40,8 +40,8 @@ Deno.serve(async (request) => {
       .eq('id', user.id)
       .single()
     if (callerError) throw callerError
-    if (!['admin', 'principal'].includes(String(caller?.role ?? '').toLowerCase())) {
-      throw new Error('Only administrators and principals can run this migration.')
+    if (String(caller?.role ?? '').toLowerCase() !== 'admin') {
+      throw new Error('Only administrators can run this migration.')
     }
 
     const changed: Array<{ id: string; oldEmail: string | null; newEmail: string }> = []

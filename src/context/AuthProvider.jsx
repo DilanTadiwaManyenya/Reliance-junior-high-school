@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { AuthContext } from './authContext'
 
@@ -6,12 +6,15 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(Boolean(supabase))
+  const profileRequest = useRef(0)
 
-  const loadProfile = async (user) => {
-    if (!supabase || !user) { setProfile(null); return }
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    setProfile(data ?? null)
-  }
+  const loadProfile = useCallback(async user => {
+    const requestId = ++profileRequest.current
+    if (!supabase || !user) { setProfile(null); return null }
+    const { data } = await supabase.from('profiles').select('*, user_roles(role)').eq('id', user.id).single()
+    if (requestId === profileRequest.current) setProfile(data ?? null)
+    return data ?? null
+  }, [])
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -27,18 +30,26 @@ export function AuthProvider({ children }) {
       loadProfile(nextSession?.user)
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [loadProfile])
 
   const signOut = async () => {
     if (!supabase) return
+    profileRequest.current += 1
     const result = await supabase.auth.signOut()
     if (result.error) throw result.error
-    // The auth listener also receives SIGNED_OUT. Clearing this immediately
-    // prevents a protected route from rendering stale user/profile state.
-    setSession(null)
-    setProfile(null)
+    setSession(null); setProfile(null)
     return result
   }
 
-  return <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, signOut, supabase }}>{children}</AuthContext.Provider>
+  const roles = profile?.user_roles?.map(({ role }) => role) ?? (profile?.role ? [profile.role] : [])
+  const activeRole = profile?.active_role ?? profile?.role ?? null
+  const setActiveRole = async role => {
+    if (!roles.includes(role)) throw new Error('That role is not assigned to this account.')
+    const { error } = await supabase.rpc('set_active_role', { requested_role: role })
+    if (error) throw error
+    sessionStorage.setItem('reliance-active-role', role)
+    setProfile(current => ({ ...current, active_role: role }))
+  }
+
+  return <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, roles, activeRole, setActiveRole, refreshProfile: loadProfile, loading, signOut, supabase }}>{children}</AuthContext.Provider>
 }

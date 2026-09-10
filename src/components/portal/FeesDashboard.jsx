@@ -47,70 +47,43 @@ function PaymentModal({ student, onClose, onSave, saving }) {
   )
 }
 
-function MasterTable({ students, onEdit, onReminder, onHistory, onExport }) {
+function MasterTable({ students, onEdit, onReminder, onHistory, onExport, readOnly, quickStatus }) {
   const [query, setQuery] = useState('')
-  const [filters, setFilters] = useState(['all'])
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [campusFilter, setCampusFilter] = useState('all')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [openAction, setOpenAction] = useState(null)
-  const pageSize = 8
-  const filterOptions = [
-    ['all', 'All'], ['full', 'Fully Paid'], ['half', 'Partially Paid'], ['unpaid', 'Unpaid'], ['junior', 'Junior Campus'], ['senior', 'Senior Campus'],
-  ]
-  const toggleFilter = value => {
-    setPage(1)
-    if (value === 'all') return setFilters(['all'])
-    setFilters(current => {
-      const next = current.filter(item => item !== 'all')
-      const includes = next.includes(value)
-      const result = includes ? next.filter(item => item !== value) : [...next, value]
-      return result.length ? result : ['all']
-    })
-  }
-  const filtered = useMemo(() => students.filter(student => {
-    const matchesSearch = `${student.full_name} ${student.admission_number} ${student.class_level}`.toLowerCase().includes(query.toLowerCase())
-    const matchesFilter = filters.includes('all') || filters.includes(student.category) || filters.includes(student.campus)
-    return matchesSearch && matchesFilter
-  }), [students, query, filters])
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  useEffect(() => { if (quickStatus) { setStatusFilter(quickStatus); setPage(1) } }, [quickStatus])
+  const filtered = useMemo(() => students.filter(student => `${student.full_name} ${student.admission_number} ${student.class_level}`.toLowerCase().includes(query.toLowerCase()) && (statusFilter === 'all' || student.category === statusFilter) && (campusFilter === 'all' || student.campus === campusFilter)), [students, query, statusFilter, campusFilter])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize)
-
+  const selected = filtered.filter(student => selectedIds.has(student.id))
+  const toggleRow = id => setSelectedIds(current => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
+  const togglePage = () => setSelectedIds(current => visible.every(student => current.has(student.id)) ? new Set([...current].filter(id => !visible.some(student => student.id === id))) : new Set([...current, ...visible.map(student => student.id)]))
   useEffect(() => { if (page > totalPages) setPage(totalPages) }, [page, totalPages])
-
-  return (
-    <section className="fees-master-card" aria-labelledby="student-fees-heading">
-      <div className="fees-table-heading">
-        <div><p className="fees-kicker">Term collection register</p><h2 id="student-fees-heading">Student fee balances</h2><p>Search, filter and act on every student from one consolidated view.</p></div>
-        <button className="fee-button fee-button-export" onClick={() => onExport(filtered)}><LuDownload size={17} /> Export report</button>
-      </div>
-      <div className="fees-table-controls">
-        <label className="fees-search"><LuSearch size={19} /><span className="sr-only">Search students</span><input value={query} onChange={event => { setQuery(event.target.value); setPage(1) }} placeholder="Search student name, admission ID or class" /></label>
-        <div className="fees-filter-group" aria-label="Filter students"><span><LuFilter size={16} /> Filters</span>{filterOptions.map(([value, label]) => <button key={value} type="button" onClick={() => toggleFilter(value)} className={filters.includes(value) ? 'active' : ''} aria-pressed={filters.includes(value)}>{label}</button>)}</div>
-      </div>
-      <div className="fee-table-wrap">
-        <table className="fee-table fee-master-table">
-          <thead><tr><th>Student name</th><th>Admission ID</th><th>Class / Grade</th><th>Campus</th><th className="currency">Total term fee</th><th className="currency">Amount paid</th><th className="currency">Balance owed</th><th>Status</th><th className="actions-column">Actions</th></tr></thead>
-          <tbody>{visible.length ? visible.map(student => {
-            const meta = statusMeta[student.category]; const StatusIcon = meta.icon
-            return <tr key={student.id}><td><div className="fee-student"><span className="fee-avatar">{initials(student.full_name)}</span><strong>{student.full_name}</strong></div></td><td className="fee-mono">{student.admission_number || '—'}</td><td>{student.class_level}{student.class_stream ? ` · ${student.class_stream}` : ''}</td><td><span className={`fee-campus-badge ${student.campus === 'junior' ? 'junior' : 'senior'}`}><LuBuilding2 size={13} />{student.campus === 'junior' ? 'Junior' : 'Senior'}</span></td><td className="currency">{money(student.totalFees)}</td><td className="currency paid-value">{money(student.amountPaid)}</td><td className={`currency balance-value ${student.balance > 0 ? 'owing' : ''}`}>{money(student.balance)}</td><td><span className={`fee-status ${meta.card}`}><StatusIcon size={15} />{meta.label}</span></td><td className="actions-column"><div className="fee-action-menu"><button type="button" className="fee-action-trigger" aria-label={`Actions for ${student.full_name}`} onClick={() => setOpenAction(openAction === student.id ? null : student.id)}><LuEllipsisVertical size={19} /></button>{openAction === student.id && <div className="fee-action-popover"><button onClick={() => { onEdit(student); setOpenAction(null) }}><LuPencil size={15} /> Update payment</button><button onClick={() => { onReminder(student); setOpenAction(null) }}><LuSend size={15} /> Send reminder</button><button onClick={() => { onHistory(student); setOpenAction(null) }}><LuHistory size={15} /> View history</button></div>}</div></td></tr>
-          }) : <tr><td colSpan="9" className="fee-empty-state">No students match the current search and filters.</td></tr>}</tbody>
-        </table>
-      </div>
-      <div className="fee-pagination"><span>Showing <strong>{filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> students</span><div><button type="button" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page === 1} aria-label="Previous page"><LuChevronLeft size={18} /></button><span>Page {page} of {totalPages}</span><button type="button" onClick={() => setPage(current => Math.min(totalPages, current + 1))} disabled={page === totalPages} aria-label="Next page"><LuChevronRight size={18} /></button></div></div>
-    </section>
-  )
+  return <section className="fees-master-card" aria-labelledby="student-fees-heading">
+    <div className="fees-table-heading"><div><p className="fees-kicker">Term collection register</p><h2 id="student-fees-heading">Student fee balances</h2><p>{readOnly ? 'Search and filter the school-wide fee collection register.' : 'Search, filter and collect payments from one consolidated view.'}</p></div><button className="fee-button fee-button-export" onClick={() => onExport(filtered)}><LuDownload size={17} /> Export report</button></div>
+    <div className="fees-table-controls"><button type="button" className="fees-filter-icon" aria-label="Filter register"><LuFilter size={18} /></button><label className="fees-search"><LuSearch size={19} /><span className="sr-only">Search students</span><input value={query} onChange={event => { setQuery(event.target.value); setPage(1) }} placeholder="Search student name, admission ID or class" /></label><label className="fees-select-label">Status filter<select value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }}><option value="all">All statuses</option><option value="full">Fully paid</option><option value="half">Partially paid</option><option value="unpaid">Unpaid</option></select></label><label className="fees-select-label">Campus filter<select value={campusFilter} onChange={event => { setCampusFilter(event.target.value); setPage(1) }}><option value="all">All campuses</option><option value="junior">Junior campus</option><option value="senior">Senior campus</option></select></label></div>
+    {selected.length > 0 && <div className="fees-bulk-toolbar" role="status"><strong>{selected.length} selected</strong><div><button type="button" onClick={() => setSelectedIds(new Set())}>Clear selection</button><button type="button" onClick={() => setSelectedIds(new Set())}><LuSend size={15} /> Send payment reminders</button><button type="button" onClick={() => onExport(selected)}><LuDownload size={15} /> Export selected</button></div></div>}
+    <div className="fee-table-wrap"><table className="fee-table fee-master-table"><thead><tr><th className="selection-column"><input type="checkbox" checked={visible.length > 0 && visible.every(student => selectedIds.has(student.id))} onChange={togglePage} aria-label="Select all rows on this page" /></th><th>Student name</th><th>Admission ID</th><th>Class / Grade</th><th>Campus</th><th className="currency">Total term fee</th><th className="currency">Amount paid</th><th className="currency">Balance owed</th><th>Status</th>{!readOnly && <th className="actions-column">Actions</th>}</tr></thead><tbody>{visible.length ? visible.map(student => { const meta = statusMeta[student.category]; const StatusIcon = meta.icon; return <tr key={student.id} className={selectedIds.has(student.id) ? 'is-selected' : ''}><td className="selection-column"><input type="checkbox" checked={selectedIds.has(student.id)} onChange={() => toggleRow(student.id)} aria-label={`Select ${student.full_name}`} /></td><td><div className="fee-student"><span className="fee-avatar">{initials(student.full_name)}</span><strong>{student.full_name}</strong></div></td><td className="fee-mono">{student.admission_number || '—'}</td><td>{student.class_level}{student.class_stream ? ` · ${student.class_stream}` : ''}</td><td><span className={`fee-campus-badge ${student.campus === 'junior' ? 'junior' : 'senior'}`}><LuBuilding2 size={13} />{student.campus === 'junior' ? 'Junior' : 'Senior'}</span></td><td className="currency">{money(student.totalFees)}</td><td className="currency paid-value">{money(student.amountPaid)}</td><td className={`currency balance-value ${student.balance > 0 ? 'owing' : ''}`}>{money(student.balance)}</td><td><span className={`fee-status ${meta.card}`}><StatusIcon size={15} />{meta.label}</span></td>{!readOnly && <td className="actions-column"><div className="fee-row-actions"><button type="button" className="fee-collect-button" onClick={() => onEdit(student)}><LuCreditCard size={15} /> Collect payment</button><div className="fee-action-menu"><button type="button" className="fee-action-trigger" aria-label={`More actions for ${student.full_name}`} aria-expanded={openAction === student.id} onClick={() => setOpenAction(openAction === student.id ? null : student.id)}><LuEllipsisVertical size={19} /></button>{openAction === student.id && <div className="fee-action-popover"><button onClick={() => { onReminder(student); setOpenAction(null) }}><LuSend size={15} /> Send reminder</button><button onClick={() => { onHistory(student); setOpenAction(null) }}><LuHistory size={15} /> View history</button></div>}</div></div></td>}</tr> }) : <tr><td colSpan={readOnly ? 9 : 10} className="fee-empty-state">No students match the current search and filters.</td></tr>}</tbody></table></div>
+    <div className="fee-pagination"><span>Showing <strong>{filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)}</strong> of <strong>{filtered.length}</strong> students</span><div><label>Rows per page:<select value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1) }}><option value="10">10</option><option value="25">25</option><option value="50">50</option></select></label><button type="button" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={page === 1} aria-label="Previous page"><LuChevronLeft size={18} /></button><span>Page {page} of {totalPages}</span><button type="button" onClick={() => setPage(current => Math.min(totalPages, current + 1))} disabled={page === totalPages} aria-label="Next page"><LuChevronRight size={18} /></button></div></div>
+  </section>
 }
 
 export default function FeesDashboard({ students = [], loading, supabase, user, profile }) {
   const [feeRecords, setFeeRecords] = useState([])
   const [term, setTerm] = useState(CURRENT_TERM)
   const [year, setYear] = useState(CURRENT_YEAR)
-  const [campus, setCampus] = useState(profile?.campus === 'junior' || profile?.campus === 'senior' ? profile.campus : 'all')
+  const [campus] = useState(profile?.campus === 'junior' || profile?.campus === 'senior' ? profile.campus : 'all')
   const [error, setError] = useState('')
   const [feeLoading, setFeeLoading] = useState(true)
   const [editTarget, setEditTarget] = useState(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
-  const campusLocked = profile?.role === 'accountant' && profile?.campus && profile.campus !== 'all'
+  const [quickStatus, setQuickStatus] = useState('')
+  const readOnly = profile?.role === 'principal'
 
   const loadFees = useCallback(async () => {
     if (!supabase) return
@@ -156,10 +129,9 @@ export default function FeesDashboard({ students = [], loading, supabase, user, 
 
   return <div className="fees-dashboard">
     <header className="fees-page-header"><div><p className="fees-kicker">Finance · {term} {year}</p><h1>Fees tracking</h1><p>Monitor collection progress and resolve outstanding balances with confidence.</p></div><div className="fees-period-controls"><label>Term<select value={term} onChange={event => setTerm(event.target.value)}>{TERMS.map(item => <option key={item}>{item}</option>)}</select></label><label>Year<select value={year} onChange={event => setYear(Number(event.target.value))}>{[2025, 2026, 2027].map(item => <option key={item}>{item}</option>)}</select></label></div></header>
-    {!campusLocked && <div className="fees-campus-switch" role="group" aria-label="Campus filter">{[['all', 'All campuses'], ['junior', 'Junior campus'], ['senior', 'Senior campus']].map(([value, label]) => <button key={value} onClick={() => setCampus(value)} className={campus === value ? 'active' : ''} aria-pressed={campus === value}>{label}</button>)}</div>}
     {error && <PortalNotice tone="error">{error}</PortalNotice>}
-    <section className="fees-stat-row" aria-label="Payment summary">{metricCards.map(card => { const Icon = card.icon; return <article className={`fees-stat-card ${card.tone}`} key={card.label}><span className="fees-stat-icon"><Icon size={22} /></span><div><p>{card.label}</p><strong>{isLoading ? '—' : card.value}</strong><span>{isLoading ? 'Loading summary…' : card.note}</span></div></article> })}</section>
-    {isLoading ? <div className="fees-loading"><div /><div /><div /></div> : <MasterTable students={enriched} onEdit={setEditTarget} onReminder={student => setToast(`Reminder queued for ${student.full_name}`)} onHistory={student => setToast(`Payment history opened for ${student.full_name}`)} onExport={exportReport} />}
+    <section className="fees-stat-row" aria-label="Payment summary">{metricCards.map(card => { const Icon = card.icon; const actionable = card.label === 'Partial payments' || card.label === 'Unpaid'; const filter = card.label === 'Partial payments' ? 'half' : 'unpaid'; return <article className={`fees-stat-card ${card.tone} ${card.tone === 'slate' ? 'primary-kpi' : ''}`} key={card.label}><span className="fees-stat-icon"><Icon size={22} /></span><div><p>{card.label}</p><strong>{isLoading ? '—' : card.value}</strong><span>{isLoading ? 'Loading summary…' : card.note}</span>{actionable && !isLoading && <button type="button" className="fees-kpi-link" onClick={() => setQuickStatus(filter)}>View {card.value} {card.label === 'Unpaid' ? 'unpaid' : 'partial'} students</button>}</div></article> })}</section>
+    {isLoading ? <div className="fees-loading"><div /><div /><div /></div> : <MasterTable students={enriched} onEdit={setEditTarget} onReminder={student => setToast(`Reminder queued for ${student.full_name}`)} onHistory={student => setToast(`Payment history opened for ${student.full_name}`)} onExport={exportReport} readOnly={readOnly} quickStatus={quickStatus} />}
     {editTarget && <PaymentModal student={editTarget} onClose={() => setEditTarget(null)} onSave={savePayment} saving={saving} />}
     {toast && <div className="fee-toast" role="status"><LuCircleCheck size={18} />{toast}</div>}
   </div>

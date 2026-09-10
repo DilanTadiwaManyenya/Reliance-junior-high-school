@@ -30,7 +30,7 @@ Deno.serve(async request => {
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     const { data: { user } } = await admin.auth.getUser(token)
     const { data: caller } = await admin.from('profiles').select('role').eq('id', user?.id).single()
-    if (!user || !['admin', 'principal'].includes(caller?.role ?? '')) throw new Error('Only an administrator or principal can run this seed.')
+    if (!user || caller?.role !== 'admin') throw new Error('Only an administrator can run this seed.')
     const byName = new Map<string, string>(), credentials: object[] = []
     for (let i = 0; i < teachers.length; i++) {
       const [name, classes] = teachers[i], number = `+263790${String(i + 1).padStart(6, '0')}`, password = `RlcTemp!2026-${String(i + 1).padStart(2, '0')}`

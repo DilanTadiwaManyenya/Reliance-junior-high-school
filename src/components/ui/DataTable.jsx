@@ -1,0 +1,3 @@
+export default function DataTable({ columns, rows, getRowKey, emptyMessage = 'No records found.', page = 1, pageCount = 1 }) {
+  return <div className="data-table"><div className="portal-table-wrap"><table className="portal-table"><thead><tr>{columns.map(column => <th key={column.label}>{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map(row => <tr key={getRowKey(row)}>{columns.map(column => <td key={column.label}>{column.render(row)}</td>)}</tr>) : <tr><td colSpan={columns.length} className="data-table-empty">{emptyMessage}</td></tr>}</tbody></table></div><footer className="data-table-footer"><span>{rows.length} result{rows.length === 1 ? '' : 's'}</span><span>Page {page} of {pageCount}</span></footer></div>
+}
