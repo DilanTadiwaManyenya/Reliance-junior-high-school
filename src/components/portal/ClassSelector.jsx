@@ -50,29 +50,43 @@ export default function ClassSelector({
     })).sort((a, b) => a.label.localeCompare(b.label))
   }, [isTeacher, assignedClasses])
 
+  const [campusFilter, setCampusFilter] = useState('all')
+
   // Formatted admin class options
   const adminOptions = useMemo(() => {
     if (isTeacher) return []
-    return allClasses.map(c => {
+    let options = allClasses.map(c => {
+      let level = '', stream = ''
       if (typeof c === 'object' && c !== null && c.class_level) {
-        return {
-          key: `${c.class_level}:${c.class_stream || ''}`.replace(/:$/, ''),
-          label: `${c.class_level} ${c.class_stream || ''}`.trim()
-        }
+        level = c.class_level
+        stream = c.class_stream || ''
+      } else if (typeof c === 'string') {
+        const parsed = parseClassKey(c)
+        level = parsed.level
+        stream = parsed.stream || ''
+      } else {
+        level = String(c)
       }
-      if (typeof c === 'string') {
-        const { level, stream } = parseClassKey(c)
-        if (level) {
-          return {
-            key: `${level}:${stream || ''}`.replace(/:$/, ''),
-            label: `${level} ${stream || ''}`.trim()
-          }
-        }
-        return { key: c, label: c }
+      
+      return {
+        key: `${level}:${stream}`.replace(/:$/, ''),
+        label: `${level} ${stream}`.trim(),
+        level
       }
-      return { key: String(c), label: String(c) }
     })
-  }, [isTeacher, allClasses])
+
+    if (campusFilter === 'junior') {
+      options = options.filter(o => {
+        return o.level.includes('Grade') || o.level.includes('ECD')
+      })
+    } else if (campusFilter === 'senior') {
+      options = options.filter(o => {
+        return o.level.includes('Form') || o.level.includes('Six')
+      })
+    }
+
+    return options
+  }, [isTeacher, allClasses, campusFilter])
 
   // Auto-initialize active selection if not set or invalid
   useEffect(() => {
@@ -87,7 +101,6 @@ export default function ClassSelector({
           onClassChange(validStored.key, validStored)
         }
       } else {
-        // Requirement decision: Default to first class alphabetically
         const defaultClass = teacherOptions[0]
         sessionStorage.setItem(SESSION_KEY, defaultClass.key)
         if (activeClassKey !== defaultClass.key) {
@@ -101,24 +114,18 @@ export default function ClassSelector({
         if (stored === 'ALL') {
           if (activeClassKey !== 'ALL') onClassChange('ALL')
         } else {
+          // If the stored value doesn't match the current filter, switch to 'ALL'
           const directMatch = adminOptions.find(o => o.key === stored)
           if (directMatch) {
             if (activeClassKey !== directMatch.key) onClassChange(directMatch.key)
           } else {
-            const parsedStored = parseClassKey(stored)
-            const parsedMatch = adminOptions.find(o => {
-              const p = parseClassKey(o.key)
-              return p.level === parsedStored.level && p.stream === parsedStored.stream
-            })
-            if (parsedMatch) {
-              sessionStorage.setItem(SESSION_KEY, parsedMatch.key)
-              if (activeClassKey !== parsedMatch.key) onClassChange(parsedMatch.key)
-            }
+            // We changed filter and active class is not in the list anymore
+            if (activeClassKey !== 'ALL') onClassChange('ALL')
           }
         }
       }
     }
-  }, [isTeacher, teacherOptions, adminOptions])
+  }, [isTeacher, teacherOptions, adminOptions, campusFilter])
 
   const handleSelect = (key) => {
     sessionStorage.setItem(SESSION_KEY, key)
@@ -145,7 +152,6 @@ export default function ClassSelector({
       )
     }
 
-    // Multi-class teacher switcher
     return (
       <div className="class-selector-bar teacher-bar multi">
         <label htmlFor="portal-class-switcher" className="class-switcher-label">
@@ -167,25 +173,40 @@ export default function ClassSelector({
     )
   }
 
-  // Admin / Accountant view selector
   return (
-    <div className="class-selector-bar admin-bar">
-      <label htmlFor="admin-class-selector" className="class-switcher-label">
-        Filter by class:
-      </label>
-      <select
-        id="admin-class-selector"
-        className="class-switcher-select"
-        value={activeClassKey || (showAllOption ? 'ALL' : adminOptions[0]?.key || '')}
-        onChange={(e) => handleSelect(e.target.value)}
-      >
-        {showAllOption && <option value="ALL">{allOptionLabel}</option>}
-        {adminOptions.map((opt) => (
-          <option key={opt.key} value={opt.key}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+    <div className="admin-class-selector-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="campus-toggle" style={{ display: 'flex', gap: '10px', fontSize: '0.85rem' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <input type="radio" name="campusFilter" checked={campusFilter === 'all'} onChange={() => setCampusFilter('all')} />
+          All Campuses
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <input type="radio" name="campusFilter" checked={campusFilter === 'junior'} onChange={() => setCampusFilter('junior')} />
+          Junior
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <input type="radio" name="campusFilter" checked={campusFilter === 'senior'} onChange={() => setCampusFilter('senior')} />
+          Senior
+        </label>
+      </div>
+      <div className="class-selector-bar admin-bar">
+        <label htmlFor="admin-class-selector" className="class-switcher-label">
+          Filter by class:
+        </label>
+        <select
+          id="admin-class-selector"
+          className="class-switcher-select"
+          value={activeClassKey || (showAllOption ? 'ALL' : adminOptions[0]?.key || '')}
+          onChange={(e) => handleSelect(e.target.value)}
+        >
+          {showAllOption && <option value="ALL">{allOptionLabel}</option>}
+          {adminOptions.map((opt) => (
+            <option key={opt.key} value={opt.key}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }

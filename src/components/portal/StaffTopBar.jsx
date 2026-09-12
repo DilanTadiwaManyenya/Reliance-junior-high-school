@@ -1,5 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
+import ClassSelector, { parseClassKey } from './ClassSelector'
+import { ALL_CLASS_OPTIONS } from '../../data/classOptions'
+import { useSection } from './StaffPortalLayout'
 
 /* ── Hamburger / collapse icon ───────────────────────────────────── */
 const MenuIcon = () => (
@@ -23,10 +26,22 @@ const LogoutIcon = () => (
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
+  const { activeClassKey, setActiveClassKey, setActiveClassFilter } = useSection()
 
   const handleLogout = async () => {
     await signOut()
     navigate('/portal/login')
+  }
+
+  const handleClassChange = (key, option) => {
+    setActiveClassKey(key)
+    if (key === 'ALL' || !key) {
+      setActiveClassFilter({ level: null, stream: null })
+    } else if (option?.level) {
+      setActiveClassFilter({ level: option.level, stream: option.stream || null })
+    } else {
+      setActiveClassFilter(parseClassKey(key))
+    }
   }
 
   const roleLabel = {
@@ -43,22 +58,26 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
       {/* ── Left: toggle + brand ───────────── */}
       <div className="top-bar-left">
         {/* Desktop collapse toggle */}
-        <button
-          className="top-bar-toggle desktop-toggle"
-          onClick={onToggleSidebar}
-          aria-label="Toggle sidebar"
-          title="Collapse sidebar"
-        >
-          <MenuIcon />
-        </button>
+        {profile?.role !== 'accountant' && (
+          <button
+            className="top-bar-toggle desktop-toggle"
+            onClick={onToggleSidebar}
+            aria-label="Toggle sidebar"
+            title="Collapse sidebar"
+          >
+            <MenuIcon />
+          </button>
+        )}
         {/* Mobile hamburger */}
-        <button
-          className="top-bar-toggle mobile-toggle"
-          onClick={onToggleMobile}
-          aria-label="Open navigation menu"
-        >
-          <MenuIcon />
-        </button>
+        {profile?.role !== 'accountant' && (
+          <button
+            className="top-bar-toggle mobile-toggle"
+            onClick={onToggleMobile}
+            aria-label="Open navigation menu"
+          >
+            <MenuIcon />
+          </button>
+        )}
 
         <div className="top-bar-brand">
           <svg viewBox="0 0 100 115" className="top-bar-crest" aria-hidden="true">
@@ -79,6 +98,15 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
       {/* ── Right: user info + logout ──────── */}
       <div className="top-bar-user">
+        <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
+          <ClassSelector 
+            role={profile?.role} 
+            assignedClasses={profile?.teacher_class_assignments || []} 
+            allClasses={ALL_CLASS_OPTIONS} 
+            activeClassKey={activeClassKey} 
+            onClassChange={handleClassChange} 
+          />
+        </div>
         <div className="top-bar-avatar" aria-hidden="true">{initials}</div>
         <div className="top-bar-user-info">
           <span className="top-bar-username">{profile?.full_name || 'Portal User'}</span>

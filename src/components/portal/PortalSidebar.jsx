@@ -7,6 +7,35 @@ function NavItem({ item, active, onClick, collapsed }) { return <button classNam
 export default function PortalSidebar({ section, setSection, collapsed, onClose }) {
   const { profile } = useAuth()
   const manager = ['admin', 'principal'].includes(profile?.role)
-  const items = [{ id: 'dashboard', label: 'Overview', iconKey: 'dashboard', show: true }, { id: 'roster', label: 'Learners', iconKey: 'roster', show: true }, { id: 'entry', label: 'Records', iconKey: 'entry', show: profile?.role === 'admin' || profile?.role === 'teacher' }, { id: 'fees', label: 'Fees', iconKey: 'fees', show: manager || profile?.role === 'accountant' }, { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager }].filter(item => item.show)
-  return <aside className={`portal-sidebar sidebar-navigation-only${collapsed ? ' collapsed' : ''}`} aria-label="Sidebar navigation"><nav className="sidebar-nav" aria-label="Main navigation"><span className="sidebar-nav-heading">Workspace</span>{items.map(item => <NavItem key={item.id} item={item} active={section === item.id} onClick={id => { setSection(id); onClose?.() }} collapsed={collapsed} />)}</nav></aside>
+  
+  const groups = [
+    {
+      title: 'Workspace',
+      items: [
+        { id: 'dashboard', label: 'Overview', iconKey: 'dashboard', show: true },
+        { id: 'roster', label: 'Learners', iconKey: 'roster', show: true },
+        { id: 'entry', label: 'Records', iconKey: 'entry', show: profile?.role === 'admin' || profile?.role === 'teacher' }
+      ].filter(i => i.show)
+    },
+    {
+      title: 'Administration',
+      items: [
+        { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
+        { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager }
+      ].filter(i => i.show)
+    }
+  ].filter(g => g.items.length > 0)
+
+  return (
+    <aside className={`portal-sidebar sidebar-navigation-only sidebar-navy-gold${collapsed ? ' collapsed' : ''}`} aria-label="Sidebar navigation">
+      <nav className="sidebar-nav" aria-label="Main navigation">
+        {groups.map((group, index) => (
+          <React.Fragment key={index}>
+            {!collapsed && <span className="sidebar-nav-heading">{group.title}</span>}
+            {group.items.map(item => <NavItem key={item.id} item={item} active={section === item.id} onClick={id => { setSection(id); onClose?.() }} collapsed={collapsed} />)}
+          </React.Fragment>
+        ))}
+      </nav>
+    </aside>
+  )
 }

@@ -7,32 +7,10 @@ import FeesDashboard from '../../components/portal/FeesDashboard'
 import { useSection } from '../../components/portal/StaffPortalLayout'
 import { useAuth } from '../../context/useAuth'
 import { invokeEdgeFunction } from '../../lib/edgeFunction'
-import { CLASS_LEVELS, getStreamsForLevel } from '../../data/classOptions'
+import { CLASS_LEVELS, getStreamsForLevel, ALL_CLASS_OPTIONS, isJuniorLevel } from '../../data/classOptions'
 import ClassSelector, { parseClassKey } from '../../components/portal/ClassSelector';
 import TeacherGradeEntry from '../../components/portal/TeacherGradeEntry';
 import SlideOver from '../../components/ui/SlideOver';
-
-const ALL_CLASS_OPTIONS = [
-  { class_level: 'Form 1', class_stream: 'Green' },
-  { class_level: 'Form 1', class_stream: 'White' },
-  { class_level: 'Form 1', class_stream: 'Blue' },
-  { class_level: 'Form 2', class_stream: 'Green' },
-  { class_level: 'Form 2', class_stream: 'White' },
-  { class_level: 'Form 2', class_stream: 'Blue' },
-  { class_level: 'Form 3', class_stream: 'Green' },
-  { class_level: 'Form 3', class_stream: 'White' },
-  { class_level: 'Form 3', class_stream: 'Blue' },
-  { class_level: 'Form 4', class_stream: 'Green' },
-  { class_level: 'Form 4', class_stream: 'White' },
-  { class_level: 'Form 4', class_stream: 'Blue' },
-  { class_level: 'Grade 1', class_stream: 'Blue' },
-  { class_level: 'Grade 2', class_stream: 'Blue' },
-  { class_level: 'Grade 3', class_stream: 'Blue' },
-  { class_level: 'Grade 4', class_stream: 'Blue' },
-  { class_level: 'Grade 5', class_stream: 'Blue' },
-  { class_level: 'Grade 6', class_stream: 'Blue' },
-  { class_level: 'Grade 7', class_stream: 'Blue' }
-]
 
 const records     = { attendance: 'attendance', academic: 'academic_records', behavior: 'behavior_notes', sports: 'sports_records' }
 const today       = () => new Date().toISOString().slice(0, 10)
@@ -67,7 +45,7 @@ function StatusPill({ status }) {
 }
 
 /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Dashboard home ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
-function DashboardHome({ students, staff, loading, setSection, role, supabase, classControl }) {
+function DashboardHome({ students, staff, loading, setSection, role, supabase }) {
   const isTeacher = role === 'teacher'
   const active = students.filter(student => student.status === 'active').length
   const pending = students.filter(student => student.status !== 'active').length
@@ -83,7 +61,7 @@ function DashboardHome({ students, staff, loading, setSection, role, supabase, c
     const loadOverview = async () => {
       const year = new Date().getFullYear()
       const [attendanceResult, parentResult, feesResult] = await Promise.all([
-        supabase.from('attendance').select('date, status').order('date', { ascending: true }),
+        supabase.from('attendance').select('date, status, student_id').order('date', { ascending: true }),
         isTeacher ? Promise.resolve({ data: null }) : supabase.from('parent_student').select('id', { count: 'exact', head: true }).not('verified_at', 'is', null),
         isTeacher ? Promise.resolve({ data: null }) : supabase.from('fee_balances').select('amount_paid').eq('academic_year', year),
       ])
@@ -93,8 +71,10 @@ function DashboardHome({ students, staff, loading, setSection, role, supabase, c
         return { key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`, label: date.toLocaleString('en', { month: 'short' }) }
       })
       setOverview({
+        rawAttendance: attendanceResult.data ?? [],
         attendance: months.map(month => {
-          const records = (attendanceResult.data ?? []).filter(row => row.date?.startsWith(month.key))
+          const validStudentIds = new Set(students.map(s => s.id))
+          const records = (attendanceResult.data ?? []).filter(row => row.date?.startsWith(month.key) && validStudentIds.has(row.student_id))
           return { ...month, present: records.filter(row => row.status === 'present' || row.status === 'late').length, absent: records.filter(row => row.status === 'absent').length }
         }),
         linkedParents: parentResult.count ?? null,
@@ -103,7 +83,20 @@ function DashboardHome({ students, staff, loading, setSection, role, supabase, c
     }
     loadOverview()
     return () => { mounted = false }
-  }, [isTeacher, supabase])
+  }, [isTeacher, supabase, students])
+
+  const todayDate = new Date().toISOString().slice(0, 10)
+  const todayBreakdown = Object.entries(students.reduce((acc, student) => {
+    const record = overview.rawAttendance?.find(r => r.student_id === student.id && r.date === todayDate)
+    const className = `${student.class_level} ${student.class_stream || ''}`.trim() || 'Unassigned'
+    if (!acc[className]) acc[className] = { present: 0, absent: 0 }
+    if (record?.status === 'present' || record?.status === 'late') {
+      acc[className].present++
+    } else {
+      acc[className].absent++
+    }
+    return acc
+  }, {})).sort((a, b) => a[0].localeCompare(b[0]))
 
   const distribution = Object.entries(students.reduce((counts, student) => {
     const label = student.class_level || 'Unassigned'
@@ -121,7 +114,7 @@ function DashboardHome({ students, staff, loading, setSection, role, supabase, c
           <h1 className="dash-page-title">{title}</h1>
           <p className="dash-page-sub">{subtitle}</p>
         </div>
-        <div className="dashboard-header-controls">{classControl}<Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection(isTeacher ? 'entry' : 'roster')}>{actionLabel}</Button></div>
+        <div className="dashboard-header-controls"><Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection(isTeacher ? 'entry' : 'roster')}>{actionLabel}</Button></div>
       </div>
 
       <div className="dash-stats-row">
@@ -137,9 +130,17 @@ function DashboardHome({ students, staff, loading, setSection, role, supabase, c
           <div className="dash-card-header"><div><h2 className="dash-card-title">Attendance trend</h2><p className="dash-card-subtitle">Present and absent records over the last six months.</p></div><div className="dash-chart-key"><span><i className="present" />Present</span><span><i className="absent" />Absent</span></div></div>
           <div className="dash-bar-chart" aria-label="Attendance trend chart">{overview.attendance.map(month => <div className="dash-bar-group" key={month.key}><div className="dash-bars"><span className="dash-bar present" style={{ height: `${Math.max(4, (month.present / maxAttendance) * 100)}%` }} title={`${month.present} present`} /><span className="dash-bar absent" style={{ height: `${Math.max(4, (month.absent / maxAttendance) * 100)}%` }} title={`${month.absent} absent`} /></div><span>{month.label}</span></div>)}</div>
         </section>
-        <section className="dash-card dash-distribution-card">
-          <div className="dash-card-header"><div><h2 className="dash-card-title">Learner distribution</h2><p className="dash-card-subtitle">Largest class levels in the current register.</p></div></div>
-          <div className="dash-distribution-body"><div className="dash-donut" style={{ '--distribution': `${Math.min(100, Math.round(((distribution[0]?.[1] || 0) / Math.max(1, students.length)) * 100))}%` }}><div><strong>{students.length}</strong><span>learners</span></div></div><div className="dash-distribution-legend">{distribution.map(([label, count], index) => <div key={label}><i className={`level-${index}`} /><span>{label}</span><strong>{count}</strong></div>)}</div></div>
+        
+        <section className="dash-card">
+          <div className="dash-card-header"><div><h2 className="dash-card-title">Today's Attendance</h2><p className="dash-card-subtitle">Live breakdown for {isTeacher ? 'your classes' : 'all classes'}.</p></div></div>
+          <div className="dash-distribution-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', overflowY: 'auto', maxHeight: '200px' }}>
+            {todayBreakdown.length === 0 ? <p className="muted">No classes to display</p> : todayBreakdown.map(([className, counts]) => (
+              <div key={className} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: 'var(--surface-color)', borderRadius: '4px' }}>
+                <strong>{className}</strong>
+                <span><span style={{ color: 'var(--success-color)' }}>{counts.present} present</span>, <span style={{ color: 'var(--error-color)' }}>{counts.absent} absent</span></span>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
 
@@ -153,7 +154,7 @@ function DashboardHome({ students, staff, loading, setSection, role, supabase, c
 /* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ Main export ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ */
 export default function StaffDashboard() {
   const { supabase, user, profile } = useAuth()
-  const { section, setSection }    = useSection()
+  const { section, setSection, activeClassFilter }    = useSection()
 
   const manager    = ['admin', 'principal'].includes(profile?.role)
   const isAdmin    = profile?.role === 'admin'
@@ -176,6 +177,7 @@ export default function StaffDashboard() {
   const [resetModal, setResetModal] = useState({ open: false, staff: null, phone: '', password: '', saving: false })
   const [staffModal, setStaffModal] = useState(false)
   const [staffQuery, setStaffQuery] = useState('')
+  const [todayAttendance, setTodayAttendance] = useState({})
 
   const selected  = students.find(row => row.id === selectedId)
   const visibleStaff = staff.filter(row => [row.full_name, row.phone, row.role].some(value => value?.toLowerCase().includes(staffQuery.toLowerCase())))
@@ -186,6 +188,15 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await supabase.from('students').select('*').order('full_name')
     if (requestError) showError(requestError.message)
     else setStudents(data ?? [])
+    
+    const today = new Date().toISOString().slice(0, 10)
+    const { data: attendanceData } = await supabase.from('attendance').select('student_id, status').eq('date', today)
+    if (attendanceData) {
+      const map = {}
+      attendanceData.forEach(r => map[r.student_id] = r.status)
+      setTodayAttendance(map)
+    }
+
     setLoading(false)
   }, [supabase])
 
@@ -199,6 +210,41 @@ export default function StaffDashboard() {
     else setStaff(data ?? []); console.log('Loaded staff data', data);
     console.log('Loaded staff count', (data ?? []).length, data)
   }, [manager, supabase])
+
+  const handleToggleAttendance = async (studentId, currentStatus) => {
+    const newStatus = currentStatus === 'present' ? undefined : 'present'
+    const today = new Date().toISOString().slice(0, 10)
+    
+    // Optimistic update
+    setTodayAttendance(prev => {
+      const next = { ...prev }
+      if (newStatus) next[studentId] = newStatus
+      else delete next[studentId]
+      return next
+    })
+    
+    // Delete existing record for today (in case no unique constraint exists for upsert)
+    await supabase.from('attendance').delete().match({ student_id: studentId, date: today })
+    
+    if (newStatus) {
+      // Insert new record
+      const { error } = await supabase.from('attendance').insert({ 
+        student_id: studentId, 
+        date: today, 
+        status: newStatus, 
+        recorded_by: user.id 
+      })
+      
+      if (error) {
+        showError(error.message)
+        // Revert on error
+        setTodayAttendance(prev => ({ ...prev, [studentId]: currentStatus }))
+      }
+    } else {
+        // If there was an error in deleting, we might want to revert, but we'll assume it succeeded
+    }
+  }
+
   useEffect(() => {
     const timer = setTimeout(() => { loadStudents(); loadStaff() }, 0)
     return () => clearTimeout(timer)
@@ -236,7 +282,15 @@ export default function StaffDashboard() {
   }
 
   const saveStudent = async event => {
-    event.preventDefault(); if (!isAdmin) return showError('Only administrators can manage learners.')
+    event.preventDefault(); 
+    if (!isAdmin && profile?.role !== 'teacher') return showError('Only administrators or assigned teachers can add learners.')
+    
+    if (!isAdmin && profile?.role === 'teacher') {
+      if (editingId) return showError('Only administrators can edit learners.')
+      const isAssigned = teacherAssignments.some(a => a.class_level === student.class_level && (!student.class_stream || a.class_stream === student.class_stream || !a.class_stream))
+      if (!isAssigned) return showError('You can only add learners to your assigned classes.')
+    }
+
     const row = { ...student, enrolled_year: Number(student.enrolled_year), class_stream: student.class_stream || null, inactive_reason: student.status === 'inactive' ? student.inactive_reason : null }
     const request = editingId
       ? supabase.from('students').update(row).eq('id', editingId)
@@ -294,47 +348,18 @@ export default function StaffDashboard() {
     loadStaff()
   }
 
-  const [activeClassKey, setActiveClassKey] = useState(() => sessionStorage.getItem('reliance_active_portal_class') || 'ALL')
-  const [teacherAssignments, setTeacherAssignments] = useState([])
-
   const isTeacher = profile?.role === 'teacher'
-
-  // Load teacher class assignments if teacher role
-  useEffect(() => {
-    if (!isTeacher || !user?.id || !supabase) return
-    let active = true
-    ;(async () => {
-      const { data } = await supabase
-        .from('teacher_class_assignments')
-        .select('class_level, class_stream')
-        .eq('teacher_id', user.id)
-      if (active && data) {
-        setTeacherAssignments(data)
-      }
-    })()
-    return () => { active = false }
-  }, [isTeacher, user?.id, supabase])
-
-  const handleClassChange = (key, option) => {
-    console.log('[ClassSelector Switch Event]', {
-      sessionStorageKey: key,
-      activeClassKey: key,
-      label: option?.label || key
-    })
-    setActiveClassKey(key)
-    sessionStorage.setItem('reliance_active_portal_class', key)
-  }
+  const teacherAssignments = profile?.teacher_class_assignments || []
 
   // Filter students based on active class selection (class_level & class_stream)
   const filteredStudents = useMemo(() => {
-    const { level, stream } = parseClassKey(activeClassKey)
+    const { level, stream } = activeClassFilter
     const filterApplied = level 
       ? `class_level = '${level}' AND class_stream = '${stream || ''}'` 
       : 'NONE (Showing all students)'
 
     console.log('[Admin/Teacher Class Filter Applied]', {
       sessionStorageValue: sessionStorage.getItem('reliance_active_portal_class'),
-      activeClassKey,
       parsedFilter: { class_level: level, class_stream: stream },
       filterApplied,
       matchingStudentsCount: level 
@@ -344,23 +369,16 @@ export default function StaffDashboard() {
 
     if (!level) return students
     return students.filter(s => s.class_level === level && (stream ? s.class_stream === stream : true))
-  }, [students, activeClassKey])
+  }, [students, activeClassFilter])
 
   const visible = filteredStudents.filter(row =>
     `${row.full_name} ${row.admission_number}`.toLowerCase().includes(query.toLowerCase())
   )
 
 
-  /* Accountant: show fees dashboard with class selector */
+  /* Accountant: show fees dashboard */
   if (accountant) return (
     <div className="staff-content-area">
-      <ClassSelector 
-        role={profile?.role}
-        assignedClasses={teacherAssignments}
-        allClasses={ALL_CLASS_OPTIONS}
-        activeClassKey={activeClassKey}
-        onClassChange={handleClassChange}
-      />
       <FeesDashboard students={filteredStudents} loading={loading} supabase={supabase} user={user} profile={profile} />
     </div>
   )
@@ -368,32 +386,18 @@ export default function StaffDashboard() {
   /* Section: Fees */
   if (section === 'fees') return (
     <div className="staff-content-area">
-      <ClassSelector 
-        role={profile?.role}
-        assignedClasses={teacherAssignments}
-        allClasses={ALL_CLASS_OPTIONS}
-        activeClassKey={activeClassKey}
-        onClassChange={handleClassChange}
-      />
       <FeesDashboard students={filteredStudents} loading={loading} supabase={supabase} user={user} profile={profile} />
     </div>
   )
 
   return (
     <div className="staff-content-area">
-      <ClassSelector 
-        role={profile?.role}
-        assignedClasses={teacherAssignments}
-        allClasses={ALL_CLASS_OPTIONS}
-        activeClassKey={activeClassKey}
-        onClassChange={handleClassChange}
-      />
       {notice && <PortalNotice>{notice}</PortalNotice>}
       {error && <PortalNotice tone="error">{error}</PortalNotice>}
 
       {/* Dashboard Home */}
       {section === 'dashboard' && (
-        <DashboardHome students={filteredStudents} staff={staff} loading={loading} setSection={setSection} role={profile?.role} supabase={supabase} classControl={<ClassSelector role={profile?.role} assignedClasses={teacherAssignments} allClasses={ALL_CLASS_OPTIONS} activeClassKey={activeClassKey} onClassChange={handleClassChange} />} />
+        <DashboardHome students={filteredStudents} staff={staff} loading={loading} setSection={setSection} role={profile?.role} supabase={supabase} />
       )}
 
       {/* Roster */}
@@ -427,6 +431,7 @@ export default function StaffDashboard() {
                           <th>Class</th>
                           <th>Stream</th>
                           <th>Status</th>
+                          {isTeacher && <th>Today's Attendance</th>}
                           {isAdmin && <th />}
                         </tr>
                       </thead>
@@ -439,8 +444,19 @@ export default function StaffDashboard() {
                             </td>
                             <td className="mono">{row.admission_number}</td>
                             <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_level).join(', ') || '-') : row.class_level}</td>
-                        <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_stream).filter(Boolean).join(', ') || '-') : (row.class_stream || '-')}</td>
+                            <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_stream).filter(Boolean).join(', ') || '-') : (row.class_stream || '-')}</td>
                             <td><StatusPill status={row.status} /></td>
+                            {isTeacher && (
+                              <td>
+                                <Button 
+                                  variant={todayAttendance[row.id] === 'present' ? 'primary' : 'secondary'} 
+                                  onClick={() => handleToggleAttendance(row.id, todayAttendance[row.id])}
+                                  style={todayAttendance[row.id] === 'present' ? { backgroundColor: 'var(--success-color)' } : {}}
+                                >
+                                  {todayAttendance[row.id] === 'present' ? '✓ Present' : 'Present'}
+                                </Button>
+                              </td>
+                            )}
                             {isAdmin && (
                               <td>
                                 <Button variant="secondary" onClick={() => editStudent(row)}>Edit</Button>
@@ -455,7 +471,7 @@ export default function StaffDashboard() {
               }
             </Card>
 
-            {isAdmin && (
+            {(isAdmin || profile?.role === 'teacher') && (
               <Card>
                 <h2>{editingId ? 'Edit learner' : 'Add learner'}</h2>
                 <form className="form portal-form" onSubmit={saveStudent}>
@@ -465,13 +481,13 @@ export default function StaffDashboard() {
                   <label>Class level
                     <select required value={student.class_level} onChange={e => setStudent(v => ({ ...v, class_level: e.target.value, class_stream: '' }))}>
                       <option value="">Choose class level</option>
-                      {CLASS_LEVELS.map(level => <option key={level}>{level}</option>)}
+                      {(isAdmin ? CLASS_LEVELS : [...new Set(teacherAssignments.map(a => a.class_level))]).map(level => <option key={level}>{level}</option>)}
                     </select>
                   </label>
                   <label>Class stream
-                    <select required disabled={!student.class_level} value={student.class_stream} onChange={e => setStudent(v => ({ ...v, class_stream: e.target.value }))}>
-                      <option value="">Choose class stream</option>
-                      {getStreamsForLevel(student.class_level).map(stream => <option key={stream}>{stream}</option>)}
+                    <select required disabled={!student.class_level || (isJuniorLevel(student.class_level))} value={student.class_stream} onChange={e => setStudent(v => ({ ...v, class_stream: e.target.value }))}>
+                      <option value="">{isJuniorLevel(student.class_level) ? 'N/A (Junior)' : 'Choose class stream'}</option>
+                      {(isAdmin ? getStreamsForLevel(student.class_level) : teacherAssignments.filter(a => a.class_level === student.class_level).map(a => a.class_stream).filter(Boolean)).map(stream => <option key={stream}>{stream}</option>)}
                     </select>
                   </label>
                   <label>Enrolled year<input required type="number" value={student.enrolled_year} onChange={e => setStudent(v => ({ ...v, enrolled_year: e.target.value }))} /></label>
