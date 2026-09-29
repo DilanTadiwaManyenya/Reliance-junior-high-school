@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Package,
   ShoppingCart,
@@ -13,6 +13,10 @@ import {
   Minus,
   RefreshCw,
   Printer,
+  Bell,
+  ShieldCheck,
+  Store,
+  SlidersHorizontal,
 } from "lucide-react";
 import "./inventory.css";
 
@@ -44,6 +48,74 @@ const tabs = [
   ["logs", "Audit log", ScrollText],
   ["settings", "Settings", Settings],
   ["help", "Help", CircleHelp],
+];
+const helpTopics = [
+  {
+    id: "ERR_STOCK_LOW",
+    category: "checkout",
+    title: "Insufficient stock during checkout",
+    solution: "The quantity in the cart is higher than the live stock count.",
+    steps: [
+      "Check the available quantity shown on the product card.",
+      "Reduce the cart quantity, or ask an administrator to receive stock under Products.",
+      "Retry checkout only after the cart matches available stock.",
+    ],
+  },
+  {
+    id: "ERR_PAYMENT_AMOUNT",
+    category: "checkout",
+    title: "Amount received is below the total",
+    solution: "A sale can only be completed when the recorded payment covers the basket total.",
+    steps: [
+      "Confirm the payment method and total payable.",
+      "Enter the amount actually received.",
+      "Record a separate sale if the customer pays later; do not force a partial checkout.",
+    ],
+  },
+  {
+    id: "ERR_PRODUCT_UNAVAILABLE",
+    category: "inventory",
+    title: "A product is unavailable or was changed",
+    solution: "Another staff member may have archived an item or changed its stock while this screen was open.",
+    steps: [
+      "Clear the affected item from the cart.",
+      "Use Refresh to load the current catalogue.",
+      "Add the product again only if it is active and in stock.",
+    ],
+  },
+  {
+    id: "ERR_PENDING_CHECKOUT",
+    category: "checkout",
+    title: "Checkout confirmation is pending",
+    solution: "A connection was interrupted after a checkout was submitted.",
+    steps: [
+      "Use Retry pending sale on the same checkout screen.",
+      "Do not create a replacement sale while it is pending.",
+      "The system uses the same request ID, so a successful retry cannot deduct stock twice.",
+    ],
+  },
+  {
+    id: "ERR_RECEIPT_EXPORT",
+    category: "reports",
+    title: "A receipt will not print or save as PDF",
+    solution: "Printing is handled by the browser after the receipt opens.",
+    steps: [
+      "Open the receipt from Sales & receipts.",
+      "Choose Print / Save PDF.",
+      "Allow the browser print dialog, then select Save as PDF if a paper printer is unavailable.",
+    ],
+  },
+  {
+    id: "ERR_ACCESS_DENIED",
+    category: "auth",
+    title: "Access denied or a section is missing",
+    solution: "Shop features depend on the active Reliance role.",
+    steps: [
+      "Administrators manage products, stock, settings and audit records.",
+      "Accountants process sales and view reports.",
+      "Sign out and back in if your assigned role was recently changed.",
+    ],
+  },
 ];
 const errorMessage = (e) =>
   ["42P01", "42703", "PGRST202", "PGRST205", "PGRST204"].includes(e.code)
@@ -98,7 +170,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const [settings, setSettings] = useState({
     store_name: "Reliance Learning Centre",
     receipt_header: "School shop",
+    low_stock_alerts_enabled: true,
+    alert_phone: "",
   });
+  const [settingsSection, setSettingsSection] = useState("store");
   const [cart, setCart] = useState(() => readSession(storageKey)?.cart || []);
   const [held, setHeld] = useState(() => readSession(storageKey)?.held || []);
   const [customer, setCustomer] = useState(
@@ -113,6 +188,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
   );
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
+  const [logStatus, setLogStatus] = useState("all");
+  const [helpCategory, setHelpCategory] = useState("all");
+  const [helpQuery, setHelpQuery] = useState("");
+  const [openHelp, setOpenHelp] = useState("ERR_STOCK_LOW");
   const [list, setList] = useState(false);
   const [month, setMonth] = useState(() => {
     const d = new Date();
@@ -236,12 +315,13 @@ export default function InventoryPOS({ supabase, user, profile }) {
     }
   };
   const active = products.filter((p) => p.active);
-  const filtered = active.filter(
+  const catalogue = tab === "products" && status === "archived" ? products.filter((p) => !p.active) : active;
+  const filtered = catalogue.filter(
     (p) =>
       `${p.name} ${p.sku || ""} ${p.category || ""}`
         .toLowerCase()
         .includes(query.toLowerCase()) &&
-      (status === "all" ||
+      (status === "all" || status === "archived" ||
         (status === "low"
           ? p.quantity_on_hand <= p.reorder_level
           : p.quantity_on_hand === 0)),
@@ -294,6 +374,24 @@ export default function InventoryPOS({ supabase, user, profile }) {
     `${s.receipt_number} ${s.customer_name || ""} ${methods[s.payment_method]}`
       .toLowerCase()
       .includes(query.toLowerCase()),
+  );
+  const visibleLogs = useMemo(
+    () =>
+      logs.filter((entry) => {
+        const matchesQuery = `${entry.action} ${entry.actor || ""} ${JSON.stringify(entry.details)}`
+          .toLowerCase()
+          .includes(query.toLowerCase());
+        return matchesQuery && (logStatus === "all" || logStatus === "success");
+      }),
+    [logs, query, logStatus],
+  );
+  const visibleHelp = useMemo(
+    () =>
+      helpTopics.filter((topic) => {
+        const text = `${topic.id} ${topic.title} ${topic.solution} ${topic.steps.join(" ")}`.toLowerCase();
+        return (helpCategory === "all" || topic.category === helpCategory) && text.includes(helpQuery.toLowerCase());
+      }),
+    [helpCategory, helpQuery],
   );
   const checkout = () =>
     run(async () => {
@@ -376,6 +474,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
         selling_price: Number(form.selling_price),
         cost_price: Number(form.cost_price),
         reorder_level: Number(form.reorder_level),
+        ...(form.id ? { active: Boolean(form.active) } : {}),
       };
       if (!payload.name) throw new Error("Enter a product name.");
       const result = form.id
@@ -534,6 +633,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               <option value="all">All stock</option>
               <option value="low">Low stock</option>
               <option value="empty">Out of stock</option>
+              {tab === "products" && <option value="archived">Archived products</option>}
             </select>
             <button onClick={() => setList(!list)}>
               {list ? "Grid view" : "List view"}
@@ -609,7 +709,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                         p.quantity_on_hand <= p.reorder_level ? "shop-low" : ""
                       }
                     >
-                      {p.quantity_on_hand} units available
+                      {p.active ? `${p.quantity_on_hand} units available` : "Archived"}
                     </span>
                     <b>{money(p.selling_price)}</b>
                   </button>
@@ -999,8 +1099,24 @@ export default function InventoryPOS({ supabase, user, profile }) {
       )}
       {tab === "logs" && admin && (
         <div className="shop-panel shop-table">
-          <h2>Shop audit trail</h2>
-          <p>Latest 200 product, stock, checkout and settings events.</p>
+          <h2>Real-time shop audit log</h2>
+          <p>Latest 200 stock, product, checkout and preference events. The log records committed changes only.</p>
+          <div className="shop-toolbar">
+            <label className="shop-search">
+              <Search size={17} />
+              <input
+                aria-label="Search audit log"
+                placeholder="Search action or staff ID"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+            <select aria-label="Audit status" value={logStatus} onChange={(e) => setLogStatus(e.target.value)}>
+              <option value="all">All completed events</option>
+              <option value="success">Completed only</option>
+            </select>
+            <button onClick={load} disabled={loading}><RefreshCw size={15} /> Refresh feed</button>
+          </div>
           <table>
             <thead>
               <tr>
@@ -1011,9 +1127,9 @@ export default function InventoryPOS({ supabase, user, profile }) {
               </tr>
             </thead>
             <tbody>
-              {logs.map((l) => (
+              {visibleLogs.map((l) => (
                 <tr key={l.id}>
-                  <td>{l.action}</td>
+                  <td><span className="shop-badge success">Completed</span><small>{l.action}</small></td>
                   <td>{l.actor || "System"}</td>
                   <td>
                     <details>
@@ -1026,7 +1142,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               ))}
             </tbody>
           </table>
-          {!logs.length && <p>No events yet.</p>}
+          {!visibleLogs.length && <p className="shop-empty">No audit events match this filter.</p>}
         </div>
       )}
       {tab === "settings" && admin && (
@@ -1040,6 +1156,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 .update({
                   store_name: settings.store_name.trim(),
                   receipt_header: settings.receipt_header.trim(),
+                  low_stock_alerts_enabled: Boolean(settings.low_stock_alerts_enabled),
+                  alert_phone: settings.alert_phone.trim() || null,
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", true);
@@ -1049,8 +1167,14 @@ export default function InventoryPOS({ supabase, user, profile }) {
             });
           }}
         >
-          <h2>Business & receipt information</h2>
-          <div className="shop-form-grid">
+          <h2>System preferences & settings</h2>
+          <p>Configure shop details, stock monitoring, notification details and access guidance.</p>
+          <div className="shop-settings-tabs" role="tablist" aria-label="Shop settings">
+            {[["store", "Store details", Store], ["inventory", "Inventory rules", SlidersHorizontal], ["alerts", "WhatsApp alerts", Bell], ["security", "Security & access", ShieldCheck]].map(([id, label, Icon]) => (
+              <button key={id} type="button" role="tab" aria-selected={settingsSection === id} className={settingsSection === id ? "selected" : ""} onClick={() => setSettingsSection(id)}><Icon size={16} /> {label}</button>
+            ))}
+          </div>
+          {settingsSection === "store" && <div className="shop-form-grid">
             <label>
               Store name
               <input
@@ -1071,51 +1195,21 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 }
               />
             </label>
-          </div>
-          <p>
-            Currency: USD. Access uses Reliance staff accounts. Product reorder
-            levels are managed under Products.
-          </p>
+          </div>}
+          {settingsSection === "inventory" && <div className="shop-settings-copy"><h3>Per-product stock rules</h3><p>Each product has its own low-stock threshold. Change it from Products → select product → Low stock threshold. Low or empty items appear on the overview and can be filtered in the catalogue.</p><button type="button" onClick={() => setTab("products")}>Manage products</button></div>}
+          {settingsSection === "alerts" && <div className="shop-form-grid"><label className="shop-checkbox"><input type="checkbox" checked={Boolean(settings.low_stock_alerts_enabled)} onChange={(e) => setSettings({ ...settings, low_stock_alerts_enabled: e.target.checked })} /> Show low-stock alert reminders</label><label>WhatsApp recipient number<input inputMode="tel" placeholder="+263…" value={settings.alert_phone || ""} onChange={(e) => setSettings({ ...settings, alert_phone: e.target.value })} /></label><p className="shop-form-note">Reliance saves this recipient and shows stock reminders in the shop. Automatic WhatsApp sending needs a connected WhatsApp provider before messages can be delivered.</p></div>}
+          {settingsSection === "security" && <div className="shop-settings-copy"><h3>Role-based access</h3><p>Administrators can manage products, stock, preferences and audit records. Accountants process sales, print receipts and view reports. Password and role changes are managed in Reliance Staff, so this shop never stores passwords.</p><button type="button" onClick={() => setTab("help")}>Open access help</button></div>}
           <button className="primary" disabled={busy || !ready}>
             Save preferences
           </button>
         </form>
       )}
       {tab === "help" && (
-        <div className="shop-panel">
-          <h2>Shop workflow guide</h2>
-          {[
-            [
-              "Complete a sale",
-              "Select products, enter the customer name and payment method, record the amount received, then complete checkout. Stock and receipt creation happen together.",
-            ],
-            [
-              "Insufficient stock",
-              "Refresh inventory and reduce the requested quantity. Administrators can receive stock under Products with a recorded reason.",
-            ],
-            [
-              "Pending checkout",
-              "If the connection drops, use Retry pending sale. It reuses the same request ID so the sale cannot be recorded twice. Do not start a replacement transaction.",
-            ],
-            [
-              "Held carts",
-              "Hold pauses a basket in this browser tab. Clear or complete the current basket before resuming another. Stock is checked again at checkout.",
-            ],
-            [
-              "Receipts and reports",
-              "Open Sales & receipts to search transactions and print receipts or save them as PDF through the print dialog. Export CSV for reporting.",
-            ],
-            [
-              "Roles and settings",
-              "Administrators manage products, stock and preferences. Accountants sell products and review reports. Both use their existing Reliance login.",
-            ],
-          ].map(([title, text]) => (
-            <details className="shop-help" key={title}>
-              <summary>{title}</summary>
-              <p>{text}</p>
-            </details>
-          ))}
-        </div>
+        <>
+          <section className="shop-help-hero"><span>QUICK ACTIONS & WORKFLOW GUIDE</span><h2>Inventory & POS help</h2><label className="shop-search"><Search size={18} /><input aria-label="Search help" placeholder="Search an error code, keyword, or problem" value={helpQuery} onChange={(e) => setHelpQuery(e.target.value)} /></label></section>
+          <nav className="shop-help-filters" aria-label="Help topics">{[["all", "All topics"], ["checkout", "Checkout & sales"], ["inventory", "Stock & products"], ["reports", "Receipts & reports"], ["auth", "Access & permissions"]].map(([id, label]) => <button key={id} className={helpCategory === id ? "selected" : ""} onClick={() => setHelpCategory(id)}>{label}</button>)}</nav>
+          <div className="shop-panel"><h2>Troubleshooting & error resolutions</h2>{visibleHelp.map((topic) => <article className="shop-help" key={topic.id}><button className="shop-help-trigger" aria-expanded={openHelp === topic.id} onClick={() => setOpenHelp(openHelp === topic.id ? "" : topic.id)}><span><code>{topic.id}</code>{topic.title}</span><span>{openHelp === topic.id ? "−" : "+"}</span></button>{openHelp === topic.id && <div className="shop-help-answer"><p>{topic.solution}</p><ol>{topic.steps.map((step) => <li key={step}>{step}</li>)}</ol></div>}</article>)}{!visibleHelp.length && <p className="shop-empty">No help topics match “{helpQuery}”.</p>}</div>
+        </>
       )}
       {form && (
         <div className="shop-overlay">
@@ -1165,6 +1259,16 @@ export default function InventoryPOS({ supabase, user, profile }) {
                   />
                 </label>
               ))}
+              {form.id && (
+                <label className="shop-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  />
+                  Available for sale
+                </label>
+              )}
             </div>
             <div className="shop-actions">
               <button

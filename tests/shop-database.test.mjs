@@ -26,6 +26,7 @@ test("Shop checkout, stock accounting, retry safety and role permissions", async
       "20260923090000_inventory_and_pos.sql",
       "20260929100000_shop_workflows.sql",
       "20260929110000_shop_function_permissions.sql",
+      "20260929120000_shop_alert_preferences.sql",
     ]) {
       await db.exec(
         await readFile(
@@ -37,6 +38,11 @@ test("Shop checkout, stock accounting, retry safety and role permissions", async
     await db.exec(
       `insert into inventory_products(id,name,selling_price,cost_price,quantity_on_hand) values('${product}','Tie',3,1,10),('${otherProduct}','Socks',2,0.5,1)`,
     );
+    const preferences = await db.query(
+      "select low_stock_alerts_enabled, alert_phone from shop_settings where id = true",
+    );
+    assert.equal(preferences.rows[0].low_stock_alerts_enabled, true);
+    assert.equal(preferences.rows[0].alert_phone, null);
     assert.equal((await db.query("select has_function_privilege('anon','public.complete_pos_sale(jsonb,text,text,uuid,numeric)','execute') allowed")).rows[0].allowed, false);
     const checkout = (items, id = request, paid = 20) =>
       db.query(
