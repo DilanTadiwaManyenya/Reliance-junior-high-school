@@ -171,6 +171,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const [tab, setTab] = useState("overview");
   const [products, setProducts] = useState([]);
   const [sales, setSales] = useState([]);
+  const [learners, setLearners] = useState([]);
   const [logs, setLogs] = useState([]);
   const [settings, setSettings] = useState({
     store_name: "Reliance Learning Centre",
@@ -183,6 +184,12 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const [held, setHeld] = useState(() => readSession(storageKey)?.held || []);
   const [customer, setCustomer] = useState(
     () => readSession(storageKey)?.customer || "",
+  );
+  const [learnerClass, setLearnerClass] = useState(
+    () => readSession(storageKey)?.learnerClass || "",
+  );
+  const [learnerId, setLearnerId] = useState(
+    () => readSession(storageKey)?.learnerId || "",
   );
   const [payment, setPayment] = useState(
     () => readSession(storageKey)?.payment || "cash",
@@ -269,7 +276,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
           if (result.data.length < 500) return rows;
         }
       };
-      const [stock, history, prefs, audit] = await Promise.all([
+      const [stock, history, prefs, audit, learnerRows] = await Promise.all([
         fetchAll("inventory_products"),
         fetchAll("pos_sales"),
         supabase.from("shop_settings").select("*").single(),
@@ -280,15 +287,22 @@ export default function InventoryPOS({ supabase, user, profile }) {
               .order("created_at", { ascending: false })
               .limit(200)
           : Promise.resolve({ data: [] }),
+        supabase
+          .from("students")
+          .select("id,full_name,admission_number,class_level,class_stream,status")
+          .eq("status", "active")
+          .order("full_name"),
       ]);
       if (prefs.error) throw prefs.error;
       if (audit.error) throw audit.error;
+      if (learnerRows.error) throw learnerRows.error;
       setProducts(stock);
       setSales(
         history.sort((a, b) => b.created_at.localeCompare(a.created_at)),
       );
       setSettings(prefs.data);
       setLogs(audit.data);
+      setLearners(learnerRows.data || []);
       setReady(true);
       setLastUpdated(new Date());
     } catch (e) {
@@ -325,12 +339,12 @@ export default function InventoryPOS({ supabase, user, profile }) {
     try {
       sessionStorage.setItem(
         storageKey,
-        JSON.stringify({ cart, held, customer, payment, paid, pending }),
+        JSON.stringify({ cart, held, customer, learnerClass, learnerId, payment, paid, pending }),
       );
     } catch {
       /* Checkout also verifies persistence before sending. */
     }
-  }, [storageKey, cart, held, customer, payment, paid, pending]);
+  }, [storageKey, cart, held, customer, learnerClass, learnerId, payment, paid, pending]);
   const run = async (action) => {
     if (lock.current) return;
     lock.current = true;
@@ -347,6 +361,24 @@ export default function InventoryPOS({ supabase, user, profile }) {
     }
   };
   const active = products.filter((p) => p.active);
+  const learnerClassOptions = useMemo(() => {
+    const classes = new Map();
+    learners.forEach((learner) => {
+      const level = learner.class_level || "Unassigned";
+      const stream = learner.class_stream || "";
+      const key = `${level}::${stream}`;
+      classes.set(key, { key, label: `${level} ${stream}`.trim() });
+    });
+    return [...classes.values()].sort((a, b) => a.label.localeCompare(b.label));
+  }, [learners]);
+  const visibleLearners = learnerClass
+    ? learners.filter((learner) => `${learner.class_level || "Unassigned"}::${learner.class_stream || ""}` === learnerClass)
+    : learners;
+  const selectLearner = (id) => {
+    setLearnerId(id);
+    const learner = learners.find((row) => row.id === id);
+    if (learner) setCustomer(learner.full_name);
+  };
   const catalogue = tab === "products" && status === "archived" ? products.filter((p) => !p.active) : active;
   const filtered = catalogue.filter(
     (p) =>
@@ -547,6 +579,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
       setPending(null);
       setCart([]);
       setCustomer("");
+      setLearnerClass("");
+      setLearnerId("");
       setPaid("");
       setNotice(`Sale ${result.data.receipt_number} completed.`);
       sessionStorage.setItem(
@@ -555,6 +589,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
           cart: [],
           held,
           customer: "",
+          learnerClass: "",
+          learnerId: "",
           payment,
           paid: "",
           pending: null,
@@ -985,11 +1021,40 @@ export default function InventoryPOS({ supabase, user, profile }) {
                   <p className="shop-empty">Select products to begin a sale.</p>
                 )}
                 <fieldset disabled={frozen}>
+                  <div className="shop-learner-picker">
+                    <span>Attach a learner <em>Optional</em></span>
+                    <div>
+                      <label>
+                        Class
+                        <select
+                          value={learnerClass}
+                          onChange={(e) => {
+                            setLearnerClass(e.target.value);
+                            setLearnerId("");
+                          }}
+                        >
+                          <option value="">All classes</option>
+                          {learnerClassOptions.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        Learner
+                        <select value={learnerId} onChange={(e) => selectLearner(e.target.value)}>
+                          <option value="">Select a learner</option>
+                          {visibleLearners.map((learner) => <option key={learner.id} value={learner.id}>{learner.full_name} · {learner.admission_number}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                    <small>Selecting a learner fills their name below. You can also type any customer name manually.</small>
+                  </div>
                   <label>
                     Student / customer name
                     <input
                       value={customer}
-                      onChange={(e) => setCustomer(e.target.value)}
+                      onChange={(e) => {
+                        setCustomer(e.target.value);
+                        setLearnerId("");
+                      }}
                       placeholder="Walk-in customer"
                       maxLength={200}
                     />
@@ -1030,6 +1095,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
                       onClick={() => {
                         setCart([]);
                         setCustomer("");
+                        setLearnerClass("");
+                        setLearnerId("");
                         setPaid("");
                       }}
                     >
@@ -1040,10 +1107,12 @@ export default function InventoryPOS({ supabase, user, profile }) {
                       onClick={() => {
                         setHeld([
                           ...held,
-                          { id: crypto.randomUUID(), cart, customer, payment },
+                          { id: crypto.randomUUID(), cart, customer, learnerClass, learnerId, payment },
                         ]);
                         setCart([]);
                         setCustomer("");
+                        setLearnerClass("");
+                        setLearnerId("");
                         setPaid("");
                       }}
                     >
@@ -1094,6 +1163,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
                       onClick={() => {
                         setCart(h.cart);
                         setCustomer(h.customer);
+                        setLearnerClass(h.learnerClass || "");
+                        setLearnerId(h.learnerId || "");
                         setPayment(h.payment);
                         setPaid("");
                         setHeld(held.filter((x) => x.id !== h.id));

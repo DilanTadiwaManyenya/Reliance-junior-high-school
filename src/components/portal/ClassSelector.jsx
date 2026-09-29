@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import { useAuth } from '../../context/useAuth'
+import { useEffect, useState, useMemo } from 'react'
 
 const SESSION_KEY = 'reliance_active_portal_class'
 
@@ -56,22 +55,25 @@ export default function ClassSelector({
   const adminOptions = useMemo(() => {
     if (isTeacher) return []
     let options = allClasses.map(c => {
-      let level = '', stream = ''
+      let level
+      let stream
       if (typeof c === 'object' && c !== null && c.class_level) {
         level = c.class_level
-        stream = c.class_stream || ''
+        stream = c.class_stream || null
       } else if (typeof c === 'string') {
         const parsed = parseClassKey(c)
         level = parsed.level
-        stream = parsed.stream || ''
+        stream = parsed.stream || null
       } else {
         level = String(c)
+        stream = null
       }
       
       return {
-        key: `${level}:${stream}`.replace(/:$/, ''),
-        label: `${level} ${stream}`.trim(),
-        level
+        key: stream ? `${level}:${stream}` : level,
+        label: `${level} ${stream || ''}`.trim(),
+        level,
+        stream,
       }
     })
 
