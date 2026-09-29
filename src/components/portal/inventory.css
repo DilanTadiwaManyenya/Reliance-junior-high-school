@@ -112,6 +112,13 @@
   font-size: 25px;
   color: #1c355a;
 }
+.shop-stat.positive strong,
+.shop-stat.revenue strong,
+.shop-profit-value,
+.shop-good { color: #167344; }
+.shop-stat.cost strong,
+.shop-warning { color: #aa6410; }
+.shop-stats-five { grid-template-columns: repeat(5, 1fr); }
 .shop-panel {
   margin-bottom: 20px;
 }
@@ -377,6 +384,30 @@
   padding: 14px 12px;
   border-bottom: 1px solid #edf0f5;
 }
+.shop-table tr:last-child td { border-bottom: 0; }
+.shop-table td small,
+.shop-payment-list small { display: block; color: #7b8798; font-size: 11px; margin-top: 4px; }
+.shop-receipts-layout,
+.shop-profit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(255px, .72fr);
+  gap: 20px;
+  align-items: start;
+}
+.shop-payment-badge { color: #385173; background: #eef3f9; border-radius: 999px; padding: 5px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.shop-receipt-amount { color: #173a69; font-weight: 800; white-space: nowrap; }
+.shop-payment-panel h2,
+.shop-insight-panel h2 { margin-bottom: 6px; }
+.shop-payment-list { margin-top: 18px; }
+.shop-payment-list > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 13px 0; border-bottom: 1px solid #edf0f5; }
+.shop-payment-list > div:last-child { border-bottom: 0; }
+.shop-payment-list span { font-size: 13px; color: #344963; }
+.shop-payment-list strong { color: #173a69; font-size: 14px; white-space: nowrap; }
+.shop-insight { padding: 15px 0; border-bottom: 1px solid #edf0f5; }
+.shop-insight:last-child { border-bottom: 0; }
+.shop-insight > span { display: block; color: #718098; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+.shop-insight strong { display: block; color: #1c355a; margin-top: 7px; font-size: 18px; }
+.shop-insight p { margin: 6px 0 0; line-height: 1.5; }
 .shop-table pre {
   white-space: pre-wrap;
   max-width: 440px;
@@ -485,6 +516,8 @@
   .shop-stats {
     grid-template-columns: repeat(2, 1fr);
   }
+  .shop-receipts-layout,
+  .shop-profit-layout { grid-template-columns: 1fr; }
   .shop-operational-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
@@ -517,6 +550,7 @@
   .shop-stat strong {
     font-size: 21px;
   }
+  .shop-stats-five { grid-template-columns: repeat(2, 1fr); }
   .shop-app .shop-product {
     padding: 15px;
   }

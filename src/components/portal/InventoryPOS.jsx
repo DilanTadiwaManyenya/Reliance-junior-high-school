@@ -133,9 +133,9 @@ const readSession = (key) => {
     return null;
   }
 };
-function Stat({ label, value }) {
+function Stat({ label, value, tone = "" }) {
   return (
-    <article className="shop-stat">
+    <article className={`shop-stat ${tone}`}>
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
@@ -407,6 +407,48 @@ export default function InventoryPOS({ supabase, user, profile }) {
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
+  const unitsSold = period.reduce(
+    (sum, sale) =>
+      sum + sale.pos_sale_items.reduce((lineSum, line) => lineSum + Number(line.quantity || 0), 0),
+    0,
+  );
+  const grossProfit = costKnown ? revenue - cost : null;
+  const grossMargin = grossProfit !== null && revenue ? (grossProfit / revenue) * 100 : null;
+  const paymentSummary = Object.entries(methods)
+    .map(([id, label]) => {
+      const matching = period.filter((sale) => sale.payment_method === id);
+      return {
+        id,
+        label,
+        count: matching.length,
+        total: matching.reduce((sum, sale) => sum + Number(sale.total || 0), 0),
+      };
+    })
+    .filter((method) => method.count);
+  const productProfitability = [...period
+    .reduce((totals, sale) => {
+      sale.pos_sale_items.forEach((line) => {
+        const current = totals.get(line.product_name) || {
+          name: line.product_name,
+          units: 0,
+          revenue: 0,
+          cost: 0,
+          costKnown: true,
+        };
+        current.units += Number(line.quantity || 0);
+        current.revenue += Number(line.line_total || 0);
+        if (line.unit_cost === null) current.costKnown = false;
+        else current.cost += Number(line.unit_cost || 0) * Number(line.quantity || 0);
+        totals.set(line.product_name, current);
+      });
+      return totals;
+    }, new Map())
+    .values()]
+    .map((product) => ({
+      ...product,
+      profit: product.costKnown ? product.revenue - product.cost : null,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
   const visibleLogs = useMemo(
     () =>
       logs.filter((entry) => {
@@ -1076,11 +1118,11 @@ export default function InventoryPOS({ supabase, user, profile }) {
           </div>
         </>
       )}
-      {["sales", "analytics"].includes(tab) && (
+      {tab === "sales" && (
         <>
           <div className="shop-toolbar">
             <label>
-              Reporting month
+              Receipt month
               <input
                 type="month"
                 value={month}
@@ -1091,7 +1133,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
             <label className="shop-search">
               <Search size={17} />
               <input
-                aria-label="Search sales"
+                aria-label="Search receipts"
                 placeholder="Receipt, customer or payment"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -1106,100 +1148,92 @@ export default function InventoryPOS({ supabase, user, profile }) {
                       "Date",
                       "Customer",
                       "Payment",
-                      "Revenue",
-                      "Cost",
-                      "Profit",
+                      "Total",
                     ],
-                    ...salesVisible.map((s) => {
-                      const known = s.pos_sale_items.every(
-                        (l) => l.unit_cost !== null,
-                      );
-                      const c = s.pos_sale_items.reduce(
-                        (n, l) => n + Number(l.unit_cost) * l.quantity,
-                        0,
-                      );
-                      return [
+                    ...salesVisible.map((s) => [
                         s.receipt_number,
                         s.created_at,
                         s.customer_name,
                         methods[s.payment_method],
                         s.total,
-                        known ? c : "Unknown",
-                        known ? Number(s.total) - c : "Unknown",
-                      ];
-                    }),
+                      ]),
                   ],
-                  "reliance-sales.csv",
+                  "reliance-receipt-ledger.csv",
                 )
               }
             >
-              Export CSV
+              Export receipt ledger
             </button>
           </div>
           <div className="shop-stats">
-            <Stat label="Transactions" value={period.length} />
-            <Stat label="Revenue" value={money(revenue)} />
-            <Stat
-              label="Cost of goods"
-              value={costKnown ? money(cost) : "Unknown legacy costs"}
-            />
-            <Stat
-              label="Gross profit"
-              value={costKnown ? money(revenue - cost) : "Unavailable"}
-            />
+            <Stat label="Completed sales" value={period.length} />
+            <Stat label="Collected" value={money(revenue)} tone="positive" />
+            <Stat label="Items sold" value={unitsSold} />
+            <Stat label="Average sale" value={money(period.length ? revenue / period.length : 0)} />
           </div>
-          <div className="shop-panel shop-table">
-            <h2>
-              {tab === "sales"
-                ? "Sales & receipt history"
-                : "Itemized profitability"}
-            </h2>
-            <p>
-              Gross profit excludes operating expenses. Historical sales without
-              cost snapshots show unknown profit.
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Receipt / customer</th>
-                  <th>Date</th>
-                  <th>Payment</th>
-                  <th>Revenue</th>
-                  <th>Gross profit</th>
-                  <th>Receipt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salesVisible.map((s) => (
-                  <tr key={s.id}>
-                    <td>
-                      <strong>{s.receipt_number}</strong>
-                      <small>{s.customer_name || "Walk-in"}</small>
-                    </td>
-                    <td>{new Date(s.created_at).toLocaleDateString()}</td>
-                    <td>{methods[s.payment_method]}</td>
-                    <td>{money(s.total)}</td>
-                    <td>
-                      {s.pos_sale_items.every((l) => l.unit_cost !== null)
-                        ? money(
-                            Number(s.total) -
-                              s.pos_sale_items.reduce(
-                                (n, l) => n + Number(l.unit_cost) * l.quantity,
-                                0,
-                              ),
-                          )
-                        : "Unknown"}
-                    </td>
-                    <td>
-                      <button onClick={() => setReceipt(s)}>View</button>
-                    </td>
-                  </tr>
+          <div className="shop-receipts-layout">
+            <div className="shop-panel shop-table">
+              <h2>Receipt ledger</h2>
+              <p>Every completed sale for the selected period. Open a receipt to print or save it as a PDF.</p>
+              <table>
+                <thead><tr><th>Receipt / buyer</th><th>Date & time</th><th>Payment</th><th>Total</th><th>Receipt</th></tr></thead>
+                <tbody>
+                  {salesVisible.map((s) => (
+                    <tr key={s.id}>
+                      <td><strong>{s.receipt_number}</strong><small>{s.customer_name || "Walk-in customer"}</small></td>
+                      <td>{new Date(s.created_at).toLocaleString()}</td>
+                      <td><span className="shop-payment-badge">{methods[s.payment_method]}</span></td>
+                      <td className="shop-receipt-amount">{money(s.total)}</td>
+                      <td><button onClick={() => setReceipt(s)}>Open</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!salesVisible.length && <p className="shop-empty">No receipts match this period.</p>}
+            </div>
+            <aside className="shop-panel shop-payment-panel">
+              <h2>Payment collection</h2>
+              <p>How completed payments were received in this period.</p>
+              <div className="shop-payment-list">
+                {paymentSummary.map((method) => (
+                  <div key={method.id}><span>{method.label}<small>{method.count} sale{method.count === 1 ? "" : "s"}</small></span><strong>{money(method.total)}</strong></div>
                 ))}
-              </tbody>
-            </table>
-            {!salesVisible.length && (
-              <p className="shop-empty">No sales match this period.</p>
-            )}
+                {!paymentSummary.length && <p className="shop-empty">No payments recorded.</p>}
+              </div>
+            </aside>
+          </div>
+        </>
+      )}
+      {tab === "analytics" && (
+        <>
+          <div className="shop-toolbar">
+            <label>Profit & loss month<input type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label>
+            <button onClick={() => setMonth("")}>All time</button>
+            <button onClick={() => exportCSV([["Product", "Units sold", "Revenue", "Cost of goods", "Gross profit", "Margin"], ...productProfitability.map((product) => [product.name, product.units, product.revenue, product.costKnown ? product.cost : "Unknown", product.profit ?? "Unknown", product.profit !== null && product.revenue ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : "Unknown"])], "reliance-profit-and-loss.csv")}>Export P&L</button>
+          </div>
+          <div className="shop-stats shop-stats-five">
+            <Stat label="Completed sales" value={period.length} />
+            <Stat label="Gross revenue" value={money(revenue)} tone="revenue" />
+            <Stat label="Cost of goods" value={costKnown ? money(cost) : "Unknown"} tone="cost" />
+            <Stat label="Gross profit" value={grossProfit === null ? "Unavailable" : money(grossProfit)} tone="positive" />
+            <Stat label="Gross margin" value={grossMargin === null ? "Unknown" : `${grossMargin.toFixed(1)}%`} />
+          </div>
+          <div className="shop-profit-layout">
+            <div className="shop-panel shop-table">
+              <h2>Product profitability</h2>
+              <p>Gross profit is revenue less the recorded item cost. It excludes rent, salaries and other operating expenses.</p>
+              <table>
+                <thead><tr><th>Product</th><th>Units</th><th>Revenue</th><th>Cost</th><th>Gross profit</th><th>Margin</th></tr></thead>
+                <tbody>{productProfitability.map((product) => <tr key={product.name}><td><strong>{product.name}</strong></td><td>{product.units}</td><td>{money(product.revenue)}</td><td>{product.costKnown ? money(product.cost) : "Unknown"}</td><td className="shop-profit-value">{product.profit === null ? "Unknown" : money(product.profit)}</td><td>{product.profit !== null && product.revenue ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : "Unknown"}</td></tr>)}</tbody>
+              </table>
+              {!productProfitability.length && <p className="shop-empty">No completed sales in this period.</p>}
+            </div>
+            <aside className="shop-panel shop-insight-panel">
+              <h2>Report health</h2>
+              <div className="shop-insight"><span>Cost snapshots</span><strong className={costKnown ? "shop-good" : "shop-warning"}>{costKnown ? "Complete" : "Needs review"}</strong><p>{costKnown ? "Every sale has a recorded item cost." : "Some older sale lines have no cost snapshot, so their profit remains unknown."}</p></div>
+              <div className="shop-insight"><span>Collection methods</span><strong>{paymentSummary.length}</strong><p>{paymentSummary.map((method) => method.label).join(", ") || "No payments recorded"}</p></div>
+              <div className="shop-insight"><span>Scope</span><strong>{month || "All time"}</strong><p>{unitsSold} item{unitsSold === 1 ? "" : "s"} sold across {period.length} completed sale{period.length === 1 ? "" : "s"}.</p></div>
+            </aside>
           </div>
         </>
       )}
