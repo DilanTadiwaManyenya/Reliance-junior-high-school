@@ -1,3 +1,4 @@
+import InventoryPOS from '../../components/portal/InventoryPOS'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
@@ -376,9 +377,18 @@ export default function StaffDashboard() {
   )
 
 
+  const shopRole = profile?.active_role ?? profile?.role
+  if (section === 'inventory' && ['admin', 'accountant'].includes(shopRole)) return (
+    <div className="staff-content-area">
+      {accountant && <nav className="shop-accountant-nav" aria-label="Accountant workspace"><button onClick={() => setSection('fees')}>Finance</button><button aria-current="page">Inventory & POS</button></nav>}
+      <InventoryPOS key={`${user.id}:${shopRole}`} supabase={supabase} user={user} profile={profile} />
+    </div>
+  )
+
   /* Accountant: show fees dashboard */
   if (accountant) return (
     <div className="staff-content-area">
+      <nav className="shop-accountant-nav" aria-label="Accountant workspace"><button aria-current="page">Finance</button>{['admin', 'accountant'].includes(shopRole) && <button onClick={() => setSection('inventory')}>Inventory & POS</button>}</nav>
       <FeesDashboard students={filteredStudents} loading={loading} supabase={supabase} user={user} profile={profile} />
     </div>
   )
