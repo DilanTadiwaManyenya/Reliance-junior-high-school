@@ -1,1 +1,9 @@
-import {NavLink} from 'react-router-dom';import {motion,AnimatePresence} from 'framer-motion';import {navigation} from '../../data/navigation'; export default function MobileMenu({open,close}){return <AnimatePresence>{open&&<motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} className="mobile-menu">{navigation.map(([n,p])=><NavLink onClick={close} key={p} to={p}>{n}</NavLink>)}</motion.div>}</AnimatePresence>}
+import { NavLink, Link } from 'react-router-dom'
+import { navigation } from '../../data/navigation'
+export default function MobileMenu({ open, close }) {
+  if (!open) return null
+  return <nav id="mobile-navigation" className="mobile-menu" aria-label="Mobile navigation">
+    <div className="mobile-links">{navigation.map(([name, path]) => <NavLink onClick={close} key={path} to={path} end={path === '/'}>{name}</NavLink>)}</div>
+    <div className="mobile-actions"><Link className="btn secondary" to="/portal" onClick={close}>Sign in to portal</Link><Link className="btn primary" to="/admissions" onClick={close}>Apply now</Link></div>
+  </nav>
+}
