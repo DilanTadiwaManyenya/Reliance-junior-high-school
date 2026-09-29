@@ -552,9 +552,11 @@
   .shop-operational-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
+  .shop-app { padding-bottom: 24px; }
   .shop-hero {
-    padding: 24px 20px;
+    padding: 20px 18px;
     align-items: flex-start;
+    flex-direction: column;
   }
   .shop-hero h1 {
     font-size: 22px;
@@ -563,8 +565,8 @@
     font-size: 12px;
   }
   .shop-hero > button {
-    font-size: 0;
-    padding: 10px;
+    width: 100%;
+    min-height: 42px;
   }
   .shop-catalog {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -590,8 +592,23 @@
     flex-wrap: wrap;
   }
   .shop-panel {
-    padding: 18px;
+    padding: 16px;
   }
+  .shop-toolbar { align-items: stretch; padding: 10px; }
+  .shop-toolbar > label,
+  .shop-toolbar > button,
+  .shop-toolbar > select { width: 100%; min-height: 42px; }
+  .shop-toolbar > button { justify-content: center; }
+  .shop-search { min-width: 0; }
+  .shop-tabs { margin-inline: -2px; padding: 12px 2px; }
+  .shop-tabs button { min-height: 42px; }
+  .shop-table { margin-inline: -2px; -webkit-overflow-scrolling: touch; }
+  .shop-table table { min-width: 620px; }
+  .shop-cart { padding: 16px; }
+  .shop-cart-line { align-items: flex-start; }
+  .shop-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .shop-actions button, .shop-full { min-height: 44px; }
+  .shop-receipt { max-width: none; }
   .shop-overlay {
     padding: 12px;
   }

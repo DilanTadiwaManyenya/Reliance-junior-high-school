@@ -869,3 +869,43 @@
 /* Staff workspace: compact control rhythm and quiet hierarchy. */
 .staff-top-bar { padding-right: 14px; }.top-bar-toggle { width: 36px; height: 36px; }.staff-content-area { padding: 20px clamp(14px, 2vw, 28px) 28px; }.dash-home, .dash-section { gap: 14px; }.dash-page-title { font-size: clamp(1.55rem, 2.4vw, 2rem); }.dash-page-sub { font-size: .82rem; }.dash-stat-card { min-height: 92px; padding: 14px; border-radius: 10px; }.dash-stat-icon { width: 40px; height: 40px; border-radius: 10px; }.dash-stat-value { font-size: 1.55rem; }.dash-card { border-radius: 10px; box-shadow: 0 4px 14px rgba(26,40,71,.06); }.dash-card-header { padding: 13px 16px; }.dash-chart-card, .dash-distribution-card { min-height: 260px; }.dash-bar-chart { height: 174px; padding: 16px; }.dash-distribution-body { height: 190px; }.dash-donut { width: 118px; height: 118px; }.dash-donut::after { width: 84px; height: 84px; }.dash-preview-table th, .dash-preview-table td { padding: 10px 13px; }.portal-table th, .portal-table td { padding: 10px 12px; }.grade-entry-form { gap: 16px; padding: clamp(16px, 2vw, 24px); border-radius: 12px; }.dash-empty-state { padding: 30px 20px; }.slideover-header { padding: 18px 20px 14px; }.slideover-body { padding: 18px 20px 26px; }
 .staff-shell.no-sidebar { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
+
+/* Mobile portal controls: keep navigation, class context and account actions usable without overflow. */
+@media (max-width: 600px) {
+  .staff-top-bar {
+    min-height: 64px;
+    height: auto;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .top-bar-left { gap: 4px; flex: 0 0 auto; }
+  .top-bar-toggle { margin-left: 0; }
+  .top-bar-brand { display: none; }
+  .top-bar-user { flex: 1; min-width: 0; justify-content: flex-end; gap: 7px; }
+  .top-bar-class-control { min-width: 0; max-width: min(49vw, 190px); margin-right: 0 !important; }
+  .top-bar-class-control .admin-class-selector-container { display: block !important; }
+  .top-bar-class-control .campus-toggle,
+  .top-bar-class-control .class-switcher-label { display: none !important; }
+  .top-bar-class-control .class-selector-bar { margin: 0; min-width: 0; }
+  .top-bar-class-control .class-switcher-select { width: 100%; min-width: 0; height: 40px; font-size: .74rem; }
+  .top-bar-avatar { width: 32px; height: 32px; font-size: .7rem; }
+  .top-bar-logout { min-width: 38px; min-height: 38px; padding: 8px; }
+  .top-bar-logout span { display: none; }
+  .staff-content-area { width: 100%; min-width: 0; padding: 16px 12px 24px; }
+  .dash-page-header, .portal-card-title, .dashboard-header-controls { gap: 12px; }
+  .portal-table-wrap, .shop-table { width: 100%; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .portal-table { min-width: 620px; }
+  .portal-table th, .portal-table td { white-space: nowrap; }
+  .portal-form .btn, .portal-form .portal-action-row { width: 100%; }
+  .portal-action-row .btn, .portal-tabs .btn { flex: 1 1 140px; min-height: 44px; }
+  .dash-chart-key { flex-wrap: wrap; }
+  .dash-distribution-body { align-items: flex-start; flex-direction: column; height: auto; min-height: 250px; padding: 18px; }
+  .dash-distribution-legend { width: 100%; }
+  .data-table-footer { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 380px) {
+  .top-bar-class-control { max-width: 44vw; }
+  .top-bar-avatar { display: none; }
+  .staff-content-area { padding-inline: 10px; }
+}

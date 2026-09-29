@@ -117,3 +117,44 @@ button:disabled { cursor:not-allowed; opacity:.6; }
   html { scroll-behavior:auto; }
   *,*:before,*:after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }
+
+/* Phone-first public site layout: leave enough room for content and touch targets. */
+@media (max-width: 600px) {
+  .site-shell .container,
+  .header .container { width: min(100% - 28px, 560px); }
+  .nav { min-height: 64px; }
+  .header .brand { gap: 8px; }
+  .header .brand img { width: 36px; height: 36px; }
+  .header .brand span { max-width: min(58vw, 210px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header .brand small { overflow: hidden; text-overflow: ellipsis; }
+  .menu-toggle { width: 44px; min-height: 44px; display: grid; place-items: center; margin-right: -8px; }
+  .mobile-menu { padding: 12px 14px 18px; box-shadow: 0 12px 20px rgba(16,24,40,.08); }
+  .mobile-links { grid-template-columns: 1fr; gap: 2px; }
+  .mobile-links a { min-height: 44px; display: flex; align-items: center; padding: 10px 12px; }
+  .mobile-actions { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; padding-top: 14px; }
+  .mobile-actions .btn { width: 100%; min-height: 44px; }
+  .hero-inner { padding: 40px 0 44px; gap: 24px; }
+  .hero h1 { font-size: clamp(2rem, 10vw, 2.8rem); line-height: 1.08; margin: 16px 0; }
+  .hero p { font-size: .95rem; }
+  .hero-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 22px; }
+  .hero-actions .btn { width: 100%; min-height: 46px; }
+  .hero-card>img { height: 220px; }
+  .stats { grid-template-columns: 1fr 1fr; gap: 16px 10px; margin-top: 26px; }
+  .stats strong { font-size: 1.2rem; }
+  .stats span { font-size: .7rem; }
+  .section-heading { margin-bottom: 22px; }
+  .section-heading .eyebrow { font-size: .66rem; }
+  .page-header h1 { font-size: clamp(2rem, 10vw, 2.7rem); }
+  .cta .btn { width: 100%; }
+  .footer { padding-top: 42px; }
+  .footer-grid { gap: 22px; }
+  .footer .brand span { max-width: none; white-space: normal; }
+  .copyright { margin-top: 26px; }
+}
+
+@media (max-width: 380px) {
+  .site-shell .container,
+  .header .container { width: calc(100% - 24px); }
+  .brand span { max-width: 52vw; }
+  .hero-card>img { height: 190px; }
+}
