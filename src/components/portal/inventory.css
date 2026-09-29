@@ -35,6 +35,9 @@
   margin: 0;
   font-size: 14px;
 }
+.shop-live-status { display: flex; align-items: center; gap: 6px; margin-top: 14px; color: #c9d7ec; font-size: 11px; font-weight: 600; }
+.shop-live-status.live { color: #8de1bc; }
+.shop-live-status.offline { color: #ffd38a; }
 .shop-app button {
   display: inline-flex;
   align-items: center;
@@ -132,6 +135,20 @@
   grid-template-columns: 1.3fr 1fr;
   gap: 20px;
 }
+.shop-operational-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-bottom: 20px; }
+.shop-panel h2 svg { color: var(--shop-gold); }
+.shop-value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.shop-value-grid > div { border: 1px solid #e5eaf1; background: #f9fbfd; border-radius: 10px; padding: 13px; }
+.shop-value-grid span, .shop-health > span { display: block; color: #708097; font-size: 11px; margin-bottom: 7px; }
+.shop-value-grid strong { font-size: 16px; color: #1d365c; }
+.shop-health { margin-top: 20px; }
+.shop-health > div { height: 9px; overflow: hidden; background: #e7edf4; border-radius: 999px; }
+.shop-health i { display: block; height: 100%; background: linear-gradient(90deg, #1f8a70, #59c9a5); border-radius: inherit; }
+.shop-health strong { display: block; margin-top: 8px; font-size: 12px; color: #40536e; }
+.shop-trend { height: 140px; display: flex; align-items: end; gap: 12px; padding: 8px 0 0; border-bottom: 1px solid #e3e8ef; }
+.shop-trend > div { flex: 1; height: 100%; display: flex; min-width: 0; flex-direction: column; align-items: center; justify-content: end; gap: 7px; }
+.shop-trend span { display: block; width: min(28px, 70%); min-height: 4px; background: linear-gradient(180deg, #d9b961, #213b68); border-radius: 7px 7px 2px 2px; transition: height .25s ease; }
+.shop-trend small { color: #6d7b90; }
 .shop-row {
   display: flex !important;
   justify-content: space-between !important;
@@ -468,6 +485,7 @@
   .shop-stats {
     grid-template-columns: repeat(2, 1fr);
   }
+  .shop-operational-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
   .shop-hero {
@@ -488,9 +506,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .shop-columns,
+  .shop-operational-grid,
   .shop-form-grid {
     grid-template-columns: 1fr;
   }
+  .shop-value-grid { grid-template-columns: 1fr; }
   .shop-stat {
     padding: 17px;
   }

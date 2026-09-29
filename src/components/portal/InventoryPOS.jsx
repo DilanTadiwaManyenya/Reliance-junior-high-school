@@ -17,6 +17,11 @@ import {
   ShieldCheck,
   Store,
   SlidersHorizontal,
+  Activity,
+  TrendingUp,
+  Boxes,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import "./inventory.css";
 
@@ -207,6 +212,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [liveStatus, setLiveStatus] = useState("connecting");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -283,6 +290,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
       setSettings(prefs.data);
       setLogs(audit.data);
       setReady(true);
+      setLastUpdated(new Date());
     } catch (e) {
       setError(errorMessage(e));
       setReady(false);
@@ -294,6 +302,25 @@ export default function InventoryPOS({ supabase, user, profile }) {
     const timer = setTimeout(load, 0);
     return () => clearTimeout(timer);
   }, [load]);
+  useEffect(() => {
+    if (!access || typeof supabase.channel !== "function") return undefined;
+    const channel = supabase
+      .channel(`reliance-shop-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inventory_products" },
+        load,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pos_sales" },
+        load,
+      )
+      .subscribe((status) => {
+        setLiveStatus(status === "SUBSCRIBED" ? "live" : status === "CHANNEL_ERROR" ? "offline" : "connecting");
+      });
+    return () => { supabase.removeChannel?.(channel); };
+  }, [access, load, supabase, user.id]);
   useEffect(() => {
     try {
       sessionStorage.setItem(
@@ -398,6 +425,37 @@ export default function InventoryPOS({ supabase, user, profile }) {
       }),
     [helpCategory, helpQuery],
   );
+  const inventoryCost = active.reduce(
+    (sum, product) => sum + Number(product.cost_price || 0) * Number(product.quantity_on_hand || 0),
+    0,
+  );
+  const inventoryRetail = active.reduce(
+    (sum, product) => sum + Number(product.selling_price || 0) * Number(product.quantity_on_hand || 0),
+    0,
+  );
+  const topProducts = useMemo(() => {
+    const totals = new Map();
+    sales.forEach((sale) => sale.pos_sale_items.forEach((item) => {
+      const current = totals.get(item.product_name) || { name: item.product_name, units: 0, revenue: 0 };
+      current.units += Number(item.quantity || 0);
+      current.revenue += Number(item.line_total || 0);
+      totals.set(item.product_name, current);
+    }));
+    return [...totals.values()].sort((a, b) => b.units - a.units || b.revenue - a.revenue).slice(0, 5);
+  }, [sales]);
+  const salesTrend = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, offset) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - 5 + offset, 1);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      return {
+        key,
+        label: date.toLocaleString("en", { month: "short" }),
+        revenue: sales.filter((sale) => sale.created_at.slice(0, 7) === key).reduce((sum, sale) => sum + Number(sale.total || 0), 0),
+      };
+    });
+  }, [sales]);
+  const maxTrendRevenue = Math.max(1, ...salesTrend.map((point) => point.revenue));
   const checkout = () =>
     run(async () => {
       const request = pending || {
@@ -537,6 +595,11 @@ export default function InventoryPOS({ supabase, user, profile }) {
           <span className="shop-eyebrow">RELIANCE / SCHOOL SHOP</span>
           <h1>Inventory & point of sale</h1>
           <p>Every item accounted for. Every sale in one place.</p>
+          <div className={`shop-live-status ${liveStatus}`}>
+            {liveStatus === "live" ? <Wifi size={14} /> : <WifiOff size={14} />}
+            {liveStatus === "live" ? "Live updates on" : liveStatus === "offline" ? "Live updates unavailable" : "Connecting live updates"}
+            {lastUpdated && <span>· refreshed {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
+          </div>
         </div>
         <button onClick={load} disabled={loading || busy}>
           <RefreshCw size={16} /> {loading ? "Loading…" : "Refresh"}
@@ -590,9 +653,27 @@ export default function InventoryPOS({ supabase, user, profile }) {
               }
             />
           </div>
-          <div className="shop-columns">
+          <section className="shop-operational-grid">
             <article className="shop-panel">
-              <h2>Ready for the next sale</h2>
+              <h2><Activity size={18} /> Live shop pulse</h2>
+              <div className="shop-value-grid">
+                <div><span>Stock at cost</span><strong>{money(inventoryCost)}</strong></div>
+                <div><span>Potential retail value</span><strong>{money(inventoryRetail)}</strong></div>
+                <div><span>Estimated stock margin</span><strong>{money(inventoryRetail - inventoryCost)}</strong></div>
+              </div>
+              <div className="shop-health"><span>Inventory health</span><div><i style={{ width: `${active.length ? Math.round((active.filter((p) => p.quantity_on_hand > p.reorder_level).length / active.length) * 100) : 0}%` }} /></div><strong>{active.length ? `${active.filter((p) => p.quantity_on_hand > p.reorder_level).length}/${active.length} products above their reorder level` : "No active products"}</strong></div>
+            </article>
+            <article className="shop-panel">
+              <h2><TrendingUp size={18} /> Sales momentum</h2>
+              <div className="shop-trend" aria-label="Six-month sales trend">
+                {salesTrend.map((point) => <div key={point.key}><span title={`${point.label}: ${money(point.revenue)}`} style={{ height: `${Math.max(4, Math.round((point.revenue / maxTrendRevenue) * 100))}%` }} /><small>{point.label}</small></div>)}
+              </div>
+              <p>{sales.length ? "Revenue trend from completed shop sales." : "Complete your first sale to start the live trend."}</p>
+            </article>
+          </section>
+          <div className="shop-columns shop-overview-columns">
+            <article className="shop-panel">
+              <h2><ShoppingCart size={18} /> Ready for the next sale</h2>
               <p>
                 Browse the catalogue, collect payment and issue a receipt.
                 Inventory updates automatically when a sale completes.
@@ -617,7 +698,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               {!sales.length && <p>No sales recorded yet.</p>}
             </article>
             <article className="shop-panel">
-              <h2>Stock watch</h2>
+              <h2><Boxes size={18} /> Stock watch</h2>
               {active
                 .filter((p) => p.quantity_on_hand <= p.reorder_level)
                 .map((p) => (
@@ -631,15 +712,9 @@ export default function InventoryPOS({ supabase, user, profile }) {
               {!active.some((p) => p.quantity_on_hand <= p.reorder_level) && (
                 <p>No stock alerts.</p>
               )}
-              <h3>Inventory value at cost</h3>
-              <strong className="shop-big">
-                {money(
-                  active.reduce(
-                    (n, p) => n + Number(p.cost_price) * p.quantity_on_hand,
-                    0,
-                  ),
-                )}
-              </strong>
+              <h3>Top performing items</h3>
+              {topProducts.map((product, index) => <div className="shop-row" key={product.name}><span><small>#{index + 1} · {product.units} units sold</small>{product.name}</span><strong>{money(product.revenue)}</strong></div>)}
+              {!topProducts.length && <p>No completed sales yet.</p>}
             </article>
           </div>
         </>
