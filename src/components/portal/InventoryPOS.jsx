@@ -192,6 +192,11 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const [helpCategory, setHelpCategory] = useState("all");
   const [helpQuery, setHelpQuery] = useState("");
   const [openHelp, setOpenHelp] = useState("ERR_STOCK_LOW");
+  const [securityForm, setSecurityForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [list, setList] = useState(false);
   const [month, setMonth] = useState(() => {
     const d = new Date();
@@ -494,6 +499,32 @@ export default function InventoryPOS({ supabase, user, profile }) {
       setNotice("Product saved.");
       await load();
     });
+  };
+  const changeMyPassword = async () => {
+    const { currentPassword, newPassword, confirmPassword } = securityForm;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      throw new Error("Enter your current password, new password and confirmation.");
+    }
+    if (newPassword.length < 8) {
+      throw new Error("Choose a new password with at least 8 characters.");
+    }
+    if (newPassword !== confirmPassword) {
+      throw new Error("Your new password and confirmation do not match.");
+    }
+    if (!user?.email) {
+      throw new Error("Your login email is unavailable. Use Staff to reset this account.");
+    }
+    const verification = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (verification.error) {
+      throw new Error("Your current password is incorrect.");
+    }
+    const update = await supabase.auth.updateUser({ password: newPassword });
+    if (update.error) throw update.error;
+    setSecurityForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setNotice("Your password has been changed. Use the new password the next time you sign in.");
   };
   if (!access)
     return (
@@ -1151,6 +1182,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
+              if (settingsSection === "security") {
+                await changeMyPassword();
+                return;
+              }
               const r = await supabase
                 .from("shop_settings")
                 .update({
@@ -1198,9 +1233,9 @@ export default function InventoryPOS({ supabase, user, profile }) {
           </div>}
           {settingsSection === "inventory" && <div className="shop-settings-copy"><h3>Per-product stock rules</h3><p>Each product has its own low-stock threshold. Change it from Products → select product → Low stock threshold. Low or empty items appear on the overview and can be filtered in the catalogue.</p><button type="button" onClick={() => setTab("products")}>Manage products</button></div>}
           {settingsSection === "alerts" && <div className="shop-form-grid"><label className="shop-checkbox"><input type="checkbox" checked={Boolean(settings.low_stock_alerts_enabled)} onChange={(e) => setSettings({ ...settings, low_stock_alerts_enabled: e.target.checked })} /> Show low-stock alert reminders</label><label>WhatsApp recipient number<input inputMode="tel" placeholder="+263…" value={settings.alert_phone || ""} onChange={(e) => setSettings({ ...settings, alert_phone: e.target.value })} /></label><p className="shop-form-note">Reliance saves this recipient and shows stock reminders in the shop. Automatic WhatsApp sending needs a connected WhatsApp provider before messages can be delivered.</p></div>}
-          {settingsSection === "security" && <div className="shop-settings-copy"><h3>Role-based access</h3><p>Administrators can manage products, stock, preferences and audit records. Accountants process sales, print receipts and view reports. Password and role changes are managed in Reliance Staff, so this shop never stores passwords.</p><button type="button" onClick={() => setTab("help")}>Open access help</button></div>}
+          {settingsSection === "security" && <div className="shop-settings-copy"><h3>Change my password</h3><p>Confirm your current password before choosing a new one. This changes only your own Reliance account.</p><div className="shop-form-grid"><label>Current password<input required type="password" autoComplete="current-password" value={securityForm.currentPassword} onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })} /></label><label>New password<input required type="password" minLength="8" autoComplete="new-password" value={securityForm.newPassword} onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })} /></label><label>Confirm new password<input required type="password" minLength="8" autoComplete="new-password" value={securityForm.confirmPassword} onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })} /></label></div><h3>Staff account resets</h3><p>To reset another staff member’s password, open the Staff workspace, choose their record, and use Reset credentials. That protected route updates only the selected account and records the change.</p></div>}
           <button className="primary" disabled={busy || !ready}>
-            Save preferences
+            {settingsSection === "security" ? "Update my password" : "Save preferences"}
           </button>
         </form>
       )}
