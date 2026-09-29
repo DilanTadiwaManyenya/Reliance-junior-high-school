@@ -882,13 +882,13 @@
   .top-bar-toggle { margin-left: 0; }
   .top-bar-brand { display: none; }
   .top-bar-user { flex: 1; min-width: 0; justify-content: flex-end; gap: 7px; }
-  .top-bar-class-control { min-width: 0; max-width: min(49vw, 190px); margin-right: 0 !important; }
+  .top-bar-class-control { min-width: 0; max-width: min(42vw, 170px); margin-right: 0 !important; }
   .top-bar-class-control .admin-class-selector-container { display: block !important; }
   .top-bar-class-control .campus-toggle,
   .top-bar-class-control .class-switcher-label { display: none !important; }
   .top-bar-class-control .class-selector-bar { margin: 0; min-width: 0; }
   .top-bar-class-control .class-switcher-select { width: 100%; min-width: 0; height: 40px; font-size: .74rem; }
-  .top-bar-avatar { width: 32px; height: 32px; font-size: .7rem; }
+  .top-bar-avatar { display: none; }
   .top-bar-logout { min-width: 38px; min-height: 38px; padding: 8px; }
   .top-bar-logout span { display: none; }
   .staff-content-area { width: 100%; min-width: 0; padding: 16px 12px 24px; }
@@ -905,7 +905,6 @@
 }
 
 @media (max-width: 380px) {
-  .top-bar-class-control { max-width: 44vw; }
-  .top-bar-avatar { display: none; }
+  .top-bar-class-control { max-width: 39vw; }
   .staff-content-area { padding-inline: 10px; }
 }

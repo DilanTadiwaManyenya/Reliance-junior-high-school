@@ -6,6 +6,7 @@ import PhoneInput from '../../components/ui/PhoneInput'
 import PasswordInput from '../../components/ui/PasswordInput'
 import { buildPortalEmail, isInternationalPhone, normalizePhone } from '../../../shared/portalAuth'
 import { resolvePortalDestination } from '../../lib/portalRedirect'
+import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 
 export default function PortalLogin({ student = false, staff = false }) {
   const { supabase, refreshProfile } = useAuth(); const navigate = useNavigate(); const [phone, setPhone] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
@@ -22,5 +23,5 @@ export default function PortalLogin({ student = false, staff = false }) {
     if (profileError || !destination) { await supabase.auth.signOut(); setSubmitting(false); return setError(profileError ? 'We could not load your portal access. Please contact the school office.' : 'This account does not have a recognised portal role.') }
     navigate(destination, { replace: true })
   }
-  return <main className="portal-auth"><section className="portal-auth-card"><p className="eyebrow">{student ? 'Student' : staff ? 'Staff' : 'Portal'} sign in</p><h1>Welcome back</h1>{error && <PortalNotice tone="error">{error}</PortalNotice>}<form className="form" onSubmit={submit}><PhoneInput value={phone} onChange={setPhone} required /><PasswordInput id="login-password" label="Password" value={password} onChange={event => setPassword(event.target.value)} minLength={0} required /><button className="btn primary" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button></form>{!staff && <p>New {student ? 'student' : 'parent'}? <Link to={student ? '/portal/student-signup' : '/portal/signup'}>Create your account</Link></p>}</section></main>
+  return <main className="portal-auth"><section className="portal-auth-card"><PortalSiteExitLink className="portal-website-button">← Back to website</PortalSiteExitLink><p className="eyebrow">{student ? 'Student' : staff ? 'Staff' : 'Portal'} sign in</p><h1>Welcome back</h1>{error && <PortalNotice tone="error">{error}</PortalNotice>}<form className="form" onSubmit={submit}><PhoneInput value={phone} onChange={setPhone} required /><PasswordInput id="login-password" label="Password" value={password} onChange={event => setPassword(event.target.value)} minLength={0} required /><button className="btn primary" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button></form>{!staff && <p>New {student ? 'student' : 'parent'}? <Link to={student ? '/portal/student-signup' : '/portal/signup'}>Create your account</Link></p>}</section></main>
 }

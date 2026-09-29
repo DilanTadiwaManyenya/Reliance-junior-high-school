@@ -3,6 +3,7 @@ import { useAuth } from '../../context/useAuth'
 import ClassSelector, { parseClassKey } from './ClassSelector'
 import { ALL_CLASS_OPTIONS } from '../../data/classOptions'
 import { useSection } from './StaffPortalLayout'
+import PortalSiteExitLink from './PortalSiteExitLink'
 
 /* ── Hamburger / collapse icon ───────────────────────────────────── */
 const MenuIcon = () => (
@@ -97,8 +98,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
       </div>
 
       {/* ── Right: user info + logout ──────── */}
-      <div className="top-bar-user">
-        <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
+        <div className="top-bar-user">
+          <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
           <ClassSelector 
             role={profile?.role} 
             assignedClasses={profile?.teacher_class_assignments || []} 
@@ -106,8 +107,9 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             activeClassKey={activeClassKey} 
             onClassChange={handleClassChange} 
           />
-        </div>
-        <div className="top-bar-avatar" aria-hidden="true">{initials}</div>
+          </div>
+          <PortalSiteExitLink className="top-bar-site-link">← Website</PortalSiteExitLink>
+          <div className="top-bar-avatar" aria-hidden="true">{initials}</div>
         <div className="top-bar-user-info">
           <span className="top-bar-username">{profile?.full_name || 'Portal User'}</span>
           <span className="top-bar-role-badge">{profile?.role || 'staff'}</span>

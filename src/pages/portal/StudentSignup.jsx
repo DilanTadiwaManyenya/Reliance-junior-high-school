@@ -6,6 +6,7 @@ import PhoneInput from '../../components/ui/PhoneInput'
 import PasswordInput from '../../components/ui/PasswordInput'
 import { buildPortalEmail, normalizePhone } from '../../../shared/portalAuth'
 import { CLASS_LEVELS, getStreamsForLevel } from '../../data/classOptions'
+import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 
 const admissionPattern = /^\d{4,6}$/
 const zimbabwePhonePattern = /^(?:\+263|0)7[1-8]\d{7}$/
@@ -51,7 +52,7 @@ export default function StudentSignup() {
       navigate('/portal/staff/dashboard', { replace: true })
     } catch (requestError) { setSubmissionError(requestError instanceof Error ? requestError.message : 'We could not create your account. Please try again.') } finally { setSubmitting(false) }
   }
-  return <main className="portal-auth"><section className="portal-auth-card student-signup-card"><p className="eyebrow">Student portal</p><h1>Create your account</h1><p className="student-signup-intro">Enter the details supplied by the school to activate your student portal access.</p>{submissionError && <PortalNotice tone="error">{submissionError}</PortalNotice>}<form className="form student-signup-form" onSubmit={submit} noValidate>
+  return <main className="portal-auth"><section className="portal-auth-card student-signup-card"><PortalSiteExitLink className="portal-website-button">← Back to website</PortalSiteExitLink><p className="eyebrow">Student portal</p><h1>Create your account</h1><p className="student-signup-intro">Enter the details supplied by the school to activate your student portal access.</p>{submissionError && <PortalNotice tone="error">{submissionError}</PortalNotice>}<form className="form student-signup-form" onSubmit={submit} noValidate>
     <label>Phone number <span className="required-mark">*</span><PhoneInput value={form.phone} onChange={phone => { setForm(current => ({ ...current, phone })); setErrors(current => ({ ...current, phone: '' })) }} required /></label>{errors.phone && <p className="field-error">{errors.phone}</p>}
     <label>Password <span className="required-mark">*</span><PasswordInput id="student-password" label="" value={form.password} onChange={update('password')} required /></label>{errors.password && <p className="field-error">{errors.password}</p>}
     <label>Confirm password <span className="required-mark">*</span><PasswordInput id="student-confirm-password" label="" value={form.confirmPassword} onChange={update('confirmPassword')} required /></label>{errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
