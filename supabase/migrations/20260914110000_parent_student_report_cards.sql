@@ -19,7 +19,11 @@ create policy "Parents read linked report cards" on public.report_card_comments 
 create policy "Students read own report cards" on public.report_card_comments for select to authenticated using (
   exists (select 1 from public.students s where s.id = report_card_comments.student_id and s.auth_user_id = auth.uid())
 );
-create policy "School staff manage report cards" on public.report_card_comments for all to authenticated using (public.is_admin() or public.is_school_staff()) with check (public.is_admin() or public.is_school_staff());
+-- Use the active-role helper used by the current Reliance authorization model.
+-- Some older deployments no longer have the legacy is_school_staff() helper.
+create policy "School staff manage report cards" on public.report_card_comments for all to authenticated
+  using (public.has_active_role('admin') or public.has_active_role('principal') or public.has_active_role('teacher') or public.has_active_role('accountant'))
+  with check (public.has_active_role('admin') or public.has_active_role('principal') or public.has_active_role('teacher') or public.has_active_role('accountant'));
 
 -- Parents and students only receive curriculum assignments for the learner(s) they may already view.
 create policy "Parents read linked subject assignments" on public.teacher_subject_assignments for select to authenticated using (

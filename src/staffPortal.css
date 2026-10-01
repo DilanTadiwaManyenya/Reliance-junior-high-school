@@ -742,6 +742,8 @@
 .portal-tabs .btn { border-radius: 8px; }
 .top-bar-avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #c41e3a, #8f1831); color: #fff; font-size: .72rem; font-weight: 800; letter-spacing: .04em; box-shadow: 0 3px 8px rgba(196,30,58,.2); }
 .top-bar-user { gap: 10px; }
+.top-bar-back { border: 1px solid #d5dce9; border-radius: 7px; background: #fff; color: #1b2a56; min-height: 36px; padding: 0 11px; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
+.top-bar-back:hover:not(:disabled) { background: #f0f3fa; }.top-bar-back:disabled { opacity: .48; cursor: not-allowed; }
 .sidebar-nav-heading { display: block; margin: 10px 14px 7px; color: rgba(225,232,249,.48); font-size: .65rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .sidebar-help { margin: auto 18px 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); color: rgba(225,232,249,.56); font-size: .7rem; line-height: 1.5; }
 .portal-sidebar { display: flex; flex-direction: column; }
@@ -889,7 +891,7 @@
   .top-bar-class-control .class-selector-bar { margin: 0; min-width: 0; }
   .top-bar-class-control .class-switcher-select { width: 100%; min-width: 0; height: 40px; font-size: .74rem; }
   .top-bar-avatar { display: none; }
-  .top-bar-logout { min-width: 38px; min-height: 38px; padding: 8px; }
+  .top-bar-back { min-height: 38px; padding: 0 8px; font-size: .72rem; }.top-bar-logout { min-width: 38px; min-height: 38px; padding: 8px; }
   .top-bar-logout span { display: none; }
   .staff-content-area { width: 100%; min-width: 0; padding: 16px 12px 24px; }
   .dash-page-header, .portal-card-title, .dashboard-header-controls { gap: 12px; }

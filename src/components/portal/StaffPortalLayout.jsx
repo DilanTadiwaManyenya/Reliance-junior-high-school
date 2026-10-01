@@ -9,6 +9,8 @@ import { useAuth } from '../../context/useAuth'
 export const SectionContext = createContext({ 
   section: 'dashboard', 
   setSection: () => {},
+  goBack: () => {},
+  canGoBack: false,
   activeClassKey: '',
   setActiveClassKey: () => {},
   activeClassFilter: { level: null, stream: null },
@@ -19,6 +21,7 @@ export const useSection = () => useContext(SectionContext)
 export default function StaffPortalLayout() {
   const { profile } = useAuth()
   const [section, setSection]         = useState('dashboard')
+  const [sectionHistory, setSectionHistory] = useState([])
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [activeClassKey, setActiveClassKey] = useState('')
@@ -27,9 +30,20 @@ export default function StaffPortalLayout() {
   const toggleCollapse = () => setCollapsed(c => !c)
   const toggleMobile   = () => setMobileOpen(o => !o)
   const closeMobile    = () => setMobileOpen(false)
+  const changeSection = nextSection => {
+    if (section === nextSection) return
+    setSectionHistory(history => [...history, section])
+    setSection(nextSection)
+  }
+  const goBack = () => {
+    const previous = sectionHistory.at(-1)
+    if (!previous) return
+    setSection(previous)
+    setSectionHistory(history => history.slice(0, -1))
+  }
 
   return (
-    <SectionContext.Provider value={{ section, setSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter }}>
+    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: sectionHistory.length > 0, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter }}>
       <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${profile?.role === 'accountant' ? ' no-sidebar' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}

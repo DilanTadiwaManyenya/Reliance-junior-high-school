@@ -1,4 +1,5 @@
 import InventoryPOS from '../../components/portal/InventoryPOS'
+import ExpensesCashbook from '../../components/portal/ExpensesCashbook'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
@@ -385,10 +386,14 @@ export default function StaffDashboard() {
     </div>
   )
 
+  if (section === 'expenses' && ['admin', 'principal', 'accountant'].includes(shopRole)) return (
+    <div className="staff-content-area"><ExpensesCashbook supabase={supabase} user={user} profile={profile} /></div>
+  )
+
   /* Accountant: show fees dashboard */
   if (accountant) return (
     <div className="staff-content-area">
-      <nav className="shop-accountant-nav" aria-label="Accountant workspace"><button aria-current="page">Finance</button>{['admin', 'accountant'].includes(shopRole) && <button onClick={() => setSection('inventory')}>Inventory & POS</button>}</nav>
+      <nav className="shop-accountant-nav" aria-label="Accountant workspace"><button aria-current="page">Finance</button><button onClick={() => setSection('expenses')}>Expenses & Cashbook</button>{['admin', 'accountant'].includes(shopRole) && <button onClick={() => setSection('inventory')}>Inventory & POS</button>}</nav>
       <FeesDashboard students={filteredStudents} loading={loading} supabase={supabase} user={user} profile={profile} />
     </div>
   )
