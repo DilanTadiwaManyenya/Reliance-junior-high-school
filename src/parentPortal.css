@@ -9,3 +9,30 @@
 
 /* Put the school identity in the unused letterhead space beside report controls. */
 .report-card-top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px}.report-card-top .report-card-header{justify-content:flex-start;margin-bottom:0;text-align:left}.report-card-top .report-card-actions{margin-bottom:0;flex:none}@media(max-width:700px){.report-card-top{align-items:flex-start;flex-direction:column}.report-card-top .report-card-header{width:100%}.report-card-top .report-card-actions{width:100%}}@media print{.report-card-top{margin-bottom:14px}.report-card-top .report-card-header{justify-content:center;text-align:center}}
+
+.report-pdf-hint{width:100%;margin:0;color:#5e6878;font-size:.72rem;text-align:right}.report-card-actions{align-items:end}.report-card-actions .btn{white-space:nowrap}
+
+/* A report is a wide, tabular document.  Printing it in landscape prevents the
+   subject, marks, comment and signature columns from being cropped in print or PDF. */
+@page{size:A4 landscape;margin:11mm}
+@media print{
+  html,body,#root{width:100%!important;min-width:0!important;background:#fff!important}
+  .portal-shell,.portal-shell main,.parent-record-page{display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important;transform:none!important}
+  .parent-record-page>:not(.report-card),.portal-header,.no-print{display:none!important}
+  .report-card{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:visible!important}
+  .report-card-top{display:block!important;margin:0 0 8mm!important}
+  .report-card-top .report-card-header{justify-content:center!important;text-align:center!important}
+  .report-card-meta{margin-bottom:5mm!important}
+  .report-card .portal-table-wrap{overflow:visible!important;margin:0!important;padding:0!important}
+  .report-table{width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse!important}
+  .report-table thead{display:table-header-group}
+  .report-table tr,.report-summary,.report-next,.report-authenticity{break-inside:avoid!important;page-break-inside:avoid!important}
+  .report-table th,.report-table td{padding:3mm 2mm!important;overflow-wrap:anywhere!important;vertical-align:top!important}
+  .report-table th{font-size:7pt!important}
+  .report-table td{font-size:8pt!important}
+  .report-table th:nth-child(1){min-width:0!important;width:22%}
+  .report-table th:nth-child(2),.report-table th:nth-child(3),.report-table th:nth-child(4),.report-table th:nth-child(6){width:10%}
+  .report-facilitator-comment{min-width:0!important;font-size:7.5pt!important}
+  .report-summary,.report-next{margin-top:5mm!important;padding-top:4mm!important}
+  .report-authenticity{margin-top:5mm!important;padding-top:4mm!important}
+}
