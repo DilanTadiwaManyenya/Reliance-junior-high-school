@@ -24,6 +24,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import "./inventory.css";
+import { logActivity } from "../../lib/logActivity";
 
 const money = (value) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
@@ -583,6 +584,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
       setLearnerId("");
       setPaid("");
       setNotice(`Sale ${result.data.receipt_number} completed.`);
+      logActivity(supabase, user, profile, { actionType: "create", description: `Completed shop sale ${result.data.receipt_number}`, targetTable: "pos_sales", targetId: result.data.id });
       sessionStorage.setItem(
         storageKey,
         JSON.stringify({
@@ -631,6 +633,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               created_by: user.id,
             });
       if (result.error) throw result.error;
+      logActivity(supabase, user, profile, { actionType: form.id ? "update" : "create", description: `${form.id ? "Updated" : "Created"} product ${payload.name}`, targetTable: "inventory_products", targetId: form.id });
       setForm(null);
       setNotice("Product saved.");
       await load();
@@ -659,6 +662,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
     }
     const update = await supabase.auth.updateUser({ password: newPassword });
     if (update.error) throw update.error;
+    logActivity(supabase, user, profile, { actionType: "update", description: "Changed own password", targetTable: "profiles", targetId: user.id });
     setSecurityForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     setNotice("Your password has been changed. Use the new password the next time you sign in.");
   };
@@ -916,6 +920,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                         p_reason: adjust.reason,
                       });
                       if (r.error) throw r.error;
+                      logActivity(supabase, user, profile, { actionType: "update", description: "Adjusted shop stock", targetTable: "inventory_products", targetId: adjust.product });
                       setAdjust({ product: "", change: "", reason: "" });
                       setNotice("Stock adjusted.");
                       await load();
@@ -1377,6 +1382,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 })
                 .eq("id", true);
               if (r.error) throw r.error;
+              logActivity(supabase, user, profile, { actionType: "update", description: "Updated shop preferences", targetTable: "shop_settings" });
               setNotice("Preferences saved.");
               await load();
             });

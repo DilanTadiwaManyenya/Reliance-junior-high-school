@@ -26,10 +26,11 @@ import StudentDashboard from './pages/portal/StudentDashboard'
 import Announcements from './pages/portal/Announcements'
 import TeacherFirstLogin from './pages/portal/TeacherFirstLogin'
 import RoleDashboard from './pages/portal/RoleDashboard.jsx'
+import ActivityLogger from './components/portal/ActivityLogger'
 function App() {
   const location = useLocation()
   const portal = location.pathname.startsWith('/portal')
-  return <div className={portal ? 'portal-shell' : 'site-shell'}>{!portal && <Navbar />}<main><Routes>
+  return <div className={portal ? 'portal-shell' : 'site-shell'}><ActivityLogger />{!portal && <Navbar />}<main><Routes>
     <Route path="/" element={<Home />} /><Route path="/about" element={<About />} />
     <Route path="/academics" element={<Academics />} /><Route path="/admissions" element={<Admissions />} />
     <Route path="/student-life" element={<StudentLife />} /><Route path="/facilities" element={<Facilities />} />

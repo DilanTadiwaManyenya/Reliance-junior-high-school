@@ -25,6 +25,12 @@ Deno.serve(async request => {
       throw new Error('Only teachers or administrators can update credentials.')
     }
 
+    const { data: targetProfile } = await admin.from('profiles').select('is_protected').eq('id', targetUserId).maybeSingle()
+    if (!targetProfile) throw new Error('The target profile was not found.')
+    if (targetProfile.is_protected && targetUserId !== user.id) {
+      throw new Error('The protected primary administrator can change credentials only on their own signed-in account.')
+    }
+
     const nextPhone = phone(input.phone)
     const password = String(input.password ?? '')
     if (!validPhone(nextPhone)) throw new Error('Enter a valid international phone number.')

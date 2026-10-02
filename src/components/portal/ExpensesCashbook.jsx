@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { logActivity } from '../../lib/logActivity'
 
 const empty = () => ({ expense_date: new Date().toISOString().slice(0, 10), category: 'Fuel', supplier: '', description: '', amount: '', payment_method: 'cash', receipt_reference: '' })
 const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0))
@@ -18,8 +19,8 @@ export default function ExpensesCashbook({ supabase, user, profile }) {
     })
     return () => { active = false }
   }, [supabase])
-  const submit = async e => { e.preventDefault(); setError(''); setMessage(''); const { error } = await supabase.from('school_expenses').insert({ ...form, amount: Number(form.amount), entered_by: user.id }); if (error) return setError(error.message); setForm(empty()); setMessage('Expense submitted for approval.'); load() }
-  const review = async (id, status) => { setError(''); const { error } = await supabase.rpc('review_school_expense', { p_expense_id: id, p_status: status }); if (error) return setError(error.message); setMessage(`Expense ${status}.`); load() }
+  const submit = async e => { e.preventDefault(); setError(''); setMessage(''); const { error } = await supabase.from('school_expenses').insert({ ...form, amount: Number(form.amount), entered_by: user.id }); if (error) return setError(error.message); logActivity(supabase, user, profile, { actionType: 'create', description: `Submitted ${form.category} expense`, targetTable: 'school_expenses' }); setForm(empty()); setMessage('Expense submitted for approval.'); load() }
+  const review = async (id, status) => { setError(''); const { error } = await supabase.rpc('review_school_expense', { p_expense_id: id, p_status: status }); if (error) return setError(error.message); logActivity(supabase, user, profile, { actionType: 'update', description: `${status === 'approved' ? 'Approved' : 'Rejected'} expense`, targetTable: 'school_expenses', targetId: id }); setMessage(`Expense ${status}.`); load() }
   const pending = rows.filter(row => row.status === 'pending').reduce((sum, row) => sum + Number(row.amount), 0)
   const approved = rows.filter(row => row.status === 'approved').reduce((sum, row) => sum + Number(row.amount), 0)
   const breakdown = Object.entries(rows.reduce((totals, row) => ({ ...totals, [row.category]: (totals[row.category] || 0) + Number(row.amount) }), {})).sort((a, b) => b[1] - a[1])

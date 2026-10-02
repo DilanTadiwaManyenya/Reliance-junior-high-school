@@ -4,13 +4,14 @@ import { calculateGrade } from '../../utils/GradeCalculator'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
 import { parseClassKey } from './ClassSelector'
+import { logActivity } from '../../lib/logActivity'
 
 const currentYear = new Date().getFullYear()
 const blankAcademic = { subject: '', percentage: '', term: '1', year: currentYear, comment: '' }
 const blankSports = { sport: '', participated: true, term: '1', year: currentYear, note: '' }
 
 export default function TeacherGradeEntry() {
-  const { supabase } = useAuth()
+  const { supabase, user, profile } = useAuth()
   const [students, setStudents] = useState([]); const [studentId, setStudentId] = useState(''); const [tab, setTab] = useState('academic')
   const [academic, setAcademic] = useState(blankAcademic); const [sports, setSports] = useState(blankSports)
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(''); const [success, setSuccess] = useState('')
@@ -38,6 +39,7 @@ export default function TeacherGradeEntry() {
       : { student_id: selected.id, sport: sports.sport, activity: sports.sport, participated: sports.participated, performance_note: sports.note || null, note: sports.note || null, term: Number(sports.term), year: Number(sports.year) }
     const { error: saveError } = await supabase.from(tab === 'academic' ? 'academic_records' : 'sports_records').upsert(payload, { onConflict: tab === 'academic' ? 'student_id,subject,term,year' : 'student_id,sport,term,year' })
     setSaving(false); if (saveError) return setError(saveError.message || 'The record could not be saved. Please try again.')
+    logActivity(supabase, user, profile, { actionType: 'update', description: `Saved ${tab === 'academic' ? 'grade' : 'sports participation'} for ${selected.full_name}`, targetTable: tab === 'academic' ? 'academic_records' : 'sports_records', targetId: selected.id })
     setSuccess(tab === 'academic' ? 'Grade saved successfully.' : 'Sports participation saved successfully.'); tab === 'academic' ? setAcademic(blankAcademic) : setSports(blankSports)
   }
   if (loading) return <div className="grade-entry"><p>Loading assigned learners…</p></div>

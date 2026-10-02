@@ -1,9 +1,10 @@
-import { createContext, useContext, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import PortalSidebar from './PortalSidebar'
 import StaffTopBar from './StaffTopBar'
 import { useAuth } from '../../context/useAuth'
+import { logActivity } from '../../lib/logActivity'
 
 /* ── Section context shared with child pages ─────────────────────── */
 export const SectionContext = createContext({ 
@@ -19,7 +20,8 @@ export const SectionContext = createContext({
 export const useSection = () => useContext(SectionContext)
 
 export default function StaffPortalLayout() {
-  const { profile } = useAuth()
+  const { profile, user, supabase } = useAuth()
+  const location = useLocation()
   const [section, setSection]         = useState('dashboard')
   const [sectionHistory, setSectionHistory] = useState([])
   const [collapsed, setCollapsed]     = useState(false)
@@ -41,6 +43,10 @@ export default function StaffPortalLayout() {
     setSection(previous)
     setSectionHistory(history => history.slice(0, -1))
   }
+  useEffect(() => {
+    if (!user || !profile) return
+    logActivity(supabase, user, profile, { actionType: 'page_view', description: `Viewed ${section}`, metadata: { path: location.pathname, section } })
+  }, [section, location.pathname, profile, supabase, user])
 
   return (
     <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: sectionHistory.length > 0, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter }}>

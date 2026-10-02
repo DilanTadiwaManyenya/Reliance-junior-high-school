@@ -6,6 +6,7 @@ import {
 } from 'react-icons/lu'
 import PortalNotice from './PortalNotice'
 import { getFeeAmount } from '../../lib/FeeStructure'
+import { logActivity } from '../../lib/logActivity'
 
 const CURRENT_YEAR = 2026
 const CURRENT_TERM = 'Term 3'
@@ -172,6 +173,7 @@ export default function FeesDashboard({ students = [], loading, supabase, user, 
     const { error: saveError } = await supabase.from('fee_balances').upsert({ student_id: student.id, term, academic_year: year, total_fees: Number(form.total_fees), amount_paid: Number(form.amount_paid), updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: 'student_id,term,academic_year' })
     setSaving(false)
     if (saveError) { setError(saveError.message); return }
+    logActivity(supabase, user, profile, { actionType: 'update', description: `Updated ${term} fees for ${student.full_name}`, targetTable: 'fee_balances', targetId: student.id })
     setEditTarget(null); setToast(`Payment updated for ${student.full_name}`); loadFees()
   }
 
@@ -180,6 +182,7 @@ export default function FeesDashboard({ students = [], loading, supabase, user, 
     const { error: saveError } = await supabase.from('fee_structure_mapping').upsert(bands.map(b => ({ band_id: b.band_id, amount: b.amount, band_name: b.band_name, updated_at: new Date().toISOString() })))
     setSavingStructure(false)
     if (saveError) { setError(saveError.message); return }
+    logActivity(supabase, user, profile, { actionType: 'update', description: 'Updated fee structure', targetTable: 'fee_structure_mapping' })
     setShowStructureModal(false); setToast('Fee structure updated'); loadFees()
   }
   const exportReport = rows => {

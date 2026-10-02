@@ -15,6 +15,9 @@ Deno.serve(async request => {
     if (!user || caller?.role !== 'admin') throw new Error('Only an administrator can update staff accounts.')
     const input = await request.json(), staffId = String(input.user_id ?? '')
     if (!staffId) throw new Error('A staff account is required.')
+    const { data: targetProfile } = await admin.from('profiles').select('is_protected').eq('id', staffId).maybeSingle()
+    if (!targetProfile) throw new Error('The target profile was not found.')
+    if (targetProfile.is_protected && staffId !== user.id) throw new Error('The protected primary administrator can change credentials only on their own signed-in account.')
     const update: Record<string, unknown> = {}
     if (input.phone !== undefined) { const number = phone(input.phone); if (!validPhone(number)) throw new Error('Enter a valid phone number.'); update.phone = number }
     const password = input.password === undefined ? '' : String(input.password)

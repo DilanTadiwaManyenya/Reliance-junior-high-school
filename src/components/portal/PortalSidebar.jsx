@@ -23,7 +23,8 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
         { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
         { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
         { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: ['admin', 'accountant'].includes(profile?.active_role ?? profile?.role) },
-        { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager }
+        { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager },
+        { id: 'activity', label: 'Activity Log', iconKey: 'staff', show: manager }
       ].filter(i => i.show)
     }
   ].filter(g => g.items.length > 0)

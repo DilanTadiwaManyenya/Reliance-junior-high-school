@@ -13,6 +13,8 @@ import { CLASS_LEVELS, getStreamsForLevel, ALL_CLASS_OPTIONS, isJuniorLevel } fr
 import ClassSelector, { parseClassKey } from '../../components/portal/ClassSelector';
 import TeacherGradeEntry from '../../components/portal/TeacherGradeEntry';
 import SlideOver from '../../components/ui/SlideOver';
+import ActivityLog from '../../components/portal/ActivityLog'
+import { logActivity } from '../../lib/logActivity'
 
 const records     = { attendance: 'attendance', academic: 'academic_records', behavior: 'behavior_notes', sports: 'sports_records' }
 const today       = () => new Date().toISOString().slice(0, 10)
@@ -278,6 +280,7 @@ export default function StaffDashboard() {
     if (tab === 'academic')   row.score = Number(row.score)
     const { error: requestError } = await supabase.from(records[tab]).insert(row)
     if (requestError) return showError(requestError.message)
+    logActivity(supabase, user, profile, { actionType: 'create', description: `Saved ${tab} record for ${students.find(student => student.id === selectedId)?.full_name || 'learner'}`, targetTable: records[tab], targetId: selectedId })
     setNotice('Record saved successfully.')
     setForms(current => ({ ...current, [tab]: emptyForms()[tab] }))
     loadRecent()
@@ -299,6 +302,7 @@ export default function StaffDashboard() {
       : supabase.from('students').insert(row)
     const { error: requestError } = await request
     if (requestError) return showError(requestError.message)
+    logActivity(supabase, user, profile, { actionType: editingId ? 'update' : 'create', description: `${editingId ? 'Updated' : 'Created'} learner ${student.full_name}`, targetTable: 'students', targetId: editingId })
     setNotice(editingId ? 'Learner updated successfully.' : 'Learner added successfully.')
     setStudent(emptyStudent()); setEditingId(null); loadStudents()
   }
@@ -309,6 +313,7 @@ export default function StaffDashboard() {
     event.preventDefault(); if (!isAdmin) return showError('Only administrators can create staff accounts.'); setError(''); setNotice('')
     const { data, error: requestError } = await invokeEdgeFunction(supabase, 'create-staff-account', staffForm)
     if (requestError || data?.error) return showError(data?.error || requestError.message)
+    logActivity(supabase, user, profile, { actionType: 'create', description: `Created staff account for ${staffForm.fullName}`, targetTable: 'profiles', targetId: data?.user_id })
     setNotice(data?.message || 'Staff account created successfully.')
     setStaffForm({ fullName: '', phone: '', password: '', role: 'teacher', classLevel: '', classStream: '' })
     loadStaff()
@@ -345,6 +350,7 @@ export default function StaffDashboard() {
     if (requestError || data?.success === false || data?.error) {
       return showError(data?.error || requestError?.message || 'Failed to update credentials.')
     }
+    logActivity(supabase, user, profile, { actionType: 'update', description: `Reset credentials for ${resetModal.staff.full_name}`, targetTable: 'profiles', targetId: resetModal.staff.id })
     setNotice(`Credentials updated and email synced to ${data.email || 'new portal email'} for ${resetModal.staff.full_name}.`)
     setResetModal({ open: false, staff: null, phone: '', password: '', saving: false })
     loadStaff()
@@ -404,6 +410,8 @@ export default function StaffDashboard() {
       <FeesDashboard students={filteredStudents} loading={loading} supabase={supabase} user={user} profile={profile} />
     </div>
   )
+
+  if (section === 'activity' && manager) return <div className="staff-content-area"><ActivityLog /></div>
 
   return (
     <div className="staff-content-area">
