@@ -2,20 +2,18 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from '../../components/portal/PortalNotice'
-import PhoneInput from '../../components/ui/PhoneInput'
 import PasswordInput from '../../components/ui/PasswordInput'
-import { buildPortalEmail, normalizePhone } from '../../../shared/portalAuth'
+import { buildStudentPortalEmail } from '../../../shared/portalAuth'
 import { CLASS_LEVELS, getStreamsForLevel } from '../../data/classOptions'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 
 const admissionPattern = /^\d{4,6}$/
-const zimbabwePhonePattern = /^(?:\+263|0)7[1-8]\d{7}$/
 const strongPassword = value => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(value)
 
 export default function StudentSignup() {
   const { supabase } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ phone: '', password: '', confirmPassword: '', admissionNumber: '', dateOfBirth: '', classLevel: '', classStream: '', acceptedTerms: false })
+  const [form, setForm] = useState({ password: '', confirmPassword: '', admissionNumber: '', dateOfBirth: '', classLevel: '', classStream: '', acceptedTerms: false })
   const [errors, setErrors] = useState({})
   const [submissionError, setSubmissionError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -27,7 +25,6 @@ export default function StudentSignup() {
   }
   const validate = () => {
     const next = {}
-    if (!zimbabwePhonePattern.test(form.phone.replace(/[\s-]/g, ''))) next.phone = 'Enter a Zimbabwe mobile number beginning with +263 or 0.'
     if (!strongPassword(form.password)) next.password = 'Use at least 8 characters with uppercase, lowercase, and a number.'
     if (form.password !== form.confirmPassword) next.confirmPassword = 'Passwords do not match.'
     if (!admissionPattern.test(form.admissionNumber.trim())) next.admissionNumber = 'Admission number must contain 4 to 6 digits.'
@@ -42,18 +39,17 @@ export default function StudentSignup() {
     const nextErrors = validate(); setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setSubmitting(true)
-    const phoneNumber = normalizePhone(form.phone)
     try {
       await supabase.auth.signOut({ scope: 'local' })
-      const { data, error } = await supabase.functions.invoke('register_student', { body: { phone_number: phoneNumber, password: form.password, admission_number: form.admissionNumber.trim(), date_of_birth: form.dateOfBirth, class_level: form.classLevel, class_stream: form.classStream } })
+      const admissionNumber = form.admissionNumber.trim()
+      const { data, error } = await supabase.functions.invoke('register_student', { body: { password: form.password, admission_number: admissionNumber, date_of_birth: form.dateOfBirth, class_level: form.classLevel, class_stream: form.classStream } })
       if (error || !data?.success) throw new Error(data?.message || 'We could not create your account. Please try again.')
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: buildPortalEmail(phoneNumber), password: form.password })
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: buildStudentPortalEmail(admissionNumber), password: form.password })
       if (signInError) throw new Error('Your account was created. Please sign in to continue.')
-      navigate('/portal/staff/dashboard', { replace: true })
+      navigate('/portal/student-dashboard', { replace: true })
     } catch (requestError) { setSubmissionError(requestError instanceof Error ? requestError.message : 'We could not create your account. Please try again.') } finally { setSubmitting(false) }
   }
   return <main className="portal-auth"><section className="portal-auth-card student-signup-card"><PortalSiteExitLink className="portal-website-button">← Back to website</PortalSiteExitLink><p className="eyebrow">Student portal</p><h1>Create your account</h1><p className="student-signup-intro">Enter the details supplied by the school to activate your student portal access.</p>{submissionError && <PortalNotice tone="error">{submissionError}</PortalNotice>}<form className="form student-signup-form" onSubmit={submit} noValidate>
-    <label>Phone number <span className="required-mark">*</span><PhoneInput value={form.phone} onChange={phone => { setForm(current => ({ ...current, phone })); setErrors(current => ({ ...current, phone: '' })) }} required /></label>{errors.phone && <p className="field-error">{errors.phone}</p>}
     <label>Password <span className="required-mark">*</span><PasswordInput id="student-password" label="" value={form.password} onChange={update('password')} required /></label>{errors.password && <p className="field-error">{errors.password}</p>}
     <label>Confirm password <span className="required-mark">*</span><PasswordInput id="student-confirm-password" label="" value={form.confirmPassword} onChange={update('confirmPassword')} required /></label>{errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
     <label>Admission number <span className="required-mark">*</span><input inputMode="numeric" maxLength="6" value={form.admissionNumber} onChange={update('admissionNumber')} /></label>{errors.admissionNumber && <p className="field-error">{errors.admissionNumber}</p>}

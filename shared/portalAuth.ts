@@ -13,3 +13,8 @@ export const buildPortalEmail = (phone: unknown) => {
   const digits = normalizePhone(phone).replace(/^\+/, '')
   return `portal-${digits}@portal.reliance.local`
 }
+
+// Student access is identified by the school admission number, so a learner
+// does not need to own or share a phone in order to use the portal.
+export const buildStudentPortalEmail = (admissionNumber: unknown) =>
+  `student-${String(admissionNumber ?? '').trim()}@portal.reliance.local`
