@@ -1,0 +1,72 @@
+/* Phone-first usability layer for the public site and every portal role. */
+:root { --mobile-safe: max(14px, env(safe-area-inset-left)); }
+
+@media (max-width: 600px) {
+  html { -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Public site */
+  .header { top: 0; }
+  .mobile-menu { max-height: calc(100dvh - 64px); padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+  .mobile-links a:focus-visible, .mobile-actions .btn:focus-visible { outline-offset: 2px; }
+  .grid > *, .split > *, .footer-grid > *, .portal-record-grid > *, .portal-form-grid > * { min-width: 0; }
+  .card, .contact-box { overflow-wrap: anywhere; }
+  .page-header p, .section-heading p { max-width: 100%; }
+  .map-frame iframe { height: min(62vw, 300px); }
+
+  /* Portal authentication and learner/parent views */
+  .portal-auth { min-height: 100dvh; align-items: start; padding: calc(22px + env(safe-area-inset-top)) var(--mobile-safe) calc(28px + env(safe-area-inset-bottom)); }
+  .portal-auth-card { width: 100%; border-radius: 14px; }
+  .portal-auth-card h1 { font-size: clamp(1.7rem, 8vw, 2.25rem); }
+  .portal-empty-state { margin-inline: 0; border-radius: 12px; }
+  .portal-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; padding: 2px 1px 8px; margin: 18px 0; scrollbar-width: thin; }
+  .portal-tabs .btn { flex: 0 0 auto; }
+  .portal-pending-row { padding-block: 16px; }
+  .student-info-card { padding: 18px; }
+  .student-info-card dl div { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .student-info-card dd { text-align: left; }
+
+  /* Staff workspace: preserve the key class control and avoid a five-control squeeze. */
+  .staff-top-bar { position: sticky; padding-left: env(safe-area-inset-left); padding-right: max(10px, env(safe-area-inset-right)); }
+  .top-bar-class-control { flex: 1 1 auto; max-width: none; }
+  .top-bar-class-control .class-switcher-select { text-overflow: ellipsis; }
+  .top-bar-back, .top-bar-site-link { display: none !important; }
+  .top-bar-logout { flex: 0 0 auto; }
+  .sidebar-wrapper { top: var(--topbar-height); height: calc(100dvh - var(--topbar-height)); }
+  .sidebar-overlay { top: var(--topbar-height); }
+  .staff-main { min-width: 0; overflow-x: clip; }
+  .staff-content-area { padding-left: var(--mobile-safe); padding-right: max(14px, env(safe-area-inset-right)); padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+  .dash-page-header { gap: 10px; }
+  .dash-page-title { font-size: clamp(1.4rem, 7vw, 1.8rem); }
+  .dash-page-sub { line-height: 1.55; }
+  .dash-stat-card { min-height: 86px; }
+  .dash-stat-value { font-size: 1.35rem; }
+  .dash-card-header { padding: 14px; }
+  .dash-card-header .dash-view-all { min-height: 36px; }
+  .dash-table-card .portal-table-wrap { padding-bottom: 6px; }
+  .portal-table-wrap { position: relative; border-radius: 8px; }
+  .portal-table-wrap::after { content: 'Swipe to see more'; display: block; padding: 7px 10px 1px; color: #64748b; font-size: .7rem; font-weight: 700; letter-spacing: .02em; }
+  .portal-table { min-width: 560px; }
+  .portal-form, .portal-student-selector, .portal-student-picker, .phone-input-controls { gap: 12px; }
+  .portal-form label, .portal-student-selector label { min-width: 0; }
+  .portal-action-row { display: grid; grid-template-columns: 1fr; }
+  .portal-action-row .btn, .portal-form .btn { width: 100%; }
+  .slideover { width: 100%; max-width: 100%; }
+  .slideover-header { padding-top: calc(18px + env(safe-area-inset-top)); }
+  .slideover-body { padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 390px) {
+  .top-bar-class-control { max-width: 52vw; }
+  .top-bar-class-control .class-switcher-select { font-size: .68rem; }
+  .dash-stat-card { padding: 13px; }
+  .dash-stat-icon { width: 36px; height: 36px; }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .staff-content-area { padding: 22px; }
+  .top-bar-user-info, .top-bar-brand-text { display: none; }
+  .top-bar-class-control { max-width: min(35vw, 260px); margin-right: 0 !important; }
+  .portal-table-wrap { -webkit-overflow-scrolling: touch; }
+}
