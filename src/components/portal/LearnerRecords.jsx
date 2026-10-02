@@ -2,7 +2,18 @@ import Card from '../ui/Card'
 import { Link } from 'react-router-dom'
 import { siteContent } from '../../data/siteContent'
 
-export const activeFeeBalance = (fees = []) => [...fees].sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0]
+const CURRENT_ACADEMIC_YEAR = 2026
+const CURRENT_TERM = 'Term 3'
+const normalizedTerm = term => String(term ?? '').trim().toLowerCase().replace(/^term\s*/, '')
+
+// Term 3 is the active billing period. Prefer the canonical label used by the
+// fee manager, then accept legacy numeric records until they are cleaned up.
+export const activeFeeBalance = (fees = []) => {
+  const current = fees.filter(row => Number(row.academic_year) === CURRENT_ACADEMIC_YEAR && normalizedTerm(row.term) === normalizedTerm(CURRENT_TERM))
+  return current.find(row => String(row.term).trim().toLowerCase() === CURRENT_TERM.toLowerCase())
+    ?? current.sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0]
+    ?? [...fees].sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0]
+}
 export const totalOwing = (fees = []) => {
   const current = activeFeeBalance(fees)
   return current ? Math.max(0, Number(current.total_fees ?? 0) - Number(current.amount_paid ?? 0)) : 0

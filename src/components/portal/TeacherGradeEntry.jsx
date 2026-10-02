@@ -37,7 +37,7 @@ export default function TeacherGradeEntry() {
   useEffect(() => {
     let active = true
     if (!selected || tab !== 'academic') { setSavedMarks([]); return undefined }
-    supabase.from('academic_records').select('id, subject, score, grade, term').eq('student_id', selected.id).eq('term', String(academic.term)).then(({ data, error: loadError }) => {
+    supabase.from('academic_records').select('id, subject, score, grade, term, year').eq('student_id', selected.id).eq('term', String(academic.term)).eq('year', Number(academic.year)).then(({ data, error: loadError }) => {
       if (!active) return
       if (loadError) setError(loadError.message)
       else setSavedMarks(data ?? [])
@@ -51,11 +51,11 @@ export default function TeacherGradeEntry() {
     setSaving(true)
     const table = tab === 'academic' ? 'academic_records' : 'sports_records'
     const payload = tab === 'academic'
-      ? { student_id: selected.id, subject: academic.subject, score: Number(academic.percentage), grade: outcome.grade, term: String(academic.term), comment: academic.comment || null, recorded_by: user.id }
-      : { student_id: selected.id, activity: sports.sport, term: String(sports.term), achievement: sports.participated ? 'Participated' : 'Did not participate', note: sports.note || null, recorded_by: user.id }
+      ? { student_id: selected.id, subject: academic.subject, score: Number(academic.percentage), grade: outcome.grade, term: String(academic.term), year: Number(academic.year), comment: academic.comment || null, recorded_by: user.id }
+      : { student_id: selected.id, activity: sports.sport, term: String(sports.term), year: Number(sports.year), achievement: sports.participated ? 'Participated' : 'Did not participate', note: sports.note || null, recorded_by: user.id }
     const subjectField = tab === 'academic' ? 'subject' : 'activity'
     const subjectValue = tab === 'academic' ? academic.subject : sports.sport
-    const { data: existingRecord, error: existingError } = await supabase.from(table).select('id').eq('student_id', selected.id).eq(subjectField, subjectValue).eq('term', String(data.term)).maybeSingle()
+    const { data: existingRecord, error: existingError } = await supabase.from(table).select('id').eq('student_id', selected.id).eq(subjectField, subjectValue).eq('term', String(data.term)).eq('year', Number(data.year)).maybeSingle()
     let saveError = existingError
     if (!saveError) {
       const request = existingRecord
