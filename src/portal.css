@@ -26,3 +26,5 @@
   .student-info-card dl div { align-items: flex-start; flex-direction: column; gap: 4px; }
   .student-info-card dd { text-align: left; }
 }
+
+@media(max-width:480px){.portal-auth{align-items:start;padding:16px 12px}.portal-auth-card{padding:22px 16px}.portal-auth-card h1{font-size:1.8rem}.student-signup-card{width:100%;box-sizing:border-box}.student-signup-form{margin-top:18px}.student-signup-form input,.student-signup-form select{min-height:44px}.student-signup-form .terms-check{align-items:flex-start;line-height:1.35}.student-signup-form .terms-check input{flex:none;margin-top:2px}.portal-tabs{display:grid;grid-template-columns:1fr 1fr}.portal-tabs .btn{width:100%;min-height:44px;padding-inline:8px}.portal-action-row{display:grid;grid-template-columns:1fr}.portal-action-row .btn{width:100%}.portal-table-wrap{border-radius:8px;overscroll-behavior-x:contain}.portal-table{min-width:560px}}
