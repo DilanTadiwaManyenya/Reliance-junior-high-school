@@ -8,6 +8,7 @@ import './staffPortal.css'
 import './feesDashboard.css'
 import './designRefinement.css'
 import './mobileUX.css'
+import './parentPortal.css'
 import App from './App'
 import { AuthProvider } from './context/AuthProvider'
 

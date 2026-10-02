@@ -9,6 +9,11 @@ const isInternationalPhone = (phone: string) => INTERNATIONAL_PHONE.test(phone)
 const buildPortalEmail = (phone: unknown) =>
   `portal-${normalizePhone(phone).replace(/^\+/, '')}@portal.reliance.local`
 
+const messageFor = (error: unknown) =>
+  error && typeof error === 'object' && 'message' in error
+    ? String(error.message)
+    : 'Account creation failed. Please try again.'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, Authorization',
@@ -20,8 +25,11 @@ Deno.serve(async (request) => {
     return new Response('ok', { status: 200, headers: corsHeaders })
   }
 
+  let createdUserId: string | null = null
   try {
-    const { fullName, phone: rawPhone, password, admissionNumber, dateOfBirth } = await request.json()
+    const { fullName: rawFullName, phone: rawPhone, password, admissionNumber: rawAdmissionNumber, dateOfBirth } = await request.json()
+    const fullName = String(rawFullName ?? '').trim()
+    const admissionNumber = String(rawAdmissionNumber ?? '').trim()
     const phone = normalizePhone(rawPhone)
     if (!fullName || !isInternationalPhone(phone)) throw new Error('Enter a valid international phone number.')
     if (!password || password.length < 8) throw new Error('The password must be at least 8 characters.')
@@ -39,7 +47,18 @@ Deno.serve(async (request) => {
     if (profileError) throw profileError
     if (existingProfile) throw new Error('This phone number is already registered. Please sign in instead.')
 
-    // createUser never sends an email.  The email is only an internal identifier for phone-based login.
+    // Check the learner before creating an Auth account. This avoids partial
+    // registrations when an admission number or date of birth is incorrect.
+    const { data: student, error: studentError } = await serviceClient
+      .from('students')
+      .select('id')
+      .ilike('admission_number', admissionNumber)
+      .eq('date_of_birth', dateOfBirth)
+      .maybeSingle()
+    if (studentError) throw studentError
+    if (!student) throw new Error('We could not verify that admission number and date of birth. Please check them and try again.')
+
+    // createUser never sends an email. The email is only an internal identifier for phone-based login.
     const { data: created, error: createError } = await serviceClient.auth.admin.createUser({
       email: buildPortalEmail(phone),
       password,
@@ -47,26 +66,30 @@ Deno.serve(async (request) => {
       user_metadata: { full_name: fullName, phone },
     })
     if (createError) throw createError
+    if (!created.user) throw new Error('The account could not be created. Please try again.')
+    createdUserId = created.user.id
 
-    const { data: student, error: studentError } = await serviceClient
-      .from('students')
-      .select('id')
-      .eq('admission_number', admissionNumber)
-      .eq('date_of_birth', dateOfBirth)
-      .maybeSingle()
-    if (studentError) throw studentError
-    if (student) {
-      const { error: linkError } = await serviceClient
-        .from('parent_student')
-        .upsert({ parent_id: created.user.id, student_id: student.id, verified_at: new Date().toISOString() }, { onConflict: 'parent_id,student_id' })
-      if (linkError) throw linkError
-    }
+    const now = new Date().toISOString()
+    const { error: accountError } = await serviceClient
+      .from('parent_accounts')
+      .insert({ user_id: createdUserId, phone_number: phone, child_admission_number: admissionNumber, verified: true, verified_at: now })
+    if (accountError) throw accountError
 
-    return Response.json({ created: true, matchedStudent: Boolean(student) }, { headers: corsHeaders })
+    const { error: linkError } = await serviceClient
+      .from('parent_student')
+      .upsert({ parent_id: createdUserId, student_id: student.id, verified_at: now }, { onConflict: 'parent_id,student_id' })
+    if (linkError) throw linkError
+
+    return Response.json({ created: true, matchedStudent: true }, { headers: corsHeaders })
   } catch (error) {
-    console.error(error)
+    // If a post-creation step fails, leave no unusable Auth account behind.
+    if (createdUserId) {
+      const serviceClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+      await serviceClient.auth.admin.deleteUser(createdUserId)
+    }
+    console.error(messageFor(error))
     return Response.json(
-      { error: error && typeof error === 'object' && 'message' in error ? error.message : 'Account creation failed.' },
+      { error: messageFor(error) },
       { status: 400, headers: corsHeaders },
     )
   }

@@ -16,6 +16,7 @@ import PortalLogin from './pages/portal/PortalLogin'
 import PortalSignup from './pages/portal/PortalSignup'
 import ForgotPassword from './pages/portal/ForgotPassword'
 import ParentDashboard from './pages/portal/ParentDashboard'
+import ParentRecordPage from './pages/portal/ParentRecordPage'
 import StaffDashboard from './pages/portal/StaffDashboard'
 import ProtectedRoute from './components/portal/ProtectedRoute'
 import PortalLayout from './components/portal/PortalLayout'
@@ -42,6 +43,7 @@ function App() {
       <Route path="/portal/first-login" element={<TeacherFirstLogin />} />
       <Route element={<PortalLayout />}>
         <Route path="/portal/dashboard" element={<ParentDashboard />} />
+        <Route path="/portal/learner/:studentId/:view" element={<ParentRecordPage />} />
         <Route element={<ProtectedRoute roles={['student']} />}>
           <Route path="/portal/student-dashboard" element={<StudentDashboard />} />
           <Route path="/portal/staff/dashboard" element={<StudentDashboard />} />

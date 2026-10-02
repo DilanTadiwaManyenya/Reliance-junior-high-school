@@ -12,7 +12,9 @@ const invokeOnce = async (supabase, name, body) => {
     const result = await supabase.functions.invoke(name, { body, signal: controller.signal })
     if (!result.error?.context) return result
     try {
-      const details = await result.error.context.clone().json()
+      const response = result.error.context.clone()
+      const rawDetails = await response.text()
+      const details = rawDetails ? JSON.parse(rawDetails) : {}
       return { ...result, data: details, error: new Error(details.error || details.message || result.error.message) }
     } catch { return result }
   } finally { clearTimeout(timer) }

@@ -1,11 +1,12 @@
 import Card from '../ui/Card'
-import { LineChart, Line, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Link } from 'react-router-dom'
 import { siteContent } from '../../data/siteContent'
 
-const terms = ['Term 1', 'Term 2', 'Term 3']
-const date = (value) => new Intl.DateTimeFormat('en-ZW', { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`))
-
-export const totalOwing = (fees = []) => fees.reduce((sum, fee) => sum + Number(fee.total_fees) - Number(fee.amount_paid), 0)
+export const activeFeeBalance = (fees = []) => [...fees].sort((a, b) => new Date(b.updated_at ?? 0) - new Date(a.updated_at ?? 0))[0]
+export const totalOwing = (fees = []) => {
+  const current = activeFeeBalance(fees)
+  return current ? Math.max(0, Number(current.total_fees ?? 0) - Number(current.amount_paid ?? 0)) : 0
+}
 
 export function DisabledLearner({ reason }) {
   const leftSchool = reason === 'left_school'
@@ -15,13 +16,15 @@ export function DisabledLearner({ reason }) {
 export default function LearnerRecords({ student, records, fees }) {
   const owing = totalOwing(fees)
   const locked = owing > 0
-  const graph = terms.map((term) => {
-    const academic = records.academics.filter(row => row.term === term)
-    const attendance = records.attendance.filter(row => row.term === term)
-    return { term, academic: academic.length ? academic.reduce((sum, row) => sum + Number(row.score), 0) / academic.length : null, attendance: attendance.length ? (attendance.filter(row => row.status === 'present' || row.status === 'late').length / attendance.length) * 100 : null }
-  })
   const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
   const weekly = records.attendance.filter(row => new Date(`${row.date}T00:00:00`) >= sevenDaysAgo)
   const present = weekly.filter(row => row.status === 'present' || row.status === 'late').length
-  return <><div className="portal-record-grid"><Card className={locked ? 'portal-fee-warning' : ''}><h2>Academic status</h2>{locked ? <p><strong>Academic results locked — Balance: ${owing.toFixed(2)} owing.</strong><br />Please settle fees with the school office to view results. {siteContent.contact.phone}</p> : records.academics.length ? <div className="portal-list">{records.academics.map(row => <p key={row.id}><strong>{row.subject}</strong> · {row.score} ({row.grade}){row.comment && <><br /><span className="muted">{row.comment}</span></>}</p>)}</div> : <p className="muted">No academic records have been shared yet.</p>}</Card><Card><h2>Attendance</h2>{records.attendance.length ? <div className="portal-list">{records.attendance.map(row => <p key={row.id}><strong>{date(row.date)}</strong> <span className={`portal-status ${row.status}`}>{row.status}</span>{row.note && <><br /><span className="muted">{row.note}</span></>}</p>)}</div> : <p className="muted">No attendance records have been shared yet.</p>}</Card><Card><h2>Behaviour</h2>{records.behavior.length ? <div className="portal-list">{records.behavior.map(row => <p key={row.id}><span className={`portal-status ${row.severity}`}>{row.severity}</span> <strong>{row.category}</strong><br /><span className="muted">{row.description}</span></p>)}</div> : <p className="muted">No behaviour notes have been shared yet.</p>}</Card><Card><h2>Sport</h2>{records.sports.length ? <div className="portal-list">{records.sports.map(row => <p key={row.id}><strong>{row.activity}</strong> · {row.term}{row.achievement && ` · ${row.achievement}`}{row.note && <><br /><span className="muted">{row.note}</span></>}</p>)}</div> : <p className="muted">No sports records have been shared yet.</p>}</Card><Card><h2>Attendance insight</h2><p><strong>Attendance this week: {present}/{weekly.length} days present.</strong></p><p className="muted">Computed from records entered during the last seven days.</p></Card></div><Card className="portal-performance"><h2>Performance by term</h2><div style={{ width: '100%', height: 300 }}><ResponsiveContainer><LineChart data={graph}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="term" /><YAxis /><Tooltip />{!locked && <Line type="monotone" dataKey="academic" name="Academic Average" stroke="#A6302F" connectNulls />}<Line type="monotone" dataKey="attendance" name="Attendance %" stroke="#1B2A56" connectNulls /></LineChart></ResponsiveContainer></div></Card></>
+  const pages = [
+    { key: 'academics', title: 'Academics', summary: locked ? `Results locked — balance: $${owing.toFixed(2)} owing.` : records.academics.length ? `${records.academics.length} result${records.academics.length === 1 ? '' : 's'} available.` : 'No academic records have been shared yet.' },
+    { key: 'attendance', title: 'Attendance', summary: records.attendance.length ? `${records.attendance.length} attendance record${records.attendance.length === 1 ? '' : 's'} available.` : 'No attendance records have been shared yet.' },
+    { key: 'behavior', title: 'Behaviour', summary: records.behavior.length ? `${records.behavior.length} behaviour note${records.behavior.length === 1 ? '' : 's'} available.` : 'No behaviour notes have been shared yet.' },
+    { key: 'sports', title: 'Sport', summary: records.sports.length ? `${records.sports.length} sport record${records.sports.length === 1 ? '' : 's'} available.` : 'No sports records have been shared yet.' },
+    { key: 'insights', title: 'Attendance insights', summary: `This week: ${present}/${weekly.length} days present.` },
+  ]
+  return <div className="parent-record-launcher">{pages.map(page => <Link key={page.key} className={`parent-record-link${page.key === 'academics' && locked ? ' is-locked' : ''}`} to={`/portal/learner/${student.id}/${page.key}`}><Card className="parent-record-card"><span className="parent-record-kicker">View full record</span><h2>{page.title}</h2><p>{page.summary}</p><span className="parent-record-action">Open {page.title} <span aria-hidden="true">→</span></span></Card></Link>)}</div>
 }

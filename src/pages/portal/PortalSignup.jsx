@@ -24,7 +24,7 @@ export default function PortalSignup() {
     if (!isInternationalPhone(phone)) { setError('Enter an international phone number with a country code, for example +263 77 123 4567 or +44 7911 123456.'); setSubmitting(false); return }
     if (form.password !== form.confirmPassword) { setError('Passwords do not match.'); setSubmitting(false); return }
     const { data, error: registrationError } = await invokeEdgeFunction(supabase, 'register-parent', { fullName: form.fullName, phone, password: form.password, admissionNumber: form.admissionNumber, dateOfBirth: form.dateOfBirth })
-    if (registrationError) { setError(registrationError.message); setSubmitting(false); return }
+    if (registrationError) { setError(data?.error || registrationError.message || 'Account creation failed. Please try again.'); setSubmitting(false); return }
     if (data?.error) { setError(data.error); setSubmitting(false); return }
     setMatchedStudent(Boolean(data?.matchedStudent)); setComplete(true); setSubmitting(false)
   }
