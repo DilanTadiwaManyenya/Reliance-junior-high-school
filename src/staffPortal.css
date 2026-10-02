@@ -872,6 +872,15 @@
 .staff-top-bar { padding-right: 14px; }.top-bar-toggle { width: 36px; height: 36px; }.staff-content-area { padding: 20px clamp(14px, 2vw, 28px) 28px; }.dash-home, .dash-section { gap: 14px; }.dash-page-title { font-size: clamp(1.55rem, 2.4vw, 2rem); }.dash-page-sub { font-size: .82rem; }.dash-stat-card { min-height: 92px; padding: 14px; border-radius: 10px; }.dash-stat-icon { width: 40px; height: 40px; border-radius: 10px; }.dash-stat-value { font-size: 1.55rem; }.dash-card { border-radius: 10px; box-shadow: 0 4px 14px rgba(26,40,71,.06); }.dash-card-header { padding: 13px 16px; }.dash-chart-card, .dash-distribution-card { min-height: 260px; }.dash-bar-chart { height: 174px; padding: 16px; }.dash-distribution-body { height: 190px; }.dash-donut { width: 118px; height: 118px; }.dash-donut::after { width: 84px; height: 84px; }.dash-preview-table th, .dash-preview-table td { padding: 10px 13px; }.portal-table th, .portal-table td { padding: 10px 12px; }.grade-entry-form { gap: 16px; padding: clamp(16px, 2vw, 24px); border-radius: 12px; }.dash-empty-state { padding: 30px 20px; }.slideover-header { padding: 18px 20px 14px; }.slideover-body { padding: 18px 20px 26px; }
 .staff-shell.no-sidebar { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
 
+/* Curriculum-led subject picker: students only expose subjects for their level/pathway. */
+.subject-picker { display: grid; gap: 9px; padding: 16px; border: 1px solid #dbe2ee; border-radius: 10px; background: #f8faff; }
+.subject-picker-label { color: #40506f; font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.subject-group-list, .subject-option-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.subject-group-list button, .subject-option-list button { min-height: 38px; border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px 11px; background: #fff; color: #1b2a56; font: 700 .78rem var(--font-ui); cursor: pointer; }
+.subject-group-list button:hover, .subject-option-list button:hover { border-color: #a6302f; background: #fff8f8; }
+.subject-group-list button.active, .subject-option-list button.active { border-color: #a6302f; background: #a6302f; color: #fff; }
+@media (max-width: 600px) { .subject-picker { padding: 13px; } .subject-group-list, .subject-option-list { display: grid; grid-template-columns: 1fr; } .subject-group-list button, .subject-option-list button { width: 100%; text-align: left; } }
+
 /* Mobile portal controls: keep navigation, class context and account actions usable without overflow. */
 @media (max-width: 600px) {
   .staff-top-bar {

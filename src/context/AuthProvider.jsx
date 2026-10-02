@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
   const loadProfile = useCallback(async user => {
     const requestId = ++profileRequest.current
     if (!supabase || !user) { setProfile(null); return null }
-    const { data } = await supabase.from('profiles').select('*, user_roles(role), teacher_class_assignments(class_level, class_stream), teacher_subject_assignments(subject, form_level)').eq('id', user.id).single()
+    const { data } = await supabase.from('profiles').select('*, user_roles(role), teacher_class_assignments(class_level, class_stream)').eq('id', user.id).single()
     if (requestId === profileRequest.current) setProfile(data ?? null)
     return data ?? null
   }, [])
