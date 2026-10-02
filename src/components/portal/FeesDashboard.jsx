@@ -5,6 +5,7 @@ import {
   LuHistory, LuPencil, LuSearch, LuSend, LuWallet,
 } from 'react-icons/lu'
 import PortalNotice from './PortalNotice'
+import ReportTermSettings from './ReportTermSettings'
 import { getFeeAmount } from '../../lib/FeeStructure'
 import { logActivity } from '../../lib/logActivity'
 
@@ -166,6 +167,7 @@ export default function FeesDashboard({ students = [], loading, supabase, user, 
   const isLoading = loading || feeLoading
 
   const [showStructureModal, setShowStructureModal] = useState(false)
+  const [showReportTermSettings, setShowReportTermSettings] = useState(false)
   const [savingStructure, setSavingStructure] = useState(false)
 
   const savePayment = async (student, form) => {
@@ -199,12 +201,13 @@ export default function FeesDashboard({ students = [], loading, supabase, user, 
   ]
 
   return <div className="fees-dashboard">
-    <header className="fees-page-header"><div><p className="fees-kicker">Finance · {term} {year}</p><h1>Fees tracking</h1><p>Monitor collection progress and resolve outstanding balances with confidence.</p></div><div className="fees-period-controls"><label>Term<select value={term} onChange={event => setTerm(event.target.value)}>{TERMS.map(item => <option key={item}>{item}</option>)}</select></label><label>Year<select value={year} onChange={event => setYear(Number(event.target.value))}>{[2025, 2026, 2027].map(item => <option key={item}>{item}</option>)}</select></label>{profile?.role === 'admin' && <button className="fee-button fee-button-secondary" onClick={() => setShowStructureModal(true)}>Edit fee structure</button>}</div></header>
+    <header className="fees-page-header"><div><p className="fees-kicker">Finance · {term} {year}</p><h1>Fees tracking</h1><p>Monitor collection progress and resolve outstanding balances with confidence.</p></div><div className="fees-period-controls"><label>Term<select value={term} onChange={event => setTerm(event.target.value)}>{TERMS.map(item => <option key={item}>{item}</option>)}</select></label><label>Year<select value={year} onChange={event => setYear(Number(event.target.value))}>{[2025, 2026, 2027].map(item => <option key={item}>{item}</option>)}</select></label>{profile?.role === 'admin' && <><button className="fee-button fee-button-secondary" onClick={() => setShowStructureModal(true)}>Edit fee structure</button><button className="fee-button fee-button-secondary" onClick={() => setShowReportTermSettings(true)}>Report term settings</button></>}</div></header>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}
     <section className="fees-stat-row" aria-label="Payment summary">{metricCards.map(card => { const Icon = card.icon; const actionable = card.label === 'Partial payments' || card.label === 'Unpaid'; const filter = card.label === 'Partial payments' ? 'half' : 'unpaid'; return <article className={`fees-stat-card ${card.tone} ${card.tone === 'slate' ? 'primary-kpi' : ''}`} key={card.label}><span className="fees-stat-icon"><Icon size={22} /></span><div><p>{card.label}</p><strong>{isLoading ? '—' : card.value}</strong><span>{isLoading ? 'Loading summary…' : card.note}</span>{actionable && !isLoading && <button type="button" className="fees-kpi-link" onClick={() => setQuickStatus(filter)}>View {card.value} {card.label === 'Unpaid' ? 'unpaid' : 'partial'} students</button>}</div></article> })}</section>
     {isLoading ? <div className="fees-loading"><div /><div /><div /></div> : <MasterTable students={enriched} onEdit={setEditTarget} onReminder={student => setToast(`Reminder queued for ${student.full_name}`)} onHistory={student => setToast(`Payment history opened for ${student.full_name}`)} onExport={exportReport} readOnly={readOnly} quickStatus={quickStatus} />}
     {editTarget && <PaymentModal student={editTarget} onClose={() => setEditTarget(null)} onSave={savePayment} saving={saving} />}
     {showStructureModal && <FeeStructureModal mapping={feeMapping} onClose={() => setShowStructureModal(false)} onSave={saveStructure} saving={savingStructure} />}
+    {showReportTermSettings && <ReportTermSettings supabase={supabase} onClose={() => setShowReportTermSettings(false)} onSaved={() => setToast('Report term settings saved')} />}
     {toast && <div className="fee-toast" role="status"><LuCircleCheck size={18} />{toast}</div>}
   </div>
 }
