@@ -14,25 +14,29 @@
 
 /* A report is a wide, tabular document.  Printing it in landscape prevents the
    subject, marks, comment and signature columns from being cropped in print or PDF. */
-@page{size:A4 landscape;margin:11mm}
+@page{size:A4 landscape;margin:6mm}
 @media print{
   html,body,#root{width:100%!important;min-width:0!important;background:#fff!important}
   .portal-shell,.portal-shell main,.parent-record-page{display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important;transform:none!important}
   .parent-record-page>:not(.report-card),.portal-header,.no-print{display:none!important}
-  .report-card{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:visible!important}
-  .report-card-top{display:block!important;margin:0 0 8mm!important}
-  .report-card-top .report-card-header{justify-content:center!important;text-align:center!important}
-  .report-card-meta{margin-bottom:5mm!important}
+  .report-card{width:100%!important;max-width:none!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:visible!important;zoom:.82}
+  /* Keep the report letterhead; only the surrounding portal header is hidden. */
+  .report-card-top{display:block!important;margin:0 0 4mm!important}
+  .report-card-top .report-card-header{display:flex!important;justify-content:center!important;text-align:center!important;margin:0!important}
+  .report-card-header img{width:52px!important;height:58px!important}
+  .report-card-header p{font-size:7pt!important}.report-card-header h2{font-size:13pt!important;line-height:1.1!important}.report-card-header span{font-size:7pt!important}
+  .report-card-meta{margin:0 0 3mm!important;padding:2.5mm 0!important;font-size:8pt!important}
   .report-card .portal-table-wrap{overflow:visible!important;margin:0!important;padding:0!important}
   .report-table{width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse!important}
   .report-table thead{display:table-header-group}
   .report-table tr,.report-summary,.report-next,.report-authenticity{break-inside:avoid!important;page-break-inside:avoid!important}
-  .report-table th,.report-table td{padding:3mm 2mm!important;overflow-wrap:anywhere!important;vertical-align:top!important}
-  .report-table th{font-size:7pt!important}
-  .report-table td{font-size:8pt!important}
+  .report-table th,.report-table td{padding:1.7mm 1.5mm!important;overflow-wrap:anywhere!important;vertical-align:top!important;line-height:1.12!important}
+  .report-table th{font-size:6.5pt!important}
+  .report-table td{font-size:7.5pt!important}
   .report-table th:nth-child(1){min-width:0!important;width:22%}
   .report-table th:nth-child(2),.report-table th:nth-child(3),.report-table th:nth-child(4),.report-table th:nth-child(6){width:10%}
-  .report-facilitator-comment{min-width:0!important;font-size:7.5pt!important}
-  .report-summary,.report-next{margin-top:5mm!important;padding-top:4mm!important}
-  .report-authenticity{margin-top:5mm!important;padding-top:4mm!important}
+  .report-facilitator-comment{min-width:0!important;font-size:7pt!important}
+  .report-summary,.report-next{margin-top:3mm!important;padding-top:2.5mm!important;font-size:7.5pt!important}
+  .report-authenticity{margin-top:3mm!important;padding-top:2.5mm!important}
+  .school-stamp{width:132px!important}
 }
