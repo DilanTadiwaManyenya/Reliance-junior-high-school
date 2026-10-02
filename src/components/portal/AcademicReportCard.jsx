@@ -12,7 +12,7 @@ const date = value => value ? new Intl.DateTimeFormat('en-ZW', { dateStyle: 'lon
 const termValue = value => String(value ?? '').replace(/^term\s*/i, '')
 const recordYear = row => String(row.year ?? (row.created_at ? new Date(row.created_at).getFullYear() : new Date().getFullYear()))
 
-export default function AcademicReportCard({ student, academics = [], attendance = [], fees = [], subjects = [], report = {}, reportFees = [], nextTermFee }) {
+export default function AcademicReportCard({ student, academics = [], attendance = [], fees = [], subjects = [], report = {}, reportFees = [], approvedReports = [], nextTermFee }) {
   const isSenior = /^Form\s/i.test(student.class_level || '')
   const schoolLogo = isSenior ? seniorLogo : juniorLogo
   const [selectedTerm, setSelectedTerm] = useState(() => termValue(academics[0]?.term ?? 3))
@@ -34,6 +34,7 @@ export default function AcademicReportCard({ student, academics = [], attendance
   const pass = rows.filter(row => row.score !== undefined && Number(row.score ?? row.percentage) >= REPORT_CARD_PASS_MARK).length
   const fail = rows.filter(row => row.score !== undefined && Number(row.score ?? row.percentage) < REPORT_CARD_PASS_MARK).length
   const reportForTerm = report[`${year}-${selectedTerm}`] || {}
+  const isOfficiallyApproved = approvedReports.some(item => Number(item.term) === Number(selectedTerm) && Number(item.year) === Number(year) && item.approved_at && item.approved_by)
   const configuredNextTermFee = reportFees.find(row => String(row.academic_year) === year && String(row.term) === selectedTerm && row.class_level === student.class_level)?.amount ?? nextTermFee
 
   if (locked) return <section className="report-card report-card-locked"><h2>Academic report card</h2><p><strong>Academic results locked — balance owing: {money(totalOwing(fees))}.</strong></p><p>Please settle fees with the school office to view this report card.</p></section>
@@ -45,6 +46,6 @@ export default function AcademicReportCard({ student, academics = [], attendance
     {!rows.length && <p className="muted">No enrolled subjects or academic records have been published for this term.</p>}
     <div className="report-summary"><div><b>Number of Subjects:</b> {rows.length}</div><div><b>Out Of:</b> {rows.length}</div><div><b>Pass / Fail:</b> {pass} / {fail}</div></div>
     <footer className="report-next"><span><b>Next Term Begins On:</b> {date(reportForTerm.next_term_begins_on)}</span><span><b>Next Term Fees:</b> {configuredNextTermFee != null ? money(configuredNextTermFee) : 'To be confirmed'}</span></footer>
-    <div className="report-authenticity"><SchoolStamp /></div>
+    {isOfficiallyApproved && <div className="report-authenticity"><SchoolStamp /></div>}
   </section>
 }

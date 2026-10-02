@@ -17,21 +17,21 @@ export default function SchoolStamp({ date, className = '', title = 'Reliance Le
         <feBlend in="SourceGraphic" in2="fadedNoise" mode="multiply" />
       </filter>
     </defs>
-    <g filter="url(#school-stamp-grain)" fill="none" stroke="currentColor" strokeWidth="4" opacity=".88">
-      <path d="M36 12H354L378 38V217L354 243H36L12 217V38Z" />
-      <path d="M42 20H348L370 42V213L348 235H42L20 213V42Z" strokeWidth="1.5" opacity=".7" />
+    <g filter="url(#school-stamp-grain)" fill="none" stroke="currentColor" opacity=".88">
+      <path d="M37 12H353L378 37V218L353 243H37L12 218V37Z" strokeWidth="3.5" />
+      <path d="M44 20H346L370 44V211L346 235H44L20 211V44Z" strokeWidth="1.7" opacity=".72" />
     </g>
     <g fill="currentColor" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" filter="url(#school-stamp-grain)">
-      <text x="195" y="47" fontSize="22" fontWeight="900" letterSpacing=".65">RELIANCE LEARNING</text>
-      <text x="195" y="70" fontSize="20" fontWeight="900" letterSpacing="1.1">★  CENTRE  ★</text>
-      <rect x="86" y="87" width="218" height="35" rx="3" fill="none" stroke="currentColor" strokeWidth="2.3" />
-      <text x="195" y="111" fontSize="17" fontWeight="800">{stampDate}</text>
-      <text x="195" y="148" fontSize="19" fontWeight="900" letterSpacing=".8">THE PRINCIPAL</text>
-      <text x="195" y="168" fontSize="15" fontWeight="800" letterSpacing="2.4">HARARE</text>
-      <path d="M70 178H320" stroke="currentColor" strokeWidth="1.5" opacity=".65" />
-      <text x="195" y="195" fontSize="12" fontWeight="700">Stand No. 3029 Nehanda · Dzivarasekwa Ext, Harare</text>
-      <text x="195" y="212" fontSize="12" fontWeight="700">Cell: 0716 663 966</text>
-      <text x="195" y="227" fontSize="11" fontWeight="700">0773 148 543 / 0776 910 943</text>
+      <text x="195" y="46" fontSize="21" fontWeight="800" letterSpacing=".8">RELIANCE LEARNING</text>
+      <text x="195" y="69" fontSize="19" fontWeight="800" letterSpacing="1.2">★  CENTRE  ★</text>
+      <rect x="97" y="88" width="196" height="32" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+      <text x="195" y="110" fontSize="16" fontWeight="800" letterSpacing=".25">{stampDate}</text>
+      <text x="195" y="146" fontSize="18" fontWeight="800" letterSpacing=".85">THE PRINCIPAL</text>
+      <text x="195" y="166" fontSize="14" fontWeight="800" letterSpacing="2.3">HARARE</text>
+      <path d="M76 177H314" stroke="currentColor" strokeWidth="1.35" opacity=".62" />
+      <text x="195" y="194" fontSize="11.5" fontWeight="700" letterSpacing=".08">Stand No. 3029 Nehanda · Dzivarasekwa Ext, Harare</text>
+      <text x="195" y="210" fontSize="11.5" fontWeight="700" letterSpacing=".08">Cell: 0716 663 966</text>
+      <text x="195" y="226" fontSize="10.8" fontWeight="700" letterSpacing=".08">0773 148 543 / 0776 910 943</text>
     </g>
   </svg>
 }
