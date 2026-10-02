@@ -4,7 +4,7 @@ import { totalOwing } from './LearnerRecords'
 import { getSubjectReportComment } from '../../data/reportComments'
 import seniorLogo from '../../assets/images/reliance-senior-logo.png'
 import juniorLogo from '../../assets/images/reliance-junior-logo.png'
-import principalStamp from '../../assets/images/reliance-principal-stamp.png'
+import SchoolStamp from '../ui/SchoolStamp'
 
 const termLabel = value => String(value).startsWith('Term') ? String(value) : `Term ${value}`
 const money = value => `$${Number(value ?? 0).toFixed(2)}`
@@ -28,11 +28,6 @@ export default function AcademicReportCard({ student, academics = [], attendance
   const locked = totalOwing(fees) > 0
   const terms = [...new Set(academics.map(row => termValue(row.term)))].sort((a, b) => Number(b) - Number(a))
   const selected = academics.filter(row => termValue(row.term) === selectedTerm && recordYear(row) === year)
-  const latestReportUpdate = selected.reduce((latest, row) => {
-    const candidate = row.updated_at || row.created_at
-    return candidate && (!latest || new Date(candidate) > new Date(latest)) ? candidate : latest
-  }, null)
-  const reportUpdateDate = latestReportUpdate ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(latestReportUpdate)) : 'Pending update'
   const enrolledSubjects = subjects.length ? subjects : [...new Set(selected.map(row => row.subject))]
   const rows = useMemo(() => enrolledSubjects.map(subject => selected.find(row => row.subject === subject) || { subject }), [enrolledSubjects, selected])
   const REPORT_CARD_PASS_MARK = 50
@@ -50,6 +45,6 @@ export default function AcademicReportCard({ student, academics = [], attendance
     {!rows.length && <p className="muted">No enrolled subjects or academic records have been published for this term.</p>}
     <div className="report-summary"><div><b>Number of Subjects:</b> {rows.length}</div><div><b>Out Of:</b> {rows.length}</div><div><b>Pass / Fail:</b> {pass} / {fail}</div></div>
     <footer className="report-next"><span><b>Next Term Begins On:</b> {date(reportForTerm.next_term_begins_on)}</span><span><b>Next Term Fees:</b> {configuredNextTermFee != null ? money(configuredNextTermFee) : 'To be confirmed'}</span></footer>
-    <div className="report-authenticity"><div className="report-stamp-wrap"><img src={principalStamp} alt="Official Reliance Learning Centre principal stamp" /><span>{reportUpdateDate}</span></div></div>
+    <div className="report-authenticity"><SchoolStamp /></div>
   </section>
 }

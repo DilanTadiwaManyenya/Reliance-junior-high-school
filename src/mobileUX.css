@@ -70,3 +70,57 @@
   .top-bar-class-control { max-width: min(35vw, 260px); margin-right: 0 !important; }
   .portal-table-wrap { -webkit-overflow-scrolling: touch; }
 }
+
+/* Shared responsive finish for public pages, parent records, and every portal role. */
+img, svg { max-width: 100%; }
+@media (max-width: 700px) {
+  .container { width: min(100% - 24px, 1160px); }
+  .nav { height: 64px; gap: 10px; }
+  .brand img { width: 38px; height: 38px; object-fit: contain; }
+  .menu-toggle { min-width: 44px; min-height: 44px; }
+  .mobile-menu { padding-inline: 12px; }
+  .mobile-menu a, .mobile-actions .btn { min-height: 44px; display: flex; align-items: center; }
+  .hero-actions, .portal-action-row { gap: 10px; }
+  .hero-actions .btn { flex: 1 1 160px; min-height: 46px; }
+  .stats { gap: 8px; }
+  .stats span { font-size: .74rem; }
+  .page-header h1 { overflow-wrap: anywhere; }
+  .footer { padding-top: 42px; }
+  .footer-grid { gap: 24px; }
+  .portal-content, .parent-full-card { width: 100%; min-width: 0; }
+  .parent-record-launcher, .parent-insight-grid, .student-dashboard-grid { grid-template-columns: 1fr; }
+  .parent-record-card { min-height: 0; }
+  .report-book-heading { gap: 10px; }
+  .report-book-heading > span { align-self: flex-start; }
+  .report-card-top .report-card-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .report-card-top .report-card-actions .btn { grid-column: 1 / -1; min-height: 44px; }
+  .report-card-top .report-card-header { min-width: 0; }
+  .report-card-top .report-card-header h2 { font-size: clamp(1rem, 5vw, 1.25rem); overflow-wrap: anywhere; }
+  .report-authenticity { padding-bottom: env(safe-area-inset-bottom); }
+  .fee-modal, .slideover { overscroll-behavior: contain; }
+  .fee-modal input, .fee-modal select, .portal-form input, .portal-form select, .portal-form textarea { min-height: 44px; }
+  .fee-modal-actions .fee-button, .portal-form .btn { min-height: 44px; }
+  .portal-table-wrap, .fee-table-wrap, .subject-progress-table { scrollbar-width: thin; overscroll-behavior-x: contain; }
+}
+
+@media (max-width: 430px) {
+  .section { padding-block: 38px; }
+  .hero-inner { padding-block: 48px; }
+  .hero h1, .page-header h1 { font-size: clamp(2rem, 10vw, 2.55rem); }
+  .hero-actions { display: grid; grid-template-columns: 1fr; }
+  .hero-actions .btn { width: 100%; }
+  .stats strong { font-size: 1.18rem; }
+  .stats span { font-size: .68rem; }
+  .card, .contact-box { padding: 15px; }
+  .portal-auth-card, .portal-empty-state { border-radius: 10px; }
+  .portal-tabs { gap: 7px; }
+  .portal-tabs .btn { min-height: 42px; }
+  .report-card-top .report-card-header { align-items:flex-start; }
+  .report-card-top .report-card-header img { width: 44px; height: 50px; }
+  .report-card-top .report-card-actions { grid-template-columns: 1fr; }
+  .report-card-top .report-card-actions .btn { grid-column: auto; }
+  .report-card-meta { font-size: .75rem; }
+  .report-stamp-wrap { width: 170px; }
+}
+
+@media print { .portal-table-wrap::after { display: none; } }
