@@ -28,10 +28,10 @@ export default function SchoolStamp({ date, className = '', title = 'Reliance Le
       <text x="195" y="111" fontSize="17" fontWeight="800">{stampDate}</text>
       <text x="195" y="148" fontSize="19" fontWeight="900" letterSpacing=".8">THE PRINCIPAL</text>
       <text x="195" y="168" fontSize="15" fontWeight="800" letterSpacing="2.4">HARARE</text>
-      <path d="M70 180H320" stroke="currentColor" strokeWidth="1.5" opacity=".65" />
-      <text x="195" y="199" fontSize="13" fontWeight="700">Stand No. 3029 Nehanda · Dzivarasekwa Ext, Harare</text>
-      <text x="195" y="218" fontSize="13" fontWeight="700">Cell: 0716 663 966</text>
-      <text x="195" y="234" fontSize="12" fontWeight="700">0773 148 543 / 0776 910 943</text>
+      <path d="M70 178H320" stroke="currentColor" strokeWidth="1.5" opacity=".65" />
+      <text x="195" y="195" fontSize="12" fontWeight="700">Stand No. 3029 Nehanda · Dzivarasekwa Ext, Harare</text>
+      <text x="195" y="212" fontSize="12" fontWeight="700">Cell: 0716 663 966</text>
+      <text x="195" y="227" fontSize="11" fontWeight="700">0773 148 543 / 0776 910 943</text>
     </g>
   </svg>
 }
