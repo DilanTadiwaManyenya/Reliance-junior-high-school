@@ -2,6 +2,7 @@ import InventoryPOS from '../../components/portal/InventoryPOS'
 import ExpensesCashbook from '../../components/portal/ExpensesCashbook'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Button from '../../components/ui/Button'
+import PasswordInput from '../../components/ui/PasswordInput'
 import Card from '../../components/ui/Card'
 import PortalNotice from '../../components/portal/PortalNotice'
 import StudentSelector from '../../components/portal/StudentSelector'
@@ -602,7 +603,7 @@ export default function StaffDashboard() {
               <form className="form portal-form" onSubmit={createStaff}>
                 <label>Full name<input required value={staffForm.fullName} onChange={e => setStaffForm(x => ({ ...x, fullName: e.target.value }))} /></label>
                 <label>Phone<input required value={staffForm.phone} onChange={e => setStaffForm(x => ({ ...x, phone: e.target.value }))} /></label>
-                <label>Password<input required minLength="8" type="password" value={staffForm.password} onChange={e => setStaffForm(x => ({ ...x, password: e.target.value }))} /></label>
+                <PasswordInput id="new-staff-password" label="Password" required minLength={8} autoComplete="new-password" value={staffForm.password} onChange={e => setStaffForm(x => ({ ...x, password: e.target.value }))} />
                 <label>Role<select value={staffForm.role} onChange={e => setStaffForm(x => ({ ...x, role: e.target.value, classLevel: '', classStream: '' }))}><option value="teacher">Teacher</option><option value="accountant">Accountant</option><option value="admin">Admin</option><option value="principal">Principal</option></select></label>
                 {staffForm.role === 'teacher' && <><label>Class level<select required value={staffForm.classLevel} onChange={e => setStaffForm(x => ({ ...x, classLevel: e.target.value, classStream: '' }))}><option value="">Choose class level</option>{CLASS_LEVELS.map(level => <option key={level}>{level}</option>)}</select></label><label>Class stream<select required disabled={!staffForm.classLevel} value={staffForm.classStream} onChange={e => setStaffForm(x => ({ ...x, classStream: e.target.value }))}><option value="">Choose class stream</option>{getStreamsForLevel(staffForm.classLevel).map(stream => <option key={stream}>{stream}</option>)}</select></label></>}
                 <div className="portal-action-row"><Button type="submit">Create account</Button><Button type="button" variant="secondary" onClick={() => setStaffModal(false)}>Cancel</Button></div>
@@ -624,17 +625,15 @@ export default function StaffDashboard() {
                       onChange={e => setResetModal(m => ({ ...m, phone: e.target.value }))}
                     />
                   </label>
-                  <label>
-                    New password
-                    <input
-                      required
-                      minLength="8"
-                      type="password"
-                      placeholder="At least 8 characters"
-                      value={resetModal.password}
-                      onChange={e => setResetModal(m => ({ ...m, password: e.target.value }))}
-                    />
-                  </label>
+                  <PasswordInput
+                    id="reset-staff-password"
+                    label="New password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={resetModal.password}
+                    onChange={e => setResetModal(m => ({ ...m, password: e.target.value }))}
+                  />
                   <div className="portal-action-row" style={{ marginTop: '1rem' }}>
                     <Button type="submit" disabled={resetModal.saving}>
                       {resetModal.saving ? 'Updating…' : 'Save & Sync Email'}
