@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { FiArrowRight, FiBookOpen, FiUsers, FiBriefcase } from 'react-icons/fi'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
-import logo from '../../assets/images/reliance-logo.jpg'
+import logo from '../../assets/images/reliance-senior-logo.png'
 const roles = [
   { name: 'Parent', to: '/portal/login', description: 'Stay connected to your learner’s progress, records and school updates.', icon: <FiUsers /> },
   { name: 'Student', to: '/portal/student-login', description: 'Find your school records and keep up with the latest updates.', icon: <FiBookOpen /> },

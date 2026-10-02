@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
-import logo from '../../assets/images/reliance-logo.jpg'
+import logo from '../../assets/images/reliance-senior-logo.png'
 import PortalSiteExitLink from './PortalSiteExitLink'
 
 export default function PortalHeader() {

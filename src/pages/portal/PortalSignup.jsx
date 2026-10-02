@@ -5,7 +5,7 @@ import PortalNotice from '../../components/portal/PortalNotice'
 import PhoneInput from '../../components/ui/PhoneInput'
 import PasswordInput from '../../components/ui/PasswordInput'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
-import logo from '../../assets/images/reliance-logo.jpg'
+import logo from '../../assets/images/reliance-senior-logo.png'
 import { isInternationalPhone, normalizePhone } from '../../../shared/portalAuth'
 import { invokeEdgeFunction } from '../../lib/edgeFunction'
 

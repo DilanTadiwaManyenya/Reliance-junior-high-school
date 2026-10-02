@@ -5,7 +5,7 @@ import { moreNavigation, primaryNavigation } from '../../data/navigation'
 import { siteContent } from '../../data/siteContent'
 import Button from '../ui/Button'
 import MobileMenu from './MobileMenu'
-import logo from '../../assets/images/reliance-logo.jpg'
+import logo from '../../assets/images/reliance-senior-logo.png'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
