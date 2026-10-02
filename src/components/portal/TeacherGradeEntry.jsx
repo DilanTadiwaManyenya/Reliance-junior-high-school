@@ -7,8 +7,10 @@ import { parseClassKey } from './ClassSelector'
 import { logActivity } from '../../lib/logActivity'
 
 const currentYear = new Date().getFullYear()
-const blankAcademic = { subject: '', percentage: '', term: '1', year: currentYear, comment: '' }
-const blankSports = { sport: '', participated: true, term: '1', year: currentYear, note: '' }
+// Zimbabwe school calendar: Term 1 Jan–Apr, Term 2 May–Aug, Term 3 Sep–Dec.
+const currentSchoolTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1))
+const blankAcademic = { subject: '', percentage: '', term: currentSchoolTerm(), year: currentYear, comment: '' }
+const blankSports = { sport: '', participated: true, term: currentSchoolTerm(), year: currentYear, note: '' }
 
 export default function TeacherGradeEntry() {
   const { supabase, user, profile } = useAuth()
@@ -35,7 +37,7 @@ export default function TeacherGradeEntry() {
     if (!data.term || !data.year || (tab === 'academic' && (!data.subject || !outcome)) || (tab === 'sports' && !data.sport)) return setError('Complete all required fields with a valid mark before saving.')
     setSaving(true)
     const payload = tab === 'academic'
-      ? { student_id: selected.id, subject: academic.subject, percentage: Number(academic.percentage), score: Number(academic.percentage), grade: outcome.grade, points: outcome.points, term: Number(academic.term), year: Number(academic.year), teachers_comment: academic.comment || null, comment: academic.comment || null }
+      ? { student_id: selected.id, subject: academic.subject, score: Number(academic.percentage), grade: outcome.grade, points: outcome.points, term: Number(academic.term), year: Number(academic.year), teachers_comment: academic.comment || null, comment: academic.comment || null }
       : { student_id: selected.id, sport: sports.sport, activity: sports.sport, participated: sports.participated, performance_note: sports.note || null, note: sports.note || null, term: Number(sports.term), year: Number(sports.year) }
     const { error: saveError } = await supabase.from(tab === 'academic' ? 'academic_records' : 'sports_records').upsert(payload, { onConflict: tab === 'academic' ? 'student_id,subject,term,year' : 'student_id,sport,term,year' })
     setSaving(false); if (saveError) return setError(saveError.message || 'The record could not be saved. Please try again.')
