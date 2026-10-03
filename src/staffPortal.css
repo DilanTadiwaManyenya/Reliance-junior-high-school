@@ -954,15 +954,20 @@
 .class-manager-danger { border-color:#e0a3a3 !important; background:#fff7f7 !important; color:#a6302f !important; }
 .class-manager-actions .btn:hover { filter:brightness(.98); box-shadow:0 2px 7px rgba(26,40,71,.1); }
 .class-manager-empty { padding:28px !important; text-align:center; }
-.class-manager-selected { display:grid; gap:14px; padding:18px; border:1px solid #cad7f0; border-radius:12px; background:linear-gradient(135deg,#f8faff,#fff); }
-.class-manager-context { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:0 2px; }
+.class-manager-selected { display:grid; gap:14px; padding:18px; border:1px solid #cad7f0; border-radius:14px; background:radial-gradient(circle at 92% 5%,rgba(63,107,216,.13),transparent 22%),linear-gradient(135deg,#f7faff,#fff 60%); box-shadow:0 8px 22px rgba(31,61,128,.06); }
+.class-manager-context { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:2px; }
 .class-manager-context p { margin:0; color:#5973b5; font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
 .class-manager-context h2 { margin:3px 0; color:#1b2a56; font-size:1.2rem; }
 .class-manager-context span { color:#64748b; font-size:.78rem; }
-.class-manager-detail-grid { display:grid; grid-template-columns:minmax(320px,.9fr) minmax(0,1.4fr); gap:16px; }
-.class-manager-enrol .class-manager-form { grid-template-columns:1fr 1fr; }
+.class-manager-insights { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.class-manager-insights div { display:grid; gap:1px; min-width:56px; padding:7px 10px; border:1px solid #dce5f5; border-radius:9px; background:rgba(255,255,255,.76); text-align:center; }
+.class-manager-insights strong { color:#1b2a56; font-size:.9rem; line-height:1; }.class-manager-insights span { color:#71809a; font-size:.62rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+.class-manager-detail-grid { display:grid; grid-template-columns:minmax(280px,.7fr) minmax(0,1.55fr); align-items:start; gap:16px; }
+.class-manager-enrol { align-self:start; position:sticky; top:18px; border-top:3px solid #5478d0; background:linear-gradient(180deg,#fff,#fbfcff); }
+.class-manager-enrol .class-manager-form { grid-template-columns:1fr; gap:10px; }
 .class-manager-enrol .class-manager-form-actions { grid-column:1 / -1; }
+.class-manager-enrol .class-manager-form-actions .btn { width:100%; }
 .class-manager-learners { min-width:0; }
 .class-history-retained { color:#64748b; font-size:.74rem; font-style:italic; }
-@media (max-width:1050px) { .class-manager-form { grid-template-columns:1fr 1fr; }.class-manager-form-actions { grid-column:1 / -1; }.class-manager-detail-grid { grid-template-columns:1fr; }.class-manager-actions { flex-wrap:wrap; } }
-@media (max-width:600px) { .class-manager-header { align-items:flex-start; }.class-manager-summary { min-width:60px; min-height:54px; }.class-manager-panel { border-radius:10px; }.class-manager-panel-heading { gap:10px; }.class-manager-form,.class-manager-enrol .class-manager-form { grid-template-columns:1fr; }.class-manager-form-actions { grid-column:auto; }.class-manager-context { align-items:flex-start; }.class-manager-context .btn { flex:0 0 auto; min-height:38px; }.class-manager-table { min-width:700px; }.class-manager-actions { flex-wrap:nowrap; }.class-manager-actions .btn { flex:0 0 auto; min-height:34px; }.class-manager-selected { padding:14px; } }
+@media (max-width:1050px) { .class-manager-form { grid-template-columns:1fr 1fr; }.class-manager-form-actions { grid-column:1 / -1; }.class-manager-detail-grid { grid-template-columns:1fr; }.class-manager-enrol { position:static; }.class-manager-enrol .class-manager-form { grid-template-columns:1fr 1fr; }.class-manager-actions { flex-wrap:wrap; } }
+@media (max-width:600px) { .class-manager-header { align-items:flex-start; }.class-manager-summary { min-width:60px; min-height:54px; }.class-manager-panel { border-radius:10px; }.class-manager-panel-heading { gap:10px; }.class-manager-form,.class-manager-enrol .class-manager-form { grid-template-columns:1fr; }.class-manager-form-actions { grid-column:auto; }.class-manager-context { align-items:flex-start; flex-wrap:wrap; }.class-manager-insights { order:3; width:100%; margin-left:0; }.class-manager-insights div { flex:1; }.class-manager-context .btn { flex:0 0 auto; min-height:38px; }.class-manager-table { min-width:700px; }.class-manager-actions { flex-wrap:nowrap; }.class-manager-actions .btn { flex:0 0 auto; min-height:34px; }.class-manager-selected { padding:14px; } }
