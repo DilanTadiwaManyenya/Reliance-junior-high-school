@@ -9,19 +9,22 @@ import { resolvePortalDestination } from '../../lib/portalRedirect'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 import { logActivity } from '../../lib/logActivity'
 
+const connectionError = error => !navigator.onLine || error?.status === 0 || /failed to fetch|network|network request failed|timeout|fetch failed/i.test(String(error?.message ?? error ?? ''))
+
 export default function PortalLogin({ staff = false }) {
   const { supabase, refreshProfile } = useAuth(); const navigate = useNavigate(); const [identifier, setIdentifier] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
   const submit = async (event) => {
     event.preventDefault(); setError(''); const normalized = normalizePhone(identifier)
-    if (!isInternationalPhone(normalized)) return setError('Phone number or password is incorrect.')
+    if (!navigator.onLine) return setError('You appear to be offline. Check your internet connection and try again.')
+    if (!isInternationalPhone(normalized)) return setError('Enter a valid international phone number, including the country code.')
     setSubmitting(true)
     const email = buildPortalEmail(normalized)
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) { setSubmitting(false); return setError('Phone number or password is incorrect.') }
+    if (authError) { setSubmitting(false); return setError(connectionError(authError) ? 'We could not connect to the portal. Check your internet connection and try again.' : 'Phone number or password is incorrect.') }
     const resolvedProfile = await refreshProfile(data.user)
     const { destination, error: profileError } = await resolvePortalDestination(supabase, data.user.id)
     if (!resolvedProfile) { await supabase.auth.signOut(); setSubmitting(false); return setError('We could not load your portal access. Please contact the school office.') }
-    if (profileError || !destination) { await supabase.auth.signOut(); setSubmitting(false); return setError(profileError ? 'We could not load your portal access. Please contact the school office.' : 'This account does not have a recognised portal role.') }
+    if (profileError || !destination) { await supabase.auth.signOut(); setSubmitting(false); return setError(connectionError(profileError) ? 'We could not connect to the portal. Check your internet connection and try again.' : profileError ? 'We could not load your portal access. Please contact the school office.' : 'This account does not have a recognised portal role.') }
     logActivity(supabase, data.user, resolvedProfile, { actionType: 'login', description: 'Signed in to the portal' })
     navigate(destination, { replace: true })
   }
