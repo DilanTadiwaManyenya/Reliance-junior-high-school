@@ -11,8 +11,9 @@ const money = value => `$${Number(value ?? 0).toFixed(2)}`
 const date = value => value ? new Intl.DateTimeFormat('en-ZW', { dateStyle: 'long' }).format(new Date(`${value}T00:00:00`)) : 'To be confirmed'
 const termValue = value => String(value ?? '').replace(/^term\s*/i, '')
 const recordYear = row => String(row.year ?? (row.created_at ? new Date(row.created_at).getFullYear() : new Date().getFullYear()))
+const awardLabels = { most_behaved: 'Most Behaved', smartest: 'Smartest', best_in_subject: 'Best in Subject', overall_best_student: 'Overall Best Student', sports_person: 'Sports Person' }
 
-export default function AcademicReportCard({ student, academics = [], attendance = [], fees = [], subjects = [], report = {}, reportFees = [], nextTermFee }) {
+export default function AcademicReportCard({ student, academics = [], attendance = [], behavior = [], sports = [], awards = [], fees = [], subjects = [], report = {}, reportFees = [], nextTermFee }) {
   const isSenior = /^Form\s/i.test(student.class_level || '')
   const schoolLogo = isSenior ? seniorLogo : juniorLogo
   const [selectedTerm, setSelectedTerm] = useState(() => termValue(academics[0]?.term ?? 3))
@@ -35,6 +36,10 @@ export default function AcademicReportCard({ student, academics = [], attendance
   const fail = rows.filter(row => row.score !== undefined && Number(row.score ?? row.percentage) < REPORT_CARD_PASS_MARK).length
   const reportForTerm = report[`${year}-${selectedTerm}`] || {}
   const configuredNextTermFee = reportFees.find(row => String(row.academic_year) === year && String(row.term) === selectedTerm && row.class_level === student.class_level)?.amount ?? nextTermFee
+  const attendanceForYear = attendance.filter(row => String(row.date || '').startsWith(year))
+  const attendanceSummary = attendanceForYear.reduce((summary, row) => ({ ...summary, total: summary.total + 1, present: summary.present + (row.status === 'present' || row.status === 'late' ? 1 : 0) }), { total: 0, present: 0 })
+  const attendanceRate = attendanceSummary.total ? Math.round((attendanceSummary.present / attendanceSummary.total) * 100) : null
+  const highlights = [...awards.filter(row => recordYear(row) === year && termValue(row.term) === selectedTerm).map(row => `${awardLabels[row.award_type] || row.award_type}${row.subject ? ` - ${row.subject}` : ''}`), ...sports.filter(row => recordYear(row) === year && termValue(row.term) === selectedTerm).map(row => `${row.activity}${row.achievement ? ` - ${row.achievement}` : ''}`)]
   const printReport = () => {
     // The browser's print dialog also provides "Save as PDF" / "Microsoft Print to PDF".
     // A useful document title makes the downloaded file easy for parents to identify.
@@ -52,6 +57,7 @@ export default function AcademicReportCard({ student, academics = [], attendance
     <div className="portal-table-wrap"><table className="portal-table report-table"><thead><tr><th>Learning Area</th><th>Term Mark</th><th>Exam Mark</th><th>Grade</th><th>Facilitator's Comment</th><th>Sign</th></tr></thead><tbody>{rows.map(row => { const termMark = row.term_mark ?? row.percentage ?? row.score; const examMark = row.exam_mark; const hasMark = termMark !== undefined && termMark !== null && termMark !== ''; const finalMark = hasMark && examMark !== undefined && examMark !== null ? (Number(termMark) * .3) + (Number(examMark) * .7) : termMark; const grade = row.grade || (hasMark ? calculateGrade(finalMark, student.class_level)?.grade : ''); const facilitatorComment = hasMark && grade ? getSubjectReportComment({ studentId: student.id, subject: row.subject, term: selectedTerm, year, grade }) : null; return <tr key={row.subject}><td>{row.subject}</td><td>{termMark ?? '—'}</td><td>{examMark ?? '—'}</td><td>{grade || '—'}</td><td className={`report-facilitator-comment${facilitatorComment?.language === 'shona' ? ' is-shona' : ''}`}>{facilitatorComment?.text}</td><td className="report-sign-cell" aria-label={`Facilitator signature for ${row.subject}`}></td></tr> })}</tbody></table></div>
     {!rows.length && <p className="muted">No enrolled subjects or academic records have been published for this term.</p>}
     <div className="report-summary"><div><b>Number of Subjects:</b> {rows.length}</div><div><b>Out Of:</b> {rows.length}</div><div><b>Pass / Fail:</b> {pass} / {fail}</div></div>
+    <section className="report-learner-summary"><h3>Learner profile &amp; term highlights</h3><div className="report-profile-grid"><span><b>Learner:</b> {student.full_name}</span><span><b>Attendance:</b> {attendanceRate == null ? 'No records' : `${attendanceRate}% (${attendanceSummary.present}/${attendanceSummary.total})`}</span><span><b>Behaviour:</b> {behavior.length ? `${behavior.filter(row => row.severity === 'positive').length} positive note${behavior.filter(row => row.severity === 'positive').length === 1 ? '' : 's'}` : 'No notes recorded'}</span></div><p className="report-highlights"><b>Awards &amp; sport:</b> {highlights.length ? highlights.join(' · ') : 'No awards or sport highlights recorded for this term.'}</p></section>
     <footer className="report-next"><span><b>Next Term Begins On:</b> {date(reportForTerm.next_term_begins_on)}</span><span><b>Next Term Fees:</b> {configuredNextTermFee != null ? money(configuredNextTermFee) : 'To be confirmed'}</span></footer>
     <div className="report-authenticity"><SchoolStamp /></div>
   </section>

@@ -24,6 +24,7 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
         { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
         { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: ['admin', 'accountant'].includes(profile?.active_role ?? profile?.role) },
         { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager },
+        { id: 'classes', label: 'Classes', iconKey: 'staff', show: profile?.role === 'admin' },
         { id: 'activity', label: 'Activity Log', iconKey: 'staff', show: manager }
       ].filter(i => i.show)
     }

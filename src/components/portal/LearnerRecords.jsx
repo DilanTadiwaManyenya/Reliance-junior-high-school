@@ -35,6 +35,7 @@ export default function LearnerRecords({ student, records, fees }) {
     { key: 'attendance', title: 'Attendance', summary: records.attendance.length ? `${records.attendance.length} attendance record${records.attendance.length === 1 ? '' : 's'} available.` : 'No attendance records have been shared yet.' },
     { key: 'behavior', title: 'Behaviour', summary: records.behavior.length ? `${records.behavior.length} behaviour note${records.behavior.length === 1 ? '' : 's'} available.` : 'No behaviour notes have been shared yet.' },
     { key: 'sports', title: 'Sport', summary: records.sports.length ? `${records.sports.length} sport record${records.sports.length === 1 ? '' : 's'} available.` : 'No sports records have been shared yet.' },
+    { key: 'awards', title: 'Awards', summary: records.awards?.length ? `${records.awards.length} award${records.awards.length === 1 ? '' : 's'} available.` : 'No awards have been shared yet.' },
     { key: 'insights', title: 'Attendance insights', summary: `This week: ${present}/${weekly.length} days present.` },
   ]
   return <div className="parent-record-launcher">{pages.map(page => <Link key={page.key} className={`parent-record-link${page.key === 'academics' && locked ? ' is-locked' : ''}`} to={`/portal/learner/${student.id}/${page.key}`}><Card className="parent-record-card"><span className="parent-record-kicker">View full record</span><h2>{page.title}</h2><p>{page.summary}</p><span className="parent-record-action">Open {page.title} <span aria-hidden="true">→</span></span></Card></Link>)}</div>
