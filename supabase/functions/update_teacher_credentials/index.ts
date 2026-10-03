@@ -43,7 +43,8 @@ Deno.serve(async request => {
     const { error: authError } = await admin.auth.admin.updateUserById(targetUserId, { email: updatedEmail, password })
     if (authError) throw authError
 
-    const { error: profileError } = await admin.from('profiles').update({ phone: nextPhone, must_update_credentials: false }).eq('id', targetUserId)
+    const adminSetPasswordForAnotherUser = caller?.role === 'admin' && targetUserId !== user.id
+    const { error: profileError } = await admin.from('profiles').update({ phone: nextPhone, must_update_credentials: false, must_change_password: adminSetPasswordForAnotherUser }).eq('id', targetUserId)
     if (profileError) throw profileError
 
     const { error: accountError } = await admin.from('staff_accounts').update({ phone_number: nextPhone }).eq('user_id', targetUserId)

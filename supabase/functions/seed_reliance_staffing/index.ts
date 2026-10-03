@@ -40,7 +40,7 @@ Deno.serve(async request => {
         const { data: created, error } = await admin.auth.admin.createUser({ email: `portal-${number.slice(1)}@portal.reliance.local`, password, email_confirm: true, user_metadata: { full_name: name, phone: number } })
         if (error || !created.user) throw error ?? new Error(`Could not create ${name}.`)
         id = created.user.id
-        await admin.from('profiles').update({ full_name: name, phone: number, role: 'teacher', must_update_credentials: true }).eq('id', id)
+        await admin.from('profiles').update({ full_name: name, phone: number, role: 'teacher', must_update_credentials: true, must_change_password: true }).eq('id', id)
         await admin.from('staff_accounts').insert({ user_id: id, role: 'teacher', phone_number: number, name, campus: 'senior', created_by: user.id })
         credentials.push({ name, temporary_phone: number, temporary_password: password })
       }

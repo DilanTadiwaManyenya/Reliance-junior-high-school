@@ -27,7 +27,7 @@ Deno.serve(async request => {
       const { error } = await admin.auth.admin.updateUserById(staffId, authUpdate); if (error) throw error
     }
     if (update.phone) { await admin.from('profiles').update({ phone: update.phone }).eq('id', staffId); await admin.from('staff_accounts').update({ phone_number: update.phone }).eq('user_id', staffId) }
-    if (password) await admin.from('profiles').update({ must_update_credentials: true }).eq('id', staffId)
+    if (password && staffId !== user.id) await admin.from('profiles').update({ must_change_password: true }).eq('id', staffId)
     return reply({ success: true })
   } catch (error) { return reply({ success: false, error: error instanceof Error ? error.message : 'Unable to update staff account.' }, 400) }
 })

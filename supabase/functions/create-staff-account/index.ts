@@ -48,7 +48,7 @@ Deno.serve(async request => {
     if (createError || !created.user) throw createError ?? new Error('Supabase could not create the login account.')
     createdUserId = created.user.id
 
-    const profile = await admin.from('profiles').update({ full_name: fullName, phone, role, class_level: role === 'teacher' ? classLevel : null, class_stream: role === 'teacher' ? classStream : null }).eq('id', createdUserId)
+    const profile = await admin.from('profiles').update({ full_name: fullName, phone, role, class_level: role === 'teacher' ? classLevel : null, class_stream: role === 'teacher' ? classStream : null, must_change_password: true }).eq('id', createdUserId)
     if (profile.error) throw profile.error
     const account = await admin.from('staff_accounts').upsert({ user_id: createdUserId, role, phone_number: phone, name: fullName, class_assigned: classAssigned, created_by: user.id }, { onConflict: 'user_id' })
     if (account.error) throw account.error

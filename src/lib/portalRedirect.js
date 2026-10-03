@@ -13,12 +13,12 @@ export const portalDestinationForRole = (role) => roleDestinations[String(role ?
 export const resolvePortalDestination = async (supabase, userId) => {
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('role, must_update_credentials')
+    .select('role, must_change_password')
     .eq('id', userId)
     .single()
 
-  if (profile?.role === 'teacher' && profile?.must_update_credentials) {
-    return { destination: '/portal/first-login', error }
+  if (profile?.must_change_password) {
+    return { destination: '/portal/set-password', error }
   }
 
   return { destination: portalDestinationForRole(profile?.role), error }

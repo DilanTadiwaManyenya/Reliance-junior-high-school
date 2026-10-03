@@ -24,6 +24,7 @@ import StaffPortalLayout from './components/portal/StaffPortalLayout'
 import PortalEntry from './pages/portal/PortalEntry'
 import Announcements from './pages/portal/Announcements'
 import TeacherFirstLogin from './pages/portal/TeacherFirstLogin'
+import SetNewPassword from './pages/portal/SetNewPassword'
 import RoleDashboard from './pages/portal/RoleDashboard.jsx'
 import ActivityLogger from './components/portal/ActivityLogger'
 function App() {
@@ -38,6 +39,7 @@ function App() {
     <Route path="/portal" element={<PortalEntry />} /><Route path="/portal/login" element={<PortalLogin />} /><Route path="/portal/staff-login" element={<PortalLogin staff />} /><Route path="/portal/signup" element={<PortalSignup />} />
     <Route path="/portal/forgot-password" element={<ForgotPassword />} />
     <Route element={<ProtectedRoute />}>
+      <Route path="/portal/set-password" element={<SetNewPassword />} />
       <Route path="/portal/first-login" element={<TeacherFirstLogin />} />
       <Route element={<PortalLayout />}>
         <Route path="/portal/dashboard" element={<ParentDashboard />} />
