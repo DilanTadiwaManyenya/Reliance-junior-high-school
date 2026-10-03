@@ -22,8 +22,6 @@ import ProtectedRoute from './components/portal/ProtectedRoute'
 import PortalLayout from './components/portal/PortalLayout'
 import StaffPortalLayout from './components/portal/StaffPortalLayout'
 import PortalEntry from './pages/portal/PortalEntry'
-import StudentSignup from './pages/portal/StudentSignup'
-import StudentDashboard from './pages/portal/StudentDashboard'
 import Announcements from './pages/portal/Announcements'
 import TeacherFirstLogin from './pages/portal/TeacherFirstLogin'
 import RoleDashboard from './pages/portal/RoleDashboard.jsx'
@@ -37,17 +35,13 @@ function App() {
     <Route path="/student-life" element={<StudentLife />} /><Route path="/facilities" element={<Facilities />} />
     <Route path="/staff" element={<Staff />} /><Route path="/gallery" element={<Gallery />} />
     <Route path="/news" element={<News />} /><Route path="/contact" element={<Contact />} />
-    <Route path="/portal" element={<PortalEntry />} /><Route path="/portal/login" element={<PortalLogin />} /><Route path="/portal/staff-login" element={<PortalLogin staff />} /><Route path="/portal/signup" element={<PortalSignup />} /><Route path="/portal/student-login" element={<PortalLogin student />} /><Route path="/portal/student-signup" element={<StudentSignup />} />
+    <Route path="/portal" element={<PortalEntry />} /><Route path="/portal/login" element={<PortalLogin />} /><Route path="/portal/staff-login" element={<PortalLogin staff />} /><Route path="/portal/signup" element={<PortalSignup />} />
     <Route path="/portal/forgot-password" element={<ForgotPassword />} />
     <Route element={<ProtectedRoute />}>
       <Route path="/portal/first-login" element={<TeacherFirstLogin />} />
       <Route element={<PortalLayout />}>
         <Route path="/portal/dashboard" element={<ParentDashboard />} />
         <Route path="/portal/learner/:studentId/:view" element={<ParentRecordPage />} />
-        <Route element={<ProtectedRoute roles={['student']} />}>
-          <Route path="/portal/student-dashboard" element={<StudentDashboard />} />
-          <Route path="/portal/staff/dashboard" element={<StudentDashboard />} />
-        </Route>
         <Route path="/portal/announcements" element={<Announcements />} />
       </Route>
       <Route element={<StaffPortalLayout />}>
