@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom'
 import Card from '../../components/ui/Card'
 import AcademicReportCard from '../../components/portal/AcademicReportCard'
 import PortalNotice from '../../components/portal/PortalNotice'
-import { DisabledLearner } from '../../components/portal/LearnerRecords'
 import { useAuth } from '../../context/useAuth'
 import { getSubjectsByGradeStream } from '../../utils/CurriculumData'
 
@@ -40,8 +39,7 @@ export default function ParentRecordPage() {
   }, [studentId, supabase, user, view])
   if (state.loading) return <section className="section white"><div className="container portal-content">Loading learner record…</div></section>
   if (!state.student) return <section className="section white"><div className="container portal-content"><PortalNotice tone="error">{state.error}</PortalNotice></div></section>
-  if (state.student.status !== 'active') return <DisabledLearner reason={state.student.inactive_reason} />
-  return <section className="section white"><div className="container portal-content parent-record-page"><Link className="parent-page-back" to="/portal/dashboard">← Back to dashboard</Link><p className="eyebrow">{state.student.full_name} · {label[view] ?? 'Learner record'}</p><h1>{label[view] ?? 'Learner record'}</h1>{state.error && <PortalNotice tone="error">{state.error}</PortalNotice>}
+  return <section className="section white"><div className="container portal-content parent-record-page"><Link className="parent-page-back" to="/portal/dashboard">← Back to dashboard</Link><p className="eyebrow">{state.student.full_name} · {label[view] ?? 'Learner record'}</p><h1>{label[view] ?? 'Learner record'}</h1>{state.student.status !== 'active' && <PortalNotice tone="error"><strong>This learner is no longer enrolled.</strong> This page contains their retained school history.</PortalNotice>}{state.error && <PortalNotice tone="error">{state.error}</PortalNotice>}
     {view === 'academics' && <AcademicReportCard student={state.student} academics={state.records} attendance={state.attendance} behavior={state.behavior} sports={state.sports} awards={state.awards} fees={state.fees} subjects={getSubjectsByGradeStream(state.student.class_level, state.student.class_stream)} report={Object.fromEntries(state.termSettings.map(row => [`${row.academic_year}-${row.term}`, row]))} reportFees={state.reportFees} />}
     {view === 'attendance' && <Card className="parent-full-card">{state.records.length ? <div className="portal-list">{state.records.map(row => <p key={row.id}><strong>{recordDate(row.date)}</strong> <span className={`portal-status ${row.status}`}>{row.status}</span>{row.note && <><br /><span className="muted">{row.note}</span></>}</p>)}</div> : <p className="muted">No attendance records have been shared yet.</p>}</Card>}
     {view === 'behavior' && <Card className="parent-full-card">{state.records.length ? <div className="portal-list">{state.records.map(row => <p key={row.id}><span className={`portal-status ${row.severity}`}>{row.severity}</span> <strong>{row.category}</strong><br /><span className="muted">{row.description}</span></p>)}</div> : <p className="muted">No behaviour notes have been shared yet.</p>}</Card>}

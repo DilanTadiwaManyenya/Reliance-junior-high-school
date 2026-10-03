@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import PortalNotice from '../../components/portal/PortalNotice'
-import LearnerRecords, { DisabledLearner } from '../../components/portal/LearnerRecords'
+import LearnerRecords from '../../components/portal/LearnerRecords'
 import { useAuth } from '../../context/useAuth'
 import { siteContent } from '../../data/siteContent'
 
@@ -13,6 +13,5 @@ export default function ParentDashboard() {
   const student = students.find(row => row.id === selectedId)
   if (loading) return <section className="section white"><div className="container">Loading learner records…</div></section>
   if (!students.length) return <section className="section white"><div className="container portal-content"><div className="portal-empty-state"><p className="eyebrow">Parent dashboard</p><h1>No learner connection found</h1><p className="muted">We could not find a verified learner connection for this account.</p><p>Contact the school office on <a href={`tel:${siteContent.contact.phone.replaceAll(' ', '')}`}>{siteContent.contact.phone}</a>.</p></div></div></section>
-  if (student?.status !== 'active') return <DisabledLearner reason={student?.inactive_reason} />
-  return <section className="section white"><div className="container portal-content"><p className="eyebrow">Parent dashboard</p><h1>{student?.full_name}</h1>{students.length > 1 && <label className="portal-switcher">Viewing learner<select value={selectedId} onChange={e => setSelectedId(e.target.value)}>{students.map(row => <option key={row.id} value={row.id}>{row.full_name} · {row.class_level} {row.class_stream}</option>)}</select></label>}{error && <PortalNotice tone="error">{error}</PortalNotice>}<LearnerRecords student={student} records={records} fees={fees} /></div></section>
+  return <section className="section white"><div className="container portal-content"><p className="eyebrow">Parent dashboard</p><h1>{student?.full_name}</h1>{students.length > 1 && <label className="portal-switcher">Viewing learner<select value={selectedId} onChange={e => setSelectedId(e.target.value)}>{students.map(row => <option key={row.id} value={row.id}>{row.full_name} · {row.class_level} {row.class_stream}</option>)}</select></label>}{student?.status !== 'active' && <PortalNotice tone="error"><strong>This learner is no longer enrolled at Reliance Learning Centre.</strong> You can still view their historical academic, attendance, behaviour, sport, and award records below.</PortalNotice>}{error && <PortalNotice tone="error">{error}</PortalNotice>}<LearnerRecords student={student} records={records} fees={fees} /></div></section>
 }
