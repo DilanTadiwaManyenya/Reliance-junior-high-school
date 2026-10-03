@@ -17,6 +17,7 @@ import SlideOver from '../../components/ui/SlideOver';
 import ActivityLog from '../../components/portal/ActivityLog'
 import ClassManager from '../../components/portal/ClassManager'
 import { logActivity } from '../../lib/logActivity'
+import { nextAdmissionNumber } from '../../lib/admissionNumber'
 
 const records     = { attendance: 'attendance', academic: 'academic_records', behavior: 'behavior_notes', sports: 'sports_records', awards: 'student_awards' }
 const today       = () => new Date().toISOString().slice(0, 10)
@@ -304,7 +305,7 @@ export default function StaffDashboard() {
       if (!isAssigned) return showError('You can only add learners to your assigned classes.')
     }
 
-    const row = { ...student, enrolled_year: Number(student.enrolled_year), class_stream: student.class_stream || null, inactive_reason: student.status === 'inactive' ? student.inactive_reason : null }
+    const row = { ...student, admission_number: editingId ? student.admission_number : nextAdmissionNumber(students), enrolled_year: Number(student.enrolled_year), class_stream: student.class_stream || null, inactive_reason: student.status === 'inactive' ? student.inactive_reason : null }
     const request = editingId
       ? supabase.from('students').update(row).eq('id', editingId)
       : supabase.from('students').insert(row)
@@ -510,7 +511,7 @@ export default function StaffDashboard() {
                 <h2>{editingId ? 'Edit learner' : 'Add learner'}</h2>
                 <form className="form portal-form" onSubmit={saveStudent}>
                   <label>Full name<input required value={student.full_name} onChange={e => setStudent(v => ({ ...v, full_name: e.target.value }))} /></label>
-                  <label>Admission number<input required value={student.admission_number} onChange={e => setStudent(v => ({ ...v, admission_number: e.target.value }))} /></label>
+                  <label>Admission number<input required readOnly={!editingId} value={editingId ? student.admission_number : nextAdmissionNumber(students)} placeholder="00126" onChange={e => setStudent(v => ({ ...v, admission_number: e.target.value }))} /><small>{editingId ? 'Existing admission number.' : 'Generated automatically in 5-digit format.'}</small></label>
                   <label>Date of birth<input required type="date" value={student.date_of_birth} onChange={e => setStudent(v => ({ ...v, date_of_birth: e.target.value }))} /></label>
                   <label>Class level
                     <select required value={student.class_level} onChange={e => setStudent(v => ({ ...v, class_level: e.target.value, class_stream: '' }))}>
