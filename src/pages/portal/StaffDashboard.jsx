@@ -437,7 +437,7 @@ export default function StaffDashboard() {
 
       {/* Roster */}
       {section === 'roster' && (
-        <div className="dash-section">
+        <div className="dash-section record-entry-page">
           <div className="dash-page-header">
             <div>
               <h1 className="dash-page-title">Learner Roster</h1>
@@ -548,18 +548,18 @@ export default function StaffDashboard() {
             </div>
           </div>
 
-          <div className="portal-workspace">
-            <Card>
-              <h2>Record data</h2>
+          <div className="portal-workspace record-entry-workspace">
+            <Card className="record-entry-card">
+              <div className="record-entry-heading"><div><p className="record-entry-kicker">Step 1</p><h2>Choose learner &amp; record type</h2><p>Find a learner first, then select the type of school record to add.</p></div>{selected && <div className="record-entry-selected"><strong>{selected.full_name}</strong><span>{selected.admission_number} · {selected.class_level} {selected.class_stream || ''}</span></div>}</div>
               <StudentSelector students={filteredStudents} value={selectedId} onChange={setSelectedId} query={query} onQueryChange={setQuery} loading={loading} />
-              <div className="portal-tabs portal-entry-tabs">
+              <div className="portal-tabs portal-entry-tabs record-entry-tabs" aria-label="Record type">
                 {Object.keys(records).map(key => (
                   <Button key={key} variant={tab === key ? 'primary' : 'secondary'} onClick={() => setTab(key)}>
                     {key === 'behavior' ? 'Behaviour' : key[0].toUpperCase() + key.slice(1)}
                   </Button>
                 ))}
               </div>
-              <form className="form portal-form" onSubmit={saveRecord}>
+              <form className="form portal-form record-entry-form" onSubmit={saveRecord}>
                 {tab === 'attendance' && <>
                   <label>Date<input required type="date" value={forms.attendance.date} onChange={update('attendance', 'date')} /></label>
                   <label>Status<select value={forms.attendance.status} onChange={update('attendance', 'status')}><option>present</option><option>late</option><option>absent</option></select></label>
@@ -586,15 +586,15 @@ export default function StaffDashboard() {
                   {forms.awards.award_type === 'best_in_subject' && <label>Subject<input required value={forms.awards.subject} onChange={update('awards', 'subject')} /></label>}
                   <label>Term<input required value={forms.awards.term} onChange={update('awards', 'term')} /></label><label>Year<input required type="number" value={forms.awards.academic_year} onChange={update('awards', 'academic_year')} /></label><label>Note<textarea value={forms.awards.note} onChange={update('awards', 'note')} /></label>
                 </>}
-                <Button type="submit">Save record</Button>
+                <div className="record-entry-save"><span>{selected ? `Saving to ${selected.full_name}'s record` : 'Choose a learner to enable saving'}</span><Button type="submit" disabled={!selected}>Save {tab === 'behavior' ? 'behaviour' : tab} record</Button></div>
               </form>
             </Card>
 
-            <Card>
-              <h2>Recent entries</h2>
+            <Card className="record-entry-recent">
+              <div className="record-entry-heading"><div><p className="record-entry-kicker">Activity</p><h2>Recent entries</h2><p>{selected ? `Latest records for ${selected.full_name}.` : 'Choose a learner to reveal their recent records.'}</p></div></div>
               {selected
                 ? recent.map(row => (
-                  <p key={row.id}>{row.date || row.subject || row.category || row.activity} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {row.status || row.grade || row.severity || row.term}</p>
+                  <div className="record-entry-row" key={row.id}><strong>{row.date || row.subject || row.category || row.activity}</strong><span>{row.status || row.grade || row.severity || row.term}</span></div>
                 ))
                 : <p className="muted">Select a learner to view entries.</p>
               }
