@@ -11,6 +11,7 @@ const label = { academics: 'Academic report book', attendance: 'Attendance', beh
 const awardLabels = { most_behaved: 'Most Behaved', smartest: 'Smartest', best_in_subject: 'Best in Subject', overall_best_student: 'Overall Best Student', sports_person: 'Sports Person' }
 const recordDate = value => new Intl.DateTimeFormat('en-ZW', { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`))
 const termLabel = value => String(value).toLowerCase().startsWith('term') ? String(value) : `Term ${value}`
+const optionalAwardsError = error => ['PGRST205', '42P01'].includes(error?.code)
 
 export default function ParentRecordPage() {
   const { studentId, view } = useParams()
@@ -32,7 +33,8 @@ export default function ParentRecordPage() {
         view === 'academics' ? supabase.from('term_settings').select('*') : Promise.resolve({ data: [] }),
         view === 'academics' ? supabase.from('report_term_fee_settings').select('academic_year, term, class_level, amount') : Promise.resolve({ data: [] }),
       ])
-      if (active) setState({ loading: false, error: recordResult.error?.message || feeResult.error?.message || attendanceResult.error?.message || behaviorResult.error?.message || sportsResult.error?.message || awardsResult.error?.message || termSettingsResult.error?.message || reportFeesResult.error?.message || '', student: link.student, records: recordResult.data ?? [], attendance: attendanceResult.data ?? [], behavior: behaviorResult.data ?? [], sports: sportsResult.data ?? [], awards: awardsResult.data ?? [], fees: feeResult.data ?? [], termSettings: termSettingsResult.data ?? [], reportFees: reportFeesResult.data ?? [] })
+      const recordError = view === 'awards' && optionalAwardsError(recordResult.error) ? null : recordResult.error
+      if (active) setState({ loading: false, error: recordError?.message || feeResult.error?.message || attendanceResult.error?.message || behaviorResult.error?.message || sportsResult.error?.message || (!optionalAwardsError(awardsResult.error) && awardsResult.error?.message) || termSettingsResult.error?.message || reportFeesResult.error?.message || '', student: link.student, records: recordError ? [] : recordResult.data ?? [], attendance: attendanceResult.data ?? [], behavior: behaviorResult.data ?? [], sports: sportsResult.data ?? [], awards: awardsResult.data ?? [], fees: feeResult.data ?? [], termSettings: termSettingsResult.data ?? [], reportFees: reportFeesResult.data ?? [] })
     }
     load(); return () => { active = false }
   }, [studentId, supabase, user, view])
