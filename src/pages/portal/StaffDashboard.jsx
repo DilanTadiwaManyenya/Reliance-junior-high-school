@@ -540,7 +540,7 @@ export default function StaffDashboard() {
       {/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Data Entry ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â */}
       {section === 'entry' && (
         profile?.role === 'teacher' ? <TeacherGradeEntry /> :
-        <div className="dash-section">
+        <div className="dash-section record-entry-page">
           <div className="dash-page-header">
             <div>
               <h1 className="dash-page-title">Data Entry</h1>
@@ -605,7 +605,7 @@ export default function StaffDashboard() {
 
       {/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Staff ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â */}
       {section === 'staff' && manager && (
-        <div className="dash-section">
+        <div className="dash-section staff-management-page">
           <div className="dash-page-header">
             <div>
               <h1 className="dash-page-title">Staff Management</h1>
@@ -614,7 +614,7 @@ export default function StaffDashboard() {
             </div>
           </div>
 
-          <div className="portal-workspace">
+          <div className="portal-workspace staff-management-workspace">
             {isAdmin && <SlideOver open={staffModal} onClose={() => setStaffModal(false)} title="Add staff member" description="Create a secure portal account and set the appropriate role.">
               <form className="form portal-form" onSubmit={createStaff}>
                 <label>Full name<input required value={staffForm.fullName} onChange={e => setStaffForm(x => ({ ...x, fullName: e.target.value }))} /></label>
@@ -662,10 +662,11 @@ export default function StaffDashboard() {
               </Card>
             )}
 
-            <Card>
-              <div className="staff-directory-controls"><h2>Existing staff</h2><label className="portal-inline-search">Search staff<input value={staffQuery} onChange={e => setStaffQuery(e.target.value)} placeholder="Name, phone or role" /></label></div>
+            <Card className="staff-directory-card">
+              <div className="staff-directory-hero"><div><p className="staff-directory-kicker">People directory</p><h2>Existing staff</h2><p>View roles, teaching allocations and account support actions in one place.</p></div><div className="staff-directory-stats"><div><strong>{staff.length}</strong><span>Total staff</span></div><div><strong>{staff.filter(row => row.role === 'teacher').length}</strong><span>Teachers</span></div></div></div>
+              <div className="staff-directory-controls"><span className="staff-directory-results">{visibleStaff.length} matching staff</span><label className="portal-inline-search">Search staff<input value={staffQuery} onChange={e => setStaffQuery(e.target.value)} placeholder="Search name, phone or role" /></label></div>
               <div className="portal-table-wrap">
-                <table className="portal-table">
+                <table className="portal-table staff-directory-table">
                   <thead>
                     <tr>
                       <th>Name</th>
@@ -678,13 +679,13 @@ export default function StaffDashboard() {
                   <tbody>
                     {visibleStaff.map(row => (
                       <tr key={row.id}>
-                        <td>{row.full_name}</td>
-                        <td>{row.phone}</td>
-                        <td>{row.role}</td>
-                        <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => `${a.class_level} ${a.class_stream || ''}`).join(', ') || [row.class_level, row.class_stream].filter(Boolean).join(' ') || '-') : ''}</td>
+                        <td><div className="staff-directory-person"><span>{row.full_name?.split(/\s+/).filter(Boolean).slice(0, 2).map(name => name[0]).join('').toUpperCase() || '?'}</span><strong>{row.full_name}</strong></div></td>
+                        <td className="staff-directory-phone">{row.phone || '—'}</td>
+                        <td><span className={`staff-role-pill is-${row.role}`}>{row.role}</span></td>
+                        <td><span className="staff-class-list">{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => `${a.class_level} ${a.class_stream || ''}`).join(', ') || [row.class_level, row.class_stream].filter(Boolean).join(' ') || 'No class allocation') : '—'}</span></td>
                         {isAdmin && (
                           <td>
-                            <Button variant="secondary" onClick={() => openResetModal(row)}>Reset Credentials</Button>
+                            <Button className="staff-reset-button" variant="secondary" onClick={() => openResetModal(row)}>Account support</Button>
                           </td>
                         )}
                       </tr>
