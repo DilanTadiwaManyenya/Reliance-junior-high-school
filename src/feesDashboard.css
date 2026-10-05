@@ -819,6 +819,19 @@
   cursor: pointer;
   white-space: nowrap;
 }
+.fee-profile-button {
+  border: 0;
+  background: transparent;
+  color: #3b5ccc;
+  font: 700 0.74rem var(--font-ui, inherit);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fee-profile-button:hover,
+.fee-profile-button:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
 .fee-collect-button:hover {
   background: #102047;
 }

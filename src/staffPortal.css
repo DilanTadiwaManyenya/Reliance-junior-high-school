@@ -2948,6 +2948,24 @@
   margin: 0 auto;
   padding: 28px clamp(16px, 3vw, 34px);
 }
+.learner-profile-fees {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.learner-profile-fees .card {
+  padding: 18px;
+}
+.learner-profile-fees h2 {
+  margin: 0 0 10px;
+  color: #172554;
+  font-size: 1rem;
+}
+@media (max-width: 760px) {
+  .learner-profile-fees {
+    grid-template-columns: 1fr;
+  }
+}
 .learner-profile-back {
   margin-bottom: 16px;
   padding: 8px 11px;

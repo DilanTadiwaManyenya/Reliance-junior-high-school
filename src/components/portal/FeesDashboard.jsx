@@ -58,6 +58,15 @@ const statusMeta = {
 function PaymentModal({ student, onClose, onSave, saving }) {
   const [totalFees, setTotalFees] = useState(String(student.totalFees));
   const [amountPaid, setAmountPaid] = useState(String(student.amountPaid));
+  const [paidOn, setPaidOn] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentPlan, setPaymentPlan] = useState(
+    Number(student.amountPaid) > 0 &&
+      Number(student.amountPaid) < Number(student.totalFees)
+      ? "instalment"
+      : "once_off",
+  );
+  const [referenceNumber, setReferenceNumber] = useState("");
   const balance = Math.max(0, Number(totalFees) - Number(amountPaid));
 
   return (
@@ -72,7 +81,14 @@ function PaymentModal({ student, onClose, onSave, saving }) {
         className="fee-modal"
         onSubmit={(event) => {
           event.preventDefault();
-          onSave(student, { total_fees: totalFees, amount_paid: amountPaid });
+          onSave(student, {
+            total_fees: totalFees,
+            amount_paid: amountPaid,
+            paid_on: paidOn,
+            payment_method: paymentMethod,
+            payment_plan: paymentPlan,
+            reference_number: referenceNumber,
+          });
         }}
       >
         <div className="fee-modal-head">
@@ -113,6 +129,46 @@ function PaymentModal({ student, onClose, onSave, saving }) {
               value={amountPaid}
               onChange={(event) => setAmountPaid(event.target.value)}
               required
+            />
+          </label>
+          <label>
+            Payment date
+            <input
+              type="date"
+              value={paidOn}
+              onChange={(event) => setPaidOn(event.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Payment method
+            <select
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value)}
+            >
+              <option value="cash">Cash</option>
+              <option value="ecocash">EcoCash</option>
+              <option value="swipe">Swipe / card</option>
+              <option value="transfer">Bank transfer</option>
+              <option value="bank_deposit">Bank deposit</option>
+            </select>
+          </label>
+          <label>
+            Payment plan
+            <select
+              value={paymentPlan}
+              onChange={(event) => setPaymentPlan(event.target.value)}
+            >
+              <option value="once_off">Once-off payment</option>
+              <option value="instalment">Instalment plan</option>
+            </select>
+          </label>
+          <label>
+            Receipt / reference <span className="field-optional">Optional</span>
+            <input
+              value={referenceNumber}
+              onChange={(event) => setReferenceNumber(event.target.value)}
+              placeholder="Receipt number or reference"
             />
           </label>
         </div>
@@ -449,6 +505,13 @@ function MasterTable({
                           >
                             <LuCreditCard size={15} /> Collect payment
                           </button>
+                          <button
+                            type="button"
+                            className="fee-profile-button"
+                            onClick={() => onOpenStudent?.(student)}
+                          >
+                            View profile
+                          </button>
                           <div className="fee-action-menu">
                             <button
                               type="button"
@@ -671,23 +734,53 @@ export default function FeesDashboard({
   const savePayment = async (student, form) => {
     setSaving(true);
     setError("");
-    const { error: saveError } = await supabase.from("fee_balances").upsert(
-      {
-        student_id: student.id,
-        term,
-        academic_year: year,
-        total_fees: Number(form.total_fees),
-        amount_paid: Number(form.amount_paid),
-        updated_by: user?.id,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "student_id,term,academic_year" },
-    );
-    setSaving(false);
+    const nextAmountPaid = Number(form.amount_paid);
+    const previousAmountPaid = Number(student.amountPaid);
+    const { data: balanceRecord, error: saveError } = await supabase
+      .from("fee_balances")
+      .upsert(
+        {
+          student_id: student.id,
+          term,
+          academic_year: year,
+          total_fees: Number(form.total_fees),
+          amount_paid: nextAmountPaid,
+          payment_date: form.paid_on,
+          updated_by: user?.id,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "student_id,term,academic_year" },
+      )
+      .select("id")
+      .single();
     if (saveError) {
+      setSaving(false);
       setError(saveError.message);
       return;
     }
+    const received = nextAmountPaid - previousAmountPaid;
+    if (received > 0) {
+      const { error: paymentError } = await supabase
+        .from("fee_payments")
+        .insert({
+          fee_balance_id: balanceRecord.id,
+          student_id: student.id,
+          term,
+          academic_year: year,
+          amount: received,
+          paid_on: form.paid_on,
+          payment_method: form.payment_method,
+          payment_plan: form.payment_plan,
+          reference_number: form.reference_number || null,
+          received_by: user?.id,
+        });
+      if (paymentError) {
+        setSaving(false);
+        setError(paymentError.message);
+        return;
+      }
+    }
+    setSaving(false);
     logActivity(supabase, user, profile, {
       actionType: "update",
       description: `Updated ${term} fees for ${student.full_name}`,

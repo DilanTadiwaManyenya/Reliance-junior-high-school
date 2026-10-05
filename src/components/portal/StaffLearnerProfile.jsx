@@ -36,6 +36,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
     behavior: [],
     awards: [],
     fees: [],
+    payments: [],
     termSettings: [],
     reportFees: [],
   });
@@ -74,6 +75,11 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
           .select("*")
           .eq("student_id", student.id)
           .order("academic_year", { ascending: false }),
+        supabase
+          .from("fee_payments")
+          .select("*")
+          .eq("student_id", student.id)
+          .order("paid_on", { ascending: false }),
         supabase.from("term_settings").select("*"),
         supabase
           .from("report_term_fee_settings")
@@ -87,6 +93,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
         behavior,
         awards,
         fees,
+        payments,
         termSettings,
         reportFees,
       ] = results;
@@ -101,6 +108,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
           sports.error?.message ||
           behavior.error?.message ||
           fees.error?.message ||
+          payments.error?.message ||
           termSettings.error?.message ||
           reportFees.error?.message ||
           (!optionalAwardsError && awards.error?.message) ||
@@ -111,6 +119,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
         behavior: behavior.data || [],
         awards: awards.data || [],
         fees: fees.data || [],
+        payments: payments.data || [],
         termSettings: termSettings.data || [],
         reportFees: reportFees.data || [],
       });
@@ -350,26 +359,67 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
           ),
           "No behaviour records have been entered yet.",
         )}
-      {activeTab === "Fees" &&
-        latest(
-          state.fees,
-          (row) => (
-            <p key={row.id}>
-              <strong>
-                {term(row.term)} {row.academic_year}
-              </strong>
-              <br />
-              <span className="muted">
-                Fee: {money(row.total_fees)} · Paid: {money(row.amount_paid)} ·
-                Balance:{" "}
-                {money(
-                  Math.max(0, Number(row.total_fees) - Number(row.amount_paid)),
-                )}
-              </span>
-            </p>
-          ),
-          "No fee records have been entered yet.",
-        )}
+      {activeTab === "Fees" && (
+        <section className="learner-profile-fees">
+          <Card>
+            <h2>Fee plan and balances</h2>
+            {state.fees.length ? (
+              <div className="portal-list">
+                {state.fees.map((row) => (
+                  <p key={row.id}>
+                    <strong>
+                      {term(row.term)} {row.academic_year}
+                    </strong>
+                    <br />
+                    <span className="muted">
+                      Fee: {money(row.total_fees)} · Paid:{" "}
+                      {money(row.amount_paid)} · Balance:{" "}
+                      {money(
+                        Math.max(
+                          0,
+                          Number(row.total_fees) - Number(row.amount_paid),
+                        ),
+                      )}
+                    </span>
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">No fee records have been entered yet.</p>
+            )}
+          </Card>
+          <Card>
+            <h2>Payment timeline</h2>
+            {state.payments.length ? (
+              <div className="portal-list">
+                {state.payments.map((row) => (
+                  <p key={row.id}>
+                    <strong>
+                      {money(row.amount)} · {date(row.paid_on)}
+                    </strong>
+                    <br />
+                    <span className="muted">
+                      {term(row.term)} {row.academic_year} ·{" "}
+                      {row.payment_method.replace("_", " ")} ·{" "}
+                      {row.payment_plan === "instalment"
+                        ? "Instalment payment"
+                        : "Once-off payment"}
+                      {row.reference_number
+                        ? ` · Ref: ${row.reference_number}`
+                        : ""}
+                    </span>
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">
+                No itemised payments have been recorded yet. Older balances show
+                their latest payment date only.
+              </p>
+            )}
+          </Card>
+        </section>
+      )}
     </div>
   );
 }
