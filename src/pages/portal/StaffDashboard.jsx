@@ -24,6 +24,7 @@ import SlideOver from "../../components/ui/SlideOver";
 import ActivityLog from "../../components/portal/ActivityLog";
 import ClassManager from "../../components/portal/ClassManager";
 import TeacherAttendanceHistory from "../../components/portal/TeacherAttendanceHistory";
+import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
 import { logActivity } from "../../lib/logActivity";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
 
@@ -535,6 +536,7 @@ export default function StaffDashboard() {
   const manager = ["admin", "principal"].includes(profile?.role);
   const isAdmin = profile?.role === "admin";
   const accountant = profile?.role === "accountant";
+  const canViewLearnerProfile = manager || accountant;
 
   const [students, setStudents] = useState([]);
   const [query, setQuery] = useState("");
@@ -570,6 +572,7 @@ export default function StaffDashboard() {
   const [savingAttendance, setSavingAttendance] = useState({});
   const [schoolClasses, setSchoolClasses] = useState([]);
   const [attendanceStudent, setAttendanceStudent] = useState(null);
+  const [profileStudent, setProfileStudent] = useState(null);
 
   const selected = students.find((row) => row.id === selectedId);
   const visibleStaff = staff.filter((row) =>
@@ -973,6 +976,15 @@ export default function StaffDashboard() {
       </div>
     );
 
+  if (profileStudent)
+    return (
+      <StaffLearnerProfile
+        supabase={supabase}
+        student={profileStudent}
+        onBack={() => setProfileStudent(null)}
+      />
+    );
+
   /* Accountant: show fees dashboard */
   if (accountant)
     return (
@@ -994,6 +1006,7 @@ export default function StaffDashboard() {
           supabase={supabase}
           user={user}
           profile={profile}
+          onOpenStudent={setProfileStudent}
         />
       </div>
     );
@@ -1101,6 +1114,15 @@ export default function StaffDashboard() {
                                 className="roster-learner-link"
                                 onClick={() => setAttendanceStudent(row)}
                                 aria-label={`View attendance for ${row.full_name}`}
+                              >
+                                {row.full_name}
+                              </button>
+                            ) : canViewLearnerProfile ? (
+                              <button
+                                type="button"
+                                className="roster-learner-link"
+                                onClick={() => setProfileStudent(row)}
+                                aria-label={`Open profile for ${row.full_name}`}
                               >
                                 {row.full_name}
                               </button>

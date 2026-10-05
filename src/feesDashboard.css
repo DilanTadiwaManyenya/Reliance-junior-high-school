@@ -302,6 +302,22 @@
   gap: 10px;
   color: #101828;
 }
+.fee-student-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #101828;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.fee-student-link:hover,
+.fee-student-link:focus-visible {
+  color: #3b5ccc;
+  text-decoration: underline;
+  outline: none;
+}
 .fee-avatar {
   display: grid;
   place-items: center;

@@ -212,6 +212,7 @@ function MasterTable({
   onEdit,
   onReminder,
   onHistory,
+  onOpenStudent,
   onExport,
   readOnly,
   quickStatus,
@@ -392,7 +393,13 @@ function MasterTable({
                         <span className="fee-avatar">
                           {initials(student.full_name)}
                         </span>
-                        <strong>{student.full_name}</strong>
+                        <button
+                          type="button"
+                          className="fee-student-link"
+                          onClick={() => onOpenStudent?.(student)}
+                        >
+                          {student.full_name}
+                        </button>
                       </div>
                     </td>
                     <td className="fee-mono">
@@ -550,6 +557,7 @@ export default function FeesDashboard({
   supabase,
   user,
   profile,
+  onOpenStudent,
 }) {
   const [feeRecords, setFeeRecords] = useState([]);
   const [feeMapping, setFeeMapping] = useState([]);
@@ -890,6 +898,7 @@ export default function FeesDashboard({
           onHistory={(student) =>
             setToast(`Payment history opened for ${student.full_name}`)
           }
+          onOpenStudent={onOpenStudent}
           onExport={exportReport}
           readOnly={readOnly}
           quickStatus={quickStatus}
