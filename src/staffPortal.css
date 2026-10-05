@@ -2961,6 +2961,9 @@
   color: #172554;
   font-size: 1rem;
 }
+.learner-profile-credit {
+  color: #087f5b !important;
+}
 @media (max-width: 760px) {
   .learner-profile-fees {
     grid-template-columns: 1fr;

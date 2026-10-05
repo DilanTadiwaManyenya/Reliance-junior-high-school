@@ -154,6 +154,12 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
         total + Math.max(0, Number(row.total_fees) - Number(row.amount_paid)),
       0,
     );
+    const credit = state.fees.reduce(
+      (total, row) =>
+        total +
+        Math.abs(Math.min(0, Number(row.total_fees) - Number(row.amount_paid))),
+      0,
+    );
     return {
       present,
       absent,
@@ -162,6 +168,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
       passed,
       subjectCount: marks.length,
       owing,
+      credit,
     };
   }, [state]);
 
@@ -256,8 +263,16 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
               </small>
             </Card>
             <Card>
-              <span>Outstanding fees</span>
-              <strong>{money(summary.owing)}</strong>
+              <span>
+                {summary.credit ? "Overpayment credit" : "Outstanding fees"}
+              </span>
+              <strong
+                className={summary.credit ? "learner-profile-credit" : ""}
+              >
+                {summary.credit
+                  ? `-${money(summary.credit)}`
+                  : money(summary.owing)}
+              </strong>
               <small>
                 {state.fees.length} fee period
                 {state.fees.length === 1 ? "" : "s"} recorded
@@ -374,12 +389,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack }) {
                     <span className="muted">
                       Fee: {money(row.total_fees)} · Paid:{" "}
                       {money(row.amount_paid)} · Balance:{" "}
-                      {money(
-                        Math.max(
-                          0,
-                          Number(row.total_fees) - Number(row.amount_paid),
-                        ),
-                      )}
+                      {money(Number(row.total_fees) - Number(row.amount_paid))}
                     </span>
                   </p>
                 ))}

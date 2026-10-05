@@ -346,6 +346,24 @@
 .balance-value.owing {
   color: #b42318 !important;
 }
+.balance-value.credit {
+  color: #087f5b !important;
+  font-weight: 800;
+}
+.fee-status.credit {
+  background: #e6fcf5;
+  color: #087f5b;
+}
+.fees-stat-card.credit {
+  border-color: #99f6e4;
+}
+.fee-modal-balance.is-credit {
+  background: #ecfdf5;
+  color: #047857;
+}
+.fee-modal-balance.is-credit strong {
+  color: #047857;
+}
 .fee-campus-badge,
 .fee-status,
 .fee-enrolment-status {

@@ -35,6 +35,12 @@ const initials = (name) =>
     .toUpperCase();
 
 const statusMeta = {
+  credit: {
+    label: "Credit",
+    filter: "Overpaid",
+    icon: LuCircleCheck,
+    card: "credit",
+  },
   full: {
     label: "Settled",
     filter: "Fully Paid",
@@ -67,7 +73,8 @@ function PaymentModal({ student, onClose, onSave, saving }) {
       : "once_off",
   );
   const [referenceNumber, setReferenceNumber] = useState("");
-  const balance = Math.max(0, Number(totalFees) - Number(amountPaid));
+  const balance = Number(totalFees) - Number(amountPaid);
+  const isCredit = balance < 0;
 
   return (
     <div
@@ -172,8 +179,12 @@ function PaymentModal({ student, onClose, onSave, saving }) {
             />
           </label>
         </div>
-        <div className="fee-modal-balance">
-          <span>Balance after update</span>
+        <div className={`fee-modal-balance${isCredit ? " is-credit" : ""}`}>
+          <span>
+            {isCredit
+              ? "Credit after update (overpaid)"
+              : "Balance after update"}
+          </span>
           <strong>{money(balance)}</strong>
         </div>
         <div className="fee-modal-actions">
@@ -478,7 +489,7 @@ function MasterTable({
                       {money(student.amountPaid)}
                     </td>
                     <td
-                      className={`currency balance-value ${student.balance > 0 ? "owing" : ""}`}
+                      className={`currency balance-value ${student.balance > 0 ? "owing" : student.balance < 0 ? "credit" : ""}`}
                     >
                       {money(student.balance)}
                     </td>
@@ -697,18 +708,20 @@ export default function FeesDashboard({
           ? Number(fee.total_fees)
           : getDynamicFee(student.class_level);
         const amountPaid = fee ? Number(fee.amount_paid) : 0;
-        const balance = Math.max(0, totalFees - amountPaid);
+        const balance = totalFees - amountPaid;
         return {
           ...student,
           totalFees,
           amountPaid,
           balance,
           category:
-            amountPaid >= totalFees
-              ? "full"
-              : amountPaid > 0
-                ? "half"
-                : "unpaid",
+            balance < 0
+              ? "credit"
+              : balance === 0
+                ? "full"
+                : amountPaid > 0
+                  ? "half"
+                  : "unpaid",
         };
       }),
     [students, feeRecords, feeMapping],
@@ -716,13 +729,23 @@ export default function FeesDashboard({
   const stats = useMemo(
     () => ({
       full: enriched.filter((student) => student.category === "full"),
+      credit: enriched.filter((student) => student.category === "credit"),
       half: enriched.filter((student) => student.category === "half"),
       unpaid: enriched.filter((student) => student.category === "unpaid"),
     }),
     [enriched],
   );
   const outstanding = useMemo(
-    () => enriched.reduce((sum, student) => sum + student.balance, 0),
+    () =>
+      enriched.reduce((sum, student) => sum + Math.max(0, student.balance), 0),
+    [enriched],
+  );
+  const credits = useMemo(
+    () =>
+      enriched.reduce(
+        (sum, student) => sum + Math.abs(Math.min(0, student.balance)),
+        0,
+      ),
     [enriched],
   );
   const isLoading = loading || feeLoading;
@@ -863,6 +886,13 @@ export default function FeesDashboard({
       note: `${stats.full.length} student${stats.full.length === 1 ? "" : "s"} settled`,
       icon: LuCircleCheck,
       tone: "success",
+    },
+    {
+      label: "Overpaid credits",
+      value: money(credits),
+      note: `${stats.credit.length} student${stats.credit.length === 1 ? "" : "s"} with a credit balance`,
+      icon: LuCircleCheck,
+      tone: "credit",
     },
     {
       label: "Partial payments",
