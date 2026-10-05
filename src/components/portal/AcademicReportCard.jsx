@@ -7,6 +7,7 @@ import juniorLogo from '../../assets/images/reliance-junior-logo.png'
 import SchoolStamp from '../ui/SchoolStamp'
 import '../../reportDashboard.css'
 import '../../reportHeaderPolish.css'
+import '../../reportMobile.css'
 
 const termLabel = value => String(value).startsWith('Term') ? String(value) : `Term ${value}`
 const money = value => `$${Number(value ?? 0).toFixed(2)}`
