@@ -527,7 +527,7 @@ export default function StaffDashboard() {
                 <h2>{editingId ? 'Edit learner' : 'Add learner'}</h2>
                 <form className="form portal-form" onSubmit={saveStudent}>
                   <label>Full name<input required value={student.full_name} onChange={e => setStudent(v => ({ ...v, full_name: e.target.value }))} /></label>
-                  <label>Admission number<input required readOnly={!editingId} value={editingId ? student.admission_number : nextAdmissionNumber(students, student.enrolled_year)} placeholder="0012026" onChange={e => setStudent(v => ({ ...v, admission_number: e.target.value }))} /><small>{editingId ? 'Existing admission number.' : 'Generated from the enrolment year, e.g. 0012026.'}</small></label>
+                  <label>Admission number<input required readOnly value={editingId ? student.admission_number : 'Assigned securely on save'} placeholder="0012026" onChange={e => setStudent(v => ({ ...v, admission_number: e.target.value }))} /><small>{editingId ? 'Existing admission number.' : 'The next school-wide yearly number is assigned when the learner is saved.'}</small></label>
                   <label>Date of birth<input required type="date" value={student.date_of_birth} onChange={e => setStudent(v => ({ ...v, date_of_birth: e.target.value }))} /></label>
                   <label>Class level
                     <select required value={student.class_level} onChange={e => setStudent(v => ({ ...v, class_level: e.target.value, class_stream: '' }))}>
