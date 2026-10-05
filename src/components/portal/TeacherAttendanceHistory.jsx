@@ -29,6 +29,9 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [dateSearch, setDateSearch] = useState('')
+  const [searchedRecord, setSearchedRecord] = useState(null)
+  const [searchingDate, setSearchingDate] = useState(false)
   const range = useMemo(() => dateRange(period, cursor), [period, cursor])
   const movePeriod = direction => setCursor(current => {
     const next = new Date(current)
@@ -58,6 +61,20 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
     return () => { active = false }
   }, [range.end, range.start, student.id, supabase])
 
+  useEffect(() => {
+    let active = true
+    if (!dateSearch) { setSearchedRecord(null); return undefined }
+    const lookup = async () => {
+      setSearchingDate(true)
+      const { data, error: requestError } = await supabase.from('attendance').select('id, date, status, late_minutes, note').eq('student_id', student.id).eq('date', dateSearch).maybeSingle()
+      if (!active) return
+      setSearchedRecord(requestError ? { error: requestError.message } : data || { missing: true })
+      setSearchingDate(false)
+    }
+    lookup()
+    return () => { active = false }
+  }, [dateSearch, student.id, supabase])
+
   const summary = rows.reduce((value, row) => ({
     ...value,
     present: value.present + (isPresent(row.status) ? 1 : 0),
@@ -82,6 +99,13 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
       <strong>{period === 'month' ? monthLabel(cursor) : `${labelFor(range.start)} – ${labelFor(range.end)}`}</strong>
       <button type="button" onClick={() => movePeriod(1)} aria-label={`Next ${period}`}>›</button>
     </div>
+    <section className="teacher-attendance-date-search" aria-label="Find attendance by date">
+      <div><strong>Find a date</strong><span>Check this learner’s attendance on any school day.</span></div>
+      <label><span className="sr-only">Attendance date</span><input type="date" value={dateSearch} max={isoDate(new Date())} onChange={event => setDateSearch(event.target.value)} /></label>
+      {dateSearch && <div className={`teacher-attendance-date-result${searchedRecord?.status ? ` is-${searchedRecord.status}` : ''}`} aria-live="polite">
+        {searchingDate ? 'Checking attendance…' : searchedRecord?.error ? searchedRecord.error : searchedRecord?.missing ? <><b>No attendance recorded</b><span>{labelFor(dateSearch)} has not been marked yet.</span></> : <><b>{searchedRecord.status === 'present' ? 'Present' : searchedRecord.status === 'absent' ? 'Absent' : 'Late'}</b><span>{labelFor(dateSearch)}{searchedRecord.late_minutes != null ? ` · ${searchedRecord.late_minutes} minutes late` : ''}{searchedRecord.note ? ` · ${searchedRecord.note}` : ''}</span></>}
+      </div>}
+    </section>
     <div className="teacher-attendance-summary" aria-label="Attendance summary">
       <div><b>{summary.present}</b><span>Present</span></div>
       <div><b>{summary.absent}</b><span>Absent</span></div>
