@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { zimbabweSchoolDayStatus } from '../../lib/zimbabweSchoolCalendar'
 
 const isoDate = value => value.toISOString().slice(0, 10)
 const isPresent = status => status === 'present' || status === 'late'
@@ -81,6 +82,7 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
     absent: value.absent + (row.status === 'absent' ? 1 : 0),
     late: value.late + (row.status === 'late' ? 1 : 0),
   }), { present: 0, absent: 0, late: 0 })
+  const calendarStatus = zimbabweSchoolDayStatus(dateSearch)
 
   return <section className="teacher-attendance-history">
     <div className="teacher-attendance-heading">
@@ -102,8 +104,8 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
     <section className="teacher-attendance-date-search" aria-label="Find attendance by date">
       <div><strong>Find a date</strong><span>Check this learner’s attendance on any school day.</span></div>
       <label><span className="sr-only">Attendance date</span><input type="date" value={dateSearch} max={isoDate(new Date())} onChange={event => setDateSearch(event.target.value)} /></label>
-      {dateSearch && <div className={`teacher-attendance-date-result${searchedRecord?.status ? ` is-${searchedRecord.status}` : ''}`} aria-live="polite">
-        {searchingDate ? 'Checking attendance…' : searchedRecord?.error ? searchedRecord.error : searchedRecord?.missing ? <><b>No attendance recorded</b><span>{labelFor(dateSearch)} has not been marked yet.</span></> : <><b>{searchedRecord.status === 'present' ? 'Present' : searchedRecord.status === 'absent' ? 'Absent' : 'Late'}</b><span>{labelFor(dateSearch)}{searchedRecord.late_minutes != null ? ` · ${searchedRecord.late_minutes} minutes late` : ''}{searchedRecord.note ? ` · ${searchedRecord.note}` : ''}</span></>}
+      {dateSearch && <div className={`teacher-attendance-date-result${searchedRecord?.status ? ` is-${searchedRecord.status}` : searchedRecord?.missing ? ` is-${calendarStatus?.kind}` : ''}`} aria-live="polite">
+        {searchingDate ? 'Checking attendance…' : searchedRecord?.error ? searchedRecord.error : searchedRecord?.missing ? <><b>{calendarStatus?.kind === 'school-day' ? 'No attendance recorded' : calendarStatus?.label}</b><span>{calendarStatus?.kind === 'school-day' ? `${labelFor(dateSearch)} has not been marked yet.` : `${labelFor(dateSearch)} · ${calendarStatus?.detail}`}</span></> : <><b>{searchedRecord.status === 'present' ? 'Present' : searchedRecord.status === 'absent' ? 'Absent' : 'Late'}</b><span>{labelFor(dateSearch)}{searchedRecord.late_minutes != null ? ` · ${searchedRecord.late_minutes} minutes late` : ''}{searchedRecord.note ? ` · ${searchedRecord.note}` : ''}</span></>}
       </div>}
     </section>
     <div className="teacher-attendance-summary" aria-label="Attendance summary">
