@@ -34,6 +34,24 @@
     border: 0 !important;
     box-shadow: none !important;
   }
+  body:has(.learner-profile-page .report-card) .report-office-stamp,
+  body:has(.learner-profile-page .report-card) .report-learner-summary {
+    display: none !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-student-identification {
+    margin: 1mm 0 2mm !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-watermark {
+    width: 42% !important;
+    max-height: 46% !important;
+    opacity: 0.075 !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-next {
+    margin-top: 3mm !important;
+  }
 }
 .report-dashboard .report-watermark {
   opacity: 0.018;
