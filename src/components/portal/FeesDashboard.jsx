@@ -20,6 +20,11 @@ import PortalNotice from "./PortalNotice";
 import ReportTermSettings from "./ReportTermSettings";
 import { getFeeAmount } from "../../lib/FeeStructure";
 import { logActivity } from "../../lib/logActivity";
+import {
+  CLASS_LEVELS,
+  getStreamsForLevel,
+  isJuniorLevel,
+} from "../../data/classOptions";
 
 const CURRENT_YEAR = 2026;
 const CURRENT_TERM = "Term 3";
@@ -197,6 +202,148 @@ function PaymentModal({ student, onClose, onSave, saving }) {
           </button>
           <button className="fee-button fee-button-primary" disabled={saving}>
             {saving ? "Saving…" : "Save payment"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EnrolmentModal({ supabase, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    full_name: "",
+    date_of_birth: "",
+    class_level: "",
+    class_stream: "",
+    enrolled_year: new Date().getFullYear(),
+  });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const update = (key) => (event) =>
+    setForm((current) => ({ ...current, [key]: event.target.value }));
+  const submit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    const { error: saveError } = await supabase
+      .from("students")
+      .insert({
+        ...form,
+        admission_number: "pending",
+        enrolled_year: Number(form.enrolled_year),
+        class_stream: form.class_stream || null,
+        status: "active",
+        inactive_reason: null,
+      });
+    setSaving(false);
+    if (saveError) return setError(saveError.message);
+    onSaved?.();
+    onClose();
+  };
+  return (
+    <div
+      className="fee-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="enrolment-dialog-title"
+      onClick={(event) => event.target === event.currentTarget && onClose()}
+    >
+      <form className="fee-modal" onSubmit={submit}>
+        <div className="fee-modal-head">
+          <div>
+            <p className="fee-modal-eyebrow">Learner enrolment</p>
+            <h2 id="enrolment-dialog-title">Add learner</h2>
+            <p>The admission number is assigned securely when saved.</p>
+          </div>
+          <button
+            type="button"
+            className="fee-icon-button"
+            onClick={onClose}
+            aria-label="Close enrolment dialog"
+          >
+            ×
+          </button>
+        </div>
+        {error && <PortalNotice tone="error">{error}</PortalNotice>}
+        <div className="fee-modal-fields">
+          <label>
+            Full name
+            <input
+              required
+              value={form.full_name}
+              onChange={update("full_name")}
+            />
+          </label>
+          <label>
+            Date of birth
+            <input
+              required
+              type="date"
+              value={form.date_of_birth}
+              onChange={update("date_of_birth")}
+            />
+          </label>
+          <label>
+            Class level
+            <select
+              required
+              value={form.class_level}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  class_level: event.target.value,
+                  class_stream: "",
+                }))
+              }
+            >
+              <option value="">Choose class level</option>
+              {CLASS_LEVELS.map((level) => (
+                <option key={level}>{level}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Class stream
+            <select
+              required
+              disabled={!form.class_level || isJuniorLevel(form.class_level)}
+              value={form.class_stream}
+              onChange={update("class_stream")}
+            >
+              <option value="">
+                {isJuniorLevel(form.class_level)
+                  ? "N/A (Junior)"
+                  : "Choose class stream"}
+              </option>
+              {getStreamsForLevel(form.class_level).map((stream) => (
+                <option key={stream}>{stream}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Enrolled year
+            <input
+              required
+              type="number"
+              value={form.enrolled_year}
+              onChange={update("enrolled_year")}
+            />
+          </label>
+          <label>
+            Admission number
+            <input readOnly value="Assigned securely on save" />
+          </label>
+        </div>
+        <div className="fee-modal-actions">
+          <button
+            type="button"
+            className="fee-button fee-button-secondary"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button className="fee-button fee-button-primary" disabled={saving}>
+            {saving ? "Enrolling…" : "Enrol learner"}
           </button>
         </div>
       </form>
@@ -632,6 +779,7 @@ export default function FeesDashboard({
   user,
   profile,
   onOpenStudent,
+  onStudentAdded,
 }) {
   const [feeRecords, setFeeRecords] = useState([]);
   const [feeMapping, setFeeMapping] = useState([]);
@@ -642,6 +790,7 @@ export default function FeesDashboard({
   const [feeLoading, setFeeLoading] = useState(true);
   const [editTarget, setEditTarget] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showEnrolmentModal, setShowEnrolmentModal] = useState(false);
   const [toast, setToast] = useState("");
   const [quickStatus, setQuickStatus] = useState("");
   const readOnly = profile?.role === "principal";
@@ -969,6 +1118,14 @@ export default function FeesDashboard({
               </button>
             </>
           )}
+          {!readOnly && (
+            <button
+              className="fee-button fee-button-primary"
+              onClick={() => setShowEnrolmentModal(true)}
+            >
+              Add learner
+            </button>
+          )}
         </div>
       </header>
       {error && <PortalNotice tone="error">{error}</PortalNotice>}
@@ -1033,6 +1190,16 @@ export default function FeesDashboard({
           onClose={() => setEditTarget(null)}
           onSave={savePayment}
           saving={saving}
+        />
+      )}
+      {showEnrolmentModal && (
+        <EnrolmentModal
+          supabase={supabase}
+          onClose={() => setShowEnrolmentModal(false)}
+          onSaved={() => {
+            onStudentAdded?.();
+            setToast("Learner enrolled with a secure admission number");
+          }}
         />
       )}
       {showStructureModal && (

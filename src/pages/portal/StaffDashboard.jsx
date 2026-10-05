@@ -1007,6 +1007,7 @@ export default function StaffDashboard() {
           user={user}
           profile={profile}
           onOpenStudent={setProfileStudent}
+          onStudentAdded={loadStudents}
         />
       </div>
     );
@@ -1021,6 +1022,8 @@ export default function StaffDashboard() {
           supabase={supabase}
           user={user}
           profile={profile}
+          onOpenStudent={setProfileStudent}
+          onStudentAdded={loadStudents}
         />
       </div>
     );
@@ -1221,7 +1224,7 @@ export default function StaffDashboard() {
               </SlideOver>
             )}
 
-            {(isAdmin || profile?.role === "teacher") && (
+            {(isAdmin || profile?.role === "teacher" || accountant) && (
               <Card>
                 <h2>{editingId ? "Edit learner" : "Add learner"}</h2>
                 <form className="form portal-form" onSubmit={saveStudent}>
@@ -1287,7 +1290,7 @@ export default function StaffDashboard() {
                       }
                     >
                       <option value="">Choose class level</option>
-                      {(isAdmin
+                      {(isAdmin || accountant
                         ? adminClassLevels
                         : [
                             ...new Set(
@@ -1320,7 +1323,7 @@ export default function StaffDashboard() {
                           ? "N/A (Junior)"
                           : "Choose class stream"}
                       </option>
-                      {(isAdmin
+                      {(isAdmin || accountant
                         ? streamsForAdminLevel(student.class_level)
                         : teacherAssignments
                             .filter(
