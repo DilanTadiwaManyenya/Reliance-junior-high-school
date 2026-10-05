@@ -3092,6 +3092,58 @@
 .learner-profile-list {
   padding: 8px 18px;
 }
+.teacher-learner-account-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  margin-top: 14px;
+  padding: 18px !important;
+  border-top-color: #4f46e5;
+}
+.teacher-learner-account-card h2 {
+  margin: 0;
+  color: #172554;
+  font-size: 1rem;
+}
+.teacher-learner-account-card p:not(.learner-profile-kicker) {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: .82rem;
+  line-height: 1.5;
+}
+.teacher-learner-account-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.teacher-learner-account-fields label {
+  display: grid;
+  gap: 5px;
+  color: #475569;
+  font-size: .72rem;
+  font-weight: 800;
+}
+.teacher-learner-account-fields input {
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+}
+.teacher-learner-account-fields .btn {
+  min-height: 40px;
+  white-space: nowrap;
+}
+.teacher-learner-account-error,
+.teacher-learner-account-success {
+  grid-column: 1 / -1;
+  margin: 0 !important;
+  font-weight: 700;
+}
+.teacher-learner-account-error { color: #b91c1c !important; }
+.teacher-learner-account-success { color: #047857 !important; }
 @media (max-width: 760px) {
   .learner-profile-hero {
     flex-direction: column;
@@ -3100,12 +3152,15 @@
   .learner-profile-summary-grid {
     grid-template-columns: 1fr 1fr;
   }
+  .teacher-learner-account-card { grid-template-columns: 1fr; }
 }
 @media (max-width: 430px) {
   .learner-profile-metrics,
   .learner-profile-summary-grid {
     grid-template-columns: 1fr;
   }
+  .teacher-learner-account-fields { grid-template-columns: 1fr; }
+  .teacher-learner-account-fields .btn { width: 100%; }
 }
 .teacher-attendance-history {
   display: grid;

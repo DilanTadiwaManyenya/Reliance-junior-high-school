@@ -387,6 +387,10 @@
   }
 }
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 7mm;
+  }
   .report-dashboard {
     border: 0 !important;
     border-radius: 0 !important;
@@ -445,5 +449,51 @@
     border-color: #cbd5e1 !important;
     background: #fff !important;
     color: #334155 !important;
+  }
+
+  /* A report must export as one readable academic-results page. */
+  .report-dashboard .report-card-actions,
+  .report-dashboard .report-office-stamp,
+  .report-dashboard .report-learner-summary,
+  .report-dashboard .report-next {
+    display: none !important;
+  }
+  .report-dashboard .report-card-top {
+    grid-template-columns: minmax(0, 1fr) 235px !important;
+    gap: 4mm !important;
+    align-items: center !important;
+    padding: 0 0 2mm !important;
+    margin: 0 0 2mm !important;
+  }
+  .report-dashboard .report-student-identification {
+    margin: 0 !important;
+    padding: 2mm 3mm !important;
+    border-radius: 3mm !important;
+  }
+  .report-dashboard .report-student-id {
+    padding-left: 0 !important;
+  }
+  .report-dashboard .report-card-meta {
+    margin: 0 0 2mm !important;
+    padding: 1.5mm 0 !important;
+  }
+  .report-dashboard .report-dashboard-stats {
+    gap: 2mm !important;
+    padding: 1.5mm 0 !important;
+  }
+  .report-dashboard .report-stat {
+    padding: 1.25mm !important;
+  }
+  .report-dashboard .report-stat strong {
+    font-size: 15pt !important;
+  }
+  .report-dashboard .report-table th,
+  .report-dashboard .report-table td {
+    padding: 0.9mm 1.25mm !important;
+    font-size: 6.5pt !important;
+    line-height: 1.05 !important;
+  }
+  .report-dashboard .report-table th {
+    font-size: 5.8pt !important;
   }
 }

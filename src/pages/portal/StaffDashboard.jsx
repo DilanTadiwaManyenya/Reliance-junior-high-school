@@ -981,6 +981,7 @@ export default function StaffDashboard() {
       <StaffLearnerProfile
         supabase={supabase}
         student={profileStudent}
+        teacherView={isTeacher}
         onBack={() => setProfileStudent(null)}
       />
     );
@@ -1115,8 +1116,8 @@ export default function StaffDashboard() {
                               <button
                                 type="button"
                                 className="roster-learner-link"
-                                onClick={() => setAttendanceStudent(row)}
-                                aria-label={`View attendance for ${row.full_name}`}
+                                onClick={() => setProfileStudent(row)}
+                                aria-label={`Open learner profile for ${row.full_name}`}
                               >
                                 {row.full_name}
                               </button>
