@@ -12,7 +12,7 @@ import { useAuth } from '../../context/useAuth'
 import { invokeEdgeFunction } from '../../lib/edgeFunction'
 import { CLASS_LEVELS, getStreamsForLevel, ALL_CLASS_OPTIONS, isJuniorLevel } from '../../data/classOptions'
 import ClassSelector, { parseClassKey } from '../../components/portal/ClassSelector';
-import TeacherGradeEntry from '../../components/portal/TeacherGradeEntry';
+import TeacherGradeEntry from '../../components/portal/TeacherGradeEntryV2';
 import SlideOver from '../../components/ui/SlideOver';
 import ActivityLog from '../../components/portal/ActivityLog'
 import ClassManager from '../../components/portal/ClassManager'
