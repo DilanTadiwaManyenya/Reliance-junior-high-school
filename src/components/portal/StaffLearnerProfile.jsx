@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Card from "../ui/Card";
 import PortalNotice from "./PortalNotice";
 import AcademicReportCard from "./AcademicReportCard";
+import TeacherAttendanceHistory from "./TeacherAttendanceHistory";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
 const tabs = [
@@ -24,6 +25,8 @@ const date = (value) =>
     : "—";
 const term = (value) =>
   String(value || "").startsWith("Term") ? value : `Term ${value}`;
+const termNumber = (value) => String(value ?? "").replace(/^term\s*/i, "");
+const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
 
 export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false }) {
   const [activeTab, setActiveTab] = useState("Summary");
@@ -197,7 +200,13 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       )}
     </Card>
   );
-  const visibleTabs = teacherView ? tabs.filter((tab) => tab !== "Fees") : tabs;
+  const visibleTabs = teacherView ? tabs.filter((tab) => !["Academics", "Fees"].includes(tab)) : tabs;
+  const summaryYear = String(new Date().getFullYear());
+  const summaryTerm = currentTerm();
+  const currentTermAcademics = state.academics.filter((row) => termNumber(row.term) === summaryTerm && String(row.year ?? new Date(row.created_at || Date.now()).getFullYear()) === summaryYear);
+  const currentTermMarks = currentTermAcademics.map((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score)).filter(Number.isFinite);
+  const currentTermPassed = currentTermMarks.filter((mark) => mark >= 50).length;
+  const currentTermAverage = currentTermMarks.length ? (currentTermMarks.reduce((total, mark) => total + mark, 0) / currentTermMarks.length).toFixed(1) : null;
   const passedAcademics = state.academics.filter((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score) >= 50);
 
   return (
@@ -250,10 +259,10 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         <>
           <section className="learner-profile-metrics">
             <Card>
-              <span>Academic average</span>
-              <strong>{summary.average ? `${summary.average}%` : "—"}</strong>
+              <span>Academic average · Term {summaryTerm} {summaryYear}</span>
+              <strong>{currentTermAverage ? `${currentTermAverage}%` : "—"}</strong>
               <small>
-                {summary.passed}/{summary.subjectCount} subjects passed
+                {currentTermPassed}/{currentTermMarks.length} subjects passed this term
               </small>
             </Card>
             <Card>
@@ -289,7 +298,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
             </Card>}
           </section>
           <section className="learner-profile-summary-grid">
-            <Card>
+            {!teacherView && <Card>
               <h2>Academic snapshot</h2>
               <p>
                 {summary.subjectCount
@@ -299,7 +308,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
               <button type="button" onClick={() => setActiveTab("Academics")}>
                 View academic report →
               </button>
-            </Card>
+            </Card>}
             <Card>
               <h2>Attendance snapshot</h2>
               <p>
@@ -333,7 +342,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           adminAccess
         />
       )}
-      {activeTab === "Attendance" &&
+      {activeTab === "Attendance" && (teacherView ? <TeacherAttendanceHistory supabase={supabase} student={student} onClose={() => setActiveTab("Summary")} /> :
         latest(
           state.attendance,
           (row) => (
@@ -351,7 +360,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
             </p>
           ),
           "No attendance records have been entered yet.",
-        )}
+        ))}
       {activeTab === "Sport" &&
         latest(
           state.sports,
