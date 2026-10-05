@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getSubjectGroupsByGradeStream } from '../../utils/CurriculumData'
+import { CURRICULUM_STRUCTURE } from '../../utils/CurriculumData'
 import { calculateGrade } from '../../utils/GradeCalculator'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
@@ -8,6 +8,15 @@ const schoolTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4
 const blank = () => ({ subject: '', percentage: '', exam_mark: '', term: schoolTerm(), year: new Date().getFullYear(), comment: '' })
 const classKey = row => `${row.class_level}::${row.class_stream || ''}`
 const classLabel = key => key.replace('::', ' · ') || 'All assigned classes'
+const unique = values => [...new Set(values)]
+const teacherSubjectGroups = {
+  'ECD & Foundation': unique([...(CURRICULUM_STRUCTURE.ECD_A.subjects || []), ...(CURRICULUM_STRUCTURE.ECD_B.subjects || [])]),
+  'Primary': unique(Object.values(CURRICULUM_STRUCTURE.GRADE_1_7).flat()),
+  'Lower Secondary': unique(Object.values(CURRICULUM_STRUCTURE.FORM_1_4).flat()),
+  'Arts & Humanities': CURRICULUM_STRUCTURE.FORM_5_6.Arts,
+  Commercials: CURRICULUM_STRUCTURE.FORM_5_6.Commercials,
+  Sciences: CURRICULUM_STRUCTURE.FORM_5_6.Sciences,
+}
 
 export default function TeacherGradeEntryV2() {
   const { supabase, user, profile } = useAuth()
@@ -17,7 +26,8 @@ export default function TeacherGradeEntryV2() {
   const classes = useMemo(() => [...new Set(students.map(classKey))].sort(), [students])
   const visible = useMemo(() => classFilter ? students.filter(row => classKey(row) === classFilter) : students, [classFilter, students])
   const learner = visible.find(row => row.id === studentId)
-  const groups = useMemo(() => learner ? getSubjectGroupsByGradeStream(learner.class_level, learner.class_stream) : {}, [learner])
+  // Teachers can use the full curriculum; learner class only determines the grade scale.
+  const groups = teacherSubjectGroups
   const subjects = useMemo(() => Object.values(groups).flat(), [groups])
   const mark = form.exam_mark === '' ? form.percentage : form.exam_mark
   const outcome = learner ? calculateGrade(mark, learner.class_level) : null
