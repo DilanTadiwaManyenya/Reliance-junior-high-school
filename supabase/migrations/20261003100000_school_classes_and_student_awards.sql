@@ -13,6 +13,8 @@ create unique index if not exists school_classes_unique_name
   on public.school_classes (class_level, coalesce(class_stream, ''));
 
 alter table public.school_classes enable row level security;
+drop policy if exists "Authenticated users read school classes" on public.school_classes;
+drop policy if exists "Admins manage school classes" on public.school_classes;
 create policy "Authenticated users read school classes" on public.school_classes
   for select to authenticated using (true);
 create policy "Admins manage school classes" on public.school_classes
@@ -35,6 +37,9 @@ create unique index if not exists student_awards_unique_term
   on public.student_awards (student_id, award_type, coalesce(subject, ''), term, academic_year);
 
 alter table public.student_awards enable row level security;
+drop policy if exists "Parents read linked learner awards" on public.student_awards;
+drop policy if exists "Students read own awards" on public.student_awards;
+drop policy if exists "Admins manage learner awards" on public.student_awards;
 create policy "Parents read linked learner awards" on public.student_awards for select to authenticated using (
   exists (select 1 from public.parent_student ps where ps.student_id = student_awards.student_id and ps.parent_id = auth.uid() and ps.verified_at is not null)
 );

@@ -5,13 +5,15 @@ begin;
 create or replace function public.admission_class_code(student_campus text, student_class_level text)
 returns text language sql immutable as $$
   select case
-    when student_campus = 'senior' and student_class_level ~ '^Form [1-6]$'
+    when student_class_level ~ '^Form [1-6]$'
       then 'f' || regexp_replace(student_class_level, '\D', '', 'g')
-    when student_campus = 'junior' and student_class_level ~ '^Grade [1-7]$'
+    when student_class_level ~ '^Grade [1-7]$'
       then 'g' || regexp_replace(student_class_level, '\D', '', 'g')
     when student_class_level = 'ECD A' then 'eA'
     when student_class_level = 'ECD B' then 'eB'
-    else 'x0'
+    -- Preserve uniqueness for legacy/non-standard class labels until staff
+    -- normalise them through the class manager.
+    else 'u' || lower(regexp_replace(coalesce(student_campus, 'unknown') || coalesce(student_class_level, 'unassigned'), '[^A-Za-z0-9]', '', 'g'))
   end;
 $$;
 

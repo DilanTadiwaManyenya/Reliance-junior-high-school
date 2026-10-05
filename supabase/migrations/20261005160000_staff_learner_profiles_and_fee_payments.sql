@@ -1,17 +1,22 @@
 -- Give finance staff read-only access to the learner records required by the
 -- learner profile, scoped to the accountant's assigned campus.
+drop policy if exists "Accountants select academic profile" on public.academic_records;
 create policy "Accountants select academic profile" on public.academic_records for select to authenticated using (
   exists (select 1 from public.students s where s.id = academic_records.student_id and public.accountant_can_access_campus(s.campus))
 );
+drop policy if exists "Accountants select attendance profile" on public.attendance;
 create policy "Accountants select attendance profile" on public.attendance for select to authenticated using (
   exists (select 1 from public.students s where s.id = attendance.student_id and public.accountant_can_access_campus(s.campus))
 );
+drop policy if exists "Accountants select behaviour profile" on public.behavior_notes;
 create policy "Accountants select behaviour profile" on public.behavior_notes for select to authenticated using (
   exists (select 1 from public.students s where s.id = behavior_notes.student_id and public.accountant_can_access_campus(s.campus))
 );
+drop policy if exists "Accountants select sport profile" on public.sports_records;
 create policy "Accountants select sport profile" on public.sports_records for select to authenticated using (
   exists (select 1 from public.students s where s.id = sports_records.student_id and public.accountant_can_access_campus(s.campus))
 );
+drop policy if exists "Accountants select awards profile" on public.student_awards;
 create policy "Accountants select awards profile" on public.student_awards for select to authenticated using (
   exists (select 1 from public.students s where s.id = student_awards.student_id and public.accountant_can_access_campus(s.campus))
 );
@@ -34,7 +39,9 @@ create table if not exists public.fee_payments (
 create index if not exists fee_payments_student_period_idx on public.fee_payments(student_id, academic_year desc, term, paid_on desc);
 alter table public.fee_payments enable row level security;
 
+drop policy if exists "Admin principal manage fee payments" on public.fee_payments;
 create policy "Admin principal manage fee payments" on public.fee_payments for all to authenticated using (public.is_admin_or_principal()) with check (public.is_admin_or_principal());
+drop policy if exists "Accountants manage fee payments in campus" on public.fee_payments;
 create policy "Accountants manage fee payments in campus" on public.fee_payments for all to authenticated using (
   exists (select 1 from public.students s where s.id = fee_payments.student_id and public.accountant_can_access_campus(s.campus))
 ) with check (

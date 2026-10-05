@@ -20,5 +20,6 @@ create policy "Parents view their orders" on public.parent_uniform_orders for se
 create policy "Staff manage uniform orders" on public.parent_uniform_orders for all to authenticated using (public.is_admin() or public.has_active_role('accountant')) with check (public.is_admin() or public.has_active_role('accountant'));
 
 -- Parents may browse only stocked uniform products; other inventory remains staff-only.
+drop policy if exists "Parents browse stocked uniform products" on public.inventory_products;
 create policy "Parents browse stocked uniform products" on public.inventory_products for select to authenticated
-  using (category = 'Uniforms' and stock_quantity > 0 and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'parent'));
+  using (category = 'Uniforms' and active = true and quantity_on_hand > 0 and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'parent'));
