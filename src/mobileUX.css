@@ -124,3 +124,95 @@ img, svg { max-width: 100%; }
 }
 
 @media print { .portal-table-wrap::after { display: none; } }
+
+/* Mobile portal polish: predictable touch targets, safe-area spacing, and
+   back navigation that remains reachable without squeezing the top bar. */
+@media (max-width: 600px) {
+  :root { --mobile-action-bottom: calc(16px + env(safe-area-inset-bottom)); }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(79, 70, 229, .35); outline-offset: 2px; }
+
+  /* The shared portal back action becomes a floating thumb-zone control. */
+  .top-bar-back {
+    position: fixed !important;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: var(--mobile-action-bottom);
+    z-index: 130;
+    display: inline-flex !important;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #172554;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .25);
+    color: #fff;
+    font: 800 .82rem var(--font-ui, 'Public Sans', sans-serif);
+  }
+  .top-bar-back:disabled { display: none !important; }
+  .staff-content-area { padding-bottom: calc(94px + env(safe-area-inset-bottom)); }
+  .top-bar-user { gap: 7px; }
+  .top-bar-avatar { width: 34px; height: 34px; }
+  .top-bar-logout { min-width: 42px; min-height: 42px; padding: 0 10px; }
+  .top-bar-logout span { display: none; }
+
+  /* Consistent contextual return controls on profile and parent-record pages. */
+  .learner-profile-back, .parent-page-back, .portal-back, .portal-website-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 13px;
+    border-radius: 10px;
+    font-size: .82rem;
+    font-weight: 800;
+  }
+  .learner-profile-back {
+    position: sticky;
+    top: calc(var(--topbar-height) + 8px);
+    z-index: 12;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, .96);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, .08);
+    backdrop-filter: blur(10px);
+  }
+  .parent-page-back { margin-bottom: 14px; }
+
+  /* Cards and controls do not clip long learner names or financial labels. */
+  .learner-profile-page { padding-top: 14px; }
+  .learner-profile-hero { padding: 18px; border-radius: 14px; }
+  .learner-profile-hero h1 { font-size: clamp(1.55rem, 8vw, 2.05rem); overflow-wrap: anywhere; }
+  .learner-profile-status { align-self: flex-start; }
+  .learner-profile-tabs { margin: 14px 0; padding: 2px 1px 8px; scroll-snap-type: x proximity; }
+  .learner-profile-tabs button { min-height: 42px; padding-inline: 14px; scroll-snap-align: start; }
+  .learner-profile-metrics { gap: 10px; }
+  .learner-profile-metrics .card, .learner-profile-summary-grid .card { min-height: 0; padding: 15px; }
+  .learner-profile-metrics strong { font-size: 1.4rem; }
+  .account-settings-page .card { padding: 16px; }
+  .account-settings-form { gap: 14px; }
+  .account-settings-form .btn { width: 100%; min-height: 46px; }
+
+  /* Roster, finance and record entry: controls stack; data remains scrollable. */
+  .portal-card-title, .fees-page-header, .fees-table-heading { align-items: stretch; flex-direction: column; }
+  .portal-inline-search, .portal-inline-search input { width: 100%; max-width: none; }
+  .record-entry-page .portal-workspace, .portal-workspace { gap: 14px; }
+  .roster-attendance-action { min-height: 44px; }
+  .grade-filterbar { gap: 10px; padding: 12px; }
+  .grade-form-card-heading { align-items: flex-start; flex-direction: column; }
+  .teacher-attendance-period-picker { min-height: 46px; }
+  .teacher-attendance-date-search { grid-template-columns: 1fr; }
+  .teacher-attendance-date-search input { width: 100%; min-height: 44px; }
+  .teacher-attendance-summary { gap: 7px; }
+  .teacher-attendance-summary div { padding: 10px; }
+  .teacher-attendance-list li { grid-template-columns: minmax(0, 1fr) auto; }
+
+  /* Bottom sheets and slideovers respect the keyboard and device safe area. */
+  .fee-modal, .slideover { border-radius: 18px 18px 0 0; }
+  .slideover-header { position: sticky; top: 0; z-index: 2; background: #fff; }
+  .slideover-body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 390px) {
+  .top-bar-class-control { max-width: 44vw; }
+  .learner-profile-hero { padding: 15px; }
+  .learner-profile-metrics { grid-template-columns: 1fr; }
+  .teacher-attendance-summary { grid-template-columns: 1fr; }
+}
