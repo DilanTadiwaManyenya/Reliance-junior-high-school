@@ -1198,7 +1198,7 @@ export default function FeesDashboard({
           onClose={() => setShowEnrolmentModal(false)}
           onSaved={() => {
             onStudentAdded?.();
-            setToast("Learner enrolled with a secure admission number");
+            setToast("Learner enrolled — admission number and current-term fee account are ready");
           }}
         />
       )}
