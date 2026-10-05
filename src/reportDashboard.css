@@ -1,4 +1,6 @@
 .report-dashboard {
+  position: relative;
+  isolation: isolate;
   max-width: 1120px;
   border: 1px solid #e2e8f0;
   border-radius: 18px;
@@ -44,17 +46,62 @@
     border: 0 !important;
     background: transparent !important;
   }
-  body:has(.learner-profile-page .report-card) .report-watermark {
-    width: 42% !important;
-    max-height: 46% !important;
-    opacity: 0.075 !important;
+  body:has(.learner-profile-page .report-card) .report-dashboard::before {
+    width: 36% !important;
+    height: 42% !important;
+    opacity: 0.07 !important;
   }
   body:has(.learner-profile-page .report-card) .report-next {
-    margin-top: 3mm !important;
+    margin-top: 2mm !important;
+    padding-top: 2mm !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-card-top {
+    margin-bottom: 2mm !important;
+    padding-bottom: 2mm !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-card-header > img {
+    width: 44px !important;
+    height: 50px !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-card-meta {
+    margin-bottom: 2mm !important;
+    padding: 2mm 0 !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-dashboard-stats {
+    gap: 2mm !important;
+    padding: 2mm 0 !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-stat {
+    padding: 1.5mm !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-stat strong {
+    font-size: 16pt !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-table th,
+  body:has(.learner-profile-page .report-card) .report-table td {
+    padding: 1.25mm 1.4mm !important;
+    line-height: 1.05 !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-table td {
+    font-size: 7pt !important;
+  }
+  body:has(.learner-profile-page .report-card) .report-table th {
+    font-size: 6pt !important;
   }
 }
-.report-dashboard .report-watermark {
-  opacity: 0.018;
+.report-dashboard::before {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 44%;
+  height: 58%;
+  content: '';
+  pointer-events: none;
+  background: var(--report-watermark-image) center / contain no-repeat;
+  opacity: 0.025;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: multiply;
 }
 .report-dashboard .report-card-top {
   display: grid;
