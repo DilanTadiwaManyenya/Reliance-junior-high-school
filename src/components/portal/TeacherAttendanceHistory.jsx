@@ -3,23 +3,39 @@ import { useEffect, useMemo, useState } from 'react'
 const isoDate = value => value.toISOString().slice(0, 10)
 const isPresent = status => status === 'present' || status === 'late'
 
-function dateRange(period) {
-  const end = new Date()
+function dateRange(period, cursor) {
+  const start = new Date(cursor)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(cursor)
   end.setHours(0, 0, 0, 0)
-  const start = new Date(end)
-  if (period === 'week') start.setDate(end.getDate() - 6)
-  else start.setDate(1)
+  if (period === 'week') {
+    const weekday = cursor.getDay()
+    start.setDate(cursor.getDate() - (weekday === 0 ? 6 : weekday - 1))
+    end.setTime(start.getTime())
+    end.setDate(start.getDate() + 6)
+  } else {
+    start.setDate(1)
+    end.setMonth(start.getMonth() + 1, 0)
+  }
   return { start: isoDate(start), end: isoDate(end) }
 }
 
 const labelFor = value => new Date(`${value}T00:00:00`).toLocaleDateString('en-ZW', { weekday: 'short', day: 'numeric', month: 'short' })
+const monthLabel = value => value.toLocaleDateString('en-ZW', { month: 'long', year: 'numeric' })
 
 export default function TeacherAttendanceHistory({ supabase, student, onClose }) {
   const [period, setPeriod] = useState('week')
+  const [cursor, setCursor] = useState(() => new Date())
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const range = useMemo(() => dateRange(period), [period])
+  const range = useMemo(() => dateRange(period, cursor), [period, cursor])
+  const movePeriod = direction => setCursor(current => {
+    const next = new Date(current)
+    if (period === 'month') next.setMonth(next.getMonth() + direction)
+    else next.setDate(next.getDate() + (direction * 7))
+    return next
+  })
 
   useEffect(() => {
     let active = true
@@ -58,10 +74,14 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
       <button type="button" className="teacher-attendance-close" onClick={onClose}>Done</button>
     </div>
     <div className="teacher-attendance-tabs" role="tablist" aria-label="Attendance period">
-      <button type="button" role="tab" aria-selected={period === 'week'} className={period === 'week' ? 'is-active' : ''} onClick={() => setPeriod('week')}>This week</button>
-      <button type="button" role="tab" aria-selected={period === 'month'} className={period === 'month' ? 'is-active' : ''} onClick={() => setPeriod('month')}>This month</button>
+      <button type="button" role="tab" aria-selected={period === 'week'} className={period === 'week' ? 'is-active' : ''} onClick={() => setPeriod('week')}>Week view</button>
+      <button type="button" role="tab" aria-selected={period === 'month'} className={period === 'month' ? 'is-active' : ''} onClick={() => setPeriod('month')}>Month view</button>
     </div>
-    <p className="teacher-attendance-range">{labelFor(range.start)} – {labelFor(range.end)}</p>
+    <div className="teacher-attendance-period-picker">
+      <button type="button" onClick={() => movePeriod(-1)} aria-label={`Previous ${period}`}>‹</button>
+      <strong>{period === 'month' ? monthLabel(cursor) : `${labelFor(range.start)} – ${labelFor(range.end)}`}</strong>
+      <button type="button" onClick={() => movePeriod(1)} aria-label={`Next ${period}`}>›</button>
+    </div>
     <div className="teacher-attendance-summary" aria-label="Attendance summary">
       <div><b>{summary.present}</b><span>Present</span></div>
       <div><b>{summary.absent}</b><span>Absent</span></div>
