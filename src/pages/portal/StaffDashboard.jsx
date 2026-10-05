@@ -16,6 +16,7 @@ import TeacherGradeEntry from '../../components/portal/TeacherGradeEntry';
 import SlideOver from '../../components/ui/SlideOver';
 import ActivityLog from '../../components/portal/ActivityLog'
 import ClassManager from '../../components/portal/ClassManager'
+import TeacherAttendanceHistory from '../../components/portal/TeacherAttendanceHistory'
 import { logActivity } from '../../lib/logActivity'
 import { nextAdmissionNumber } from '../../lib/admissionNumber'
 
@@ -186,7 +187,9 @@ export default function StaffDashboard() {
   const [staffModal, setStaffModal] = useState(false)
   const [staffQuery, setStaffQuery] = useState('')
   const [todayAttendance, setTodayAttendance] = useState({})
+  const [savingAttendance, setSavingAttendance] = useState({})
   const [schoolClasses, setSchoolClasses] = useState([])
+  const [attendanceStudent, setAttendanceStudent] = useState(null)
 
   const selected  = students.find(row => row.id === selectedId)
   const visibleStaff = staff.filter(row => [row.full_name, row.phone, row.role].some(value => value?.toLowerCase().includes(staffQuery.toLowerCase())))
@@ -225,22 +228,30 @@ export default function StaffDashboard() {
   }, [supabase])
 
   const handleToggleAttendance = async (studentId, currentStatus) => {
+    if (savingAttendance[studentId]) return
     const newStatus = currentStatus === 'present' ? undefined : 'present'
     const today = new Date().toISOString().slice(0, 10)
-    
-    // Optimistic update
+    const restoreAttendance = () => setTodayAttendance(prev => {
+      const next = { ...prev }
+      if (currentStatus) next[studentId] = currentStatus
+      else delete next[studentId]
+      return next
+    })
+
     setTodayAttendance(prev => {
       const next = { ...prev }
       if (newStatus) next[studentId] = newStatus
       else delete next[studentId]
       return next
     })
-    
-    // Delete existing record for today (in case no unique constraint exists for upsert)
-    await supabase.from('attendance').delete().match({ student_id: studentId, date: today })
-    
+    setSavingAttendance(prev => ({ ...prev, [studentId]: true }))
+    const { error: deleteError } = await supabase.from('attendance').delete().match({ student_id: studentId, date: today })
+    if (deleteError) {
+      restoreAttendance()
+      setSavingAttendance(prev => ({ ...prev, [studentId]: false }))
+      return showError(deleteError.message)
+    }
     if (newStatus) {
-      // Insert new record
       const { error } = await supabase.from('attendance').insert({ 
         student_id: studentId, 
         date: today, 
@@ -250,12 +261,10 @@ export default function StaffDashboard() {
       
       if (error) {
         showError(error.message)
-        // Revert on error
-        setTodayAttendance(prev => ({ ...prev, [studentId]: currentStatus }))
+        restoreAttendance()
       }
-    } else {
-        // If there was an error in deleting, we might want to revert, but we'll assume it succeeded
     }
+    setSavingAttendance(prev => ({ ...prev, [studentId]: false }))
   }
 
   useEffect(() => {
@@ -441,7 +450,7 @@ export default function StaffDashboard() {
           <div className="dash-page-header">
             <div>
               <h1 className="dash-page-title">Learner Roster</h1>
-              <p className="dash-page-sub">All enrolled learners and records</p>
+              <p className="dash-page-sub">{isTeacher ? 'Mark today’s register, then open a learner for weekly and monthly attendance history.' : 'All enrolled learners and records'}</p>
             </div>
           </div>
 
@@ -475,7 +484,7 @@ export default function StaffDashboard() {
                           <tr key={row.id} className="dash-table-row">
                             <td className="dash-td-name">
                               <span className="dash-learner-avatar">{row.full_name?.[0] ?? '?'}</span>
-                              {row.full_name}
+                              {isTeacher ? <button type="button" className="roster-learner-link" onClick={() => setAttendanceStudent(row)} aria-label={`View attendance for ${row.full_name}`}>{row.full_name}</button> : row.full_name}
                             </td>
                             <td className="mono">{row.admission_number}</td>
                             <td>{row.role === 'teacher' ? (row.teacher_class_assignments?.map(a => a.class_level).join(', ') || '-') : row.class_level}</td>
@@ -483,13 +492,16 @@ export default function StaffDashboard() {
                             <td><StatusPill status={row.status} /></td>
                             {isTeacher && (
                               <td>
-                                <Button 
-                                  variant={todayAttendance[row.id] === 'present' ? 'primary' : 'secondary'} 
+                                <button
+                                  type="button"
+                                  className={`roster-attendance-action${todayAttendance[row.id] === 'present' ? ' is-present' : ''}`}
                                   onClick={() => handleToggleAttendance(row.id, todayAttendance[row.id])}
-                                  style={todayAttendance[row.id] === 'present' ? { backgroundColor: 'var(--success-color)' } : {}}
+                                  disabled={Boolean(savingAttendance[row.id])}
+                                  aria-label={todayAttendance[row.id] === 'present' ? `Marked present today for ${row.full_name}. Click to undo.` : `Mark ${row.full_name} present today`}
                                 >
-                                  {todayAttendance[row.id] === 'present' ? '✓ Present' : 'Present'}
-                                </Button>
+                                  <span aria-hidden="true">{todayAttendance[row.id] === 'present' ? '✓' : '+'}</span>
+                                  {savingAttendance[row.id] ? 'Saving…' : todayAttendance[row.id] === 'present' ? 'Present today' : 'Mark present'}
+                                </button>
                               </td>
                             )}
                             {isAdmin && (
@@ -505,6 +517,10 @@ export default function StaffDashboard() {
                 )
               }
             </Card>
+
+            {isTeacher && <SlideOver open={Boolean(attendanceStudent)} onClose={() => setAttendanceStudent(null)} title="Attendance history" description="Review this learner's daily attendance by week or month.">
+              {attendanceStudent && <TeacherAttendanceHistory supabase={supabase} student={attendanceStudent} onClose={() => setAttendanceStudent(null)} />}
+            </SlideOver>}
 
             {(isAdmin || profile?.role === 'teacher') && (
               <Card>
