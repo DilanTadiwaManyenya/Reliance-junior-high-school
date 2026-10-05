@@ -200,7 +200,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       )}
     </Card>
   );
-  const visibleTabs = teacherView ? tabs.filter((tab) => !["Academics", "Attendance", "Behaviour", "Fees"].includes(tab)) : tabs;
+  const visibleTabs = teacherView ? tabs.filter((tab) => !["Academics", "Fees"].includes(tab)) : tabs;
   const summaryYear = String(new Date().getFullYear());
   const summaryTerm = currentTerm();
   const currentTermAcademics = state.academics.filter((row) => termNumber(row.term) === summaryTerm && String(row.year ?? new Date(row.created_at || Date.now()).getFullYear()) === summaryYear);
@@ -265,13 +265,13 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                 {currentTermPassed}/{currentTermMarks.length} subjects passed this term
               </small>
             </Card>
-            {!teacherView && <Card>
+            <Card>
               <span>Attendance</span>
               <strong>{summary.rate}%</strong>
               <small>
                 {summary.present} present · {summary.absent} absent
               </small>
-            </Card>}
+            </Card>
             <Card>
               <span>Sport & conduct</span>
               <strong>{state.sports.length + state.behavior.length}</strong>
@@ -309,7 +309,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                 View academic report →
               </button>
             </Card>}
-            {!teacherView && <Card>
+            <Card>
               <h2>Attendance snapshot</h2>
               <p>
                 {state.attendance.length
@@ -319,7 +319,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
               <button type="button" onClick={() => setActiveTab("Attendance")}>
                 View attendance history →
               </button>
-            </Card>}
+            </Card>
           </section>
         </>
       )}
@@ -342,25 +342,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           adminAccess
         />
       )}
-      {activeTab === "Attendance" && (teacherView ? <TeacherAttendanceHistory supabase={supabase} student={student} onClose={() => setActiveTab("Summary")} /> :
-        latest(
-          state.attendance,
-          (row) => (
-            <p key={row.id}>
-              <strong>{date(row.date)}</strong>{" "}
-              <span className={`portal-status ${row.status}`}>
-                {row.status}
-              </span>
-              {row.note && (
-                <>
-                  <br />
-                  <span className="muted">{row.note}</span>
-                </>
-              )}
-            </p>
-          ),
-          "No attendance records have been entered yet.",
-        ))}
+      {activeTab === "Attendance" && <TeacherAttendanceHistory supabase={supabase} student={student} onClose={() => setActiveTab("Summary")} />}
       {activeTab === "Sport" &&
         latest(
           state.sports,
