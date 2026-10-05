@@ -14,7 +14,8 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
       items: [
         { id: 'dashboard', label: 'Overview', iconKey: 'dashboard', show: true },
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: true },
-        { id: 'entry', label: 'Records', iconKey: 'entry', show: profile?.role === 'admin' || profile?.role === 'teacher' }
+        { id: 'entry', label: 'Records', iconKey: 'entry', show: profile?.role === 'admin' || profile?.role === 'teacher' },
+        { id: 'settings', label: 'Account settings', iconKey: 'staff', show: true }
       ].filter(i => i.show)
     },
     {

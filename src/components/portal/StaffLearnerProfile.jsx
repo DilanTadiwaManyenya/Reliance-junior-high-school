@@ -27,10 +27,6 @@ const term = (value) =>
 
 export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false }) {
   const [activeTab, setActiveTab] = useState("Summary");
-  const [accountForm, setAccountForm] = useState({ phone: student.parent_phone || "", password: "" });
-  const [accountMessage, setAccountMessage] = useState("");
-  const [accountError, setAccountError] = useState("");
-  const [accountSaving, setAccountSaving] = useState(false);
   const [state, setState] = useState({
     loading: true,
     error: "",
@@ -91,7 +87,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           .select("academic_year, term, class_level, amount"),
         supabase
           .from("teacher_subject_assignments")
-          .select("subject, form_level, teacher_name")
+          .select("subject, form_level")
           .eq("form_level", student.class_level),
       ]);
       if (!mounted) return;
@@ -121,7 +117,6 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           payments.error?.message ||
           termSettings.error?.message ||
           reportFees.error?.message ||
-          subjectTeachers.error?.message ||
           (!optionalAwardsError && awards.error?.message) ||
           "",
         academics: academics.data || [],
@@ -202,17 +197,6 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       )}
     </Card>
   );
-  const updateLearnerAccount = async (operation) => {
-    setAccountError(""); setAccountMessage("");
-    if (operation === "update_phone" && !accountForm.phone.trim()) return setAccountError("Enter the learner contact number.");
-    if (operation === "reset_password" && accountForm.password.length < 8) return setAccountError("The temporary password must be at least 8 characters.");
-    setAccountSaving(true);
-    const { data, error } = await supabase.functions.invoke("manage_student_credentials", { body: { studentId: student.id, operation, phone: accountForm.phone, password: accountForm.password } });
-    setAccountSaving(false);
-    if (error || data?.error) return setAccountError(error?.message || data?.error);
-    setAccountMessage(data?.message || "Learner account updated.");
-    if (operation === "reset_password") setAccountForm(current => ({ ...current, password: "" }));
-  };
   const visibleTabs = teacherView ? tabs.filter((tab) => tab !== "Fees") : tabs;
   const passedAcademics = state.academics.filter((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score) >= 50);
 
@@ -304,11 +288,6 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
               </small>
             </Card>}
           </section>
-          {teacherView && <Card className="teacher-learner-account-card">
-            <div><p className="learner-profile-kicker">Teacher tools</p><h2>Learner account support</h2><p>Update the contact number or set a temporary password for this learner. Fees and uniform purchases are not available to teachers.</p></div>
-            <div className="teacher-learner-account-fields"><label>Contact number<input type="tel" inputMode="tel" value={accountForm.phone} onChange={(event) => setAccountForm(current => ({ ...current, phone: event.target.value }))} placeholder="+263 77 123 4567" /></label><button type="button" className="btn secondary" disabled={accountSaving} onClick={() => updateLearnerAccount("update_phone")}>{accountSaving ? "Saving…" : "Update number"}</button><label>Temporary password<input type="password" minLength="8" value={accountForm.password} onChange={(event) => setAccountForm(current => ({ ...current, password: event.target.value }))} placeholder="At least 8 characters" /></label><button type="button" className="btn primary" disabled={accountSaving} onClick={() => updateLearnerAccount("reset_password")}>{accountSaving ? "Saving…" : "Reset password"}</button></div>
-            {accountError && <p className="teacher-learner-account-error">{accountError}</p>}{accountMessage && <p className="teacher-learner-account-success">{accountMessage}</p>}
-          </Card>}
           <section className="learner-profile-summary-grid">
             <Card>
               <h2>Academic snapshot</h2>
