@@ -10,8 +10,6 @@ const classKey = row => `${row.class_level}::${row.class_stream || ''}`
 const classLabel = key => key.replace('::', ' · ') || 'All assigned classes'
 const unique = values => [...new Set(values)]
 const teacherSubjectGroups = {
-  'ECD & Foundation': unique([...(CURRICULUM_STRUCTURE.ECD_A.subjects || []), ...(CURRICULUM_STRUCTURE.ECD_B.subjects || [])]),
-  'Primary': unique(Object.values(CURRICULUM_STRUCTURE.GRADE_1_7).flat()),
   'Lower Secondary': unique(Object.values(CURRICULUM_STRUCTURE.FORM_1_4).flat()),
   'Arts & Humanities': CURRICULUM_STRUCTURE.FORM_5_6.Arts,
   Commercials: CURRICULUM_STRUCTURE.FORM_5_6.Commercials,
@@ -26,8 +24,9 @@ export default function TeacherGradeEntryV2() {
   const classes = useMemo(() => [...new Set(students.map(classKey))].sort(), [students])
   const visible = useMemo(() => classFilter ? students.filter(row => classKey(row) === classFilter) : students, [classFilter, students])
   const learner = visible.find(row => row.id === studentId)
-  // Teachers can use the full curriculum; learner class only determines the grade scale.
-  const groups = teacherSubjectGroups
+  // Senior teachers receive only secondary curriculum groups; class still controls the grade scale.
+  const isSeniorTeacher = profile?.campus === 'senior' || students.some(row => /^Form\s/.test(row.class_level || ''))
+  const groups = isSeniorTeacher ? teacherSubjectGroups : { 'ECD & Foundation': unique([...(CURRICULUM_STRUCTURE.ECD_A.subjects || []), ...(CURRICULUM_STRUCTURE.ECD_B.subjects || [])]), Primary: unique(Object.values(CURRICULUM_STRUCTURE.GRADE_1_7).flat()), ...teacherSubjectGroups }
   const subjects = useMemo(() => Object.values(groups).flat(), [groups])
   const mark = form.exam_mark === '' ? form.percentage : form.exam_mark
   const outcome = learner ? calculateGrade(mark, learner.class_level) : null
