@@ -2408,7 +2408,9 @@
 .teacher-subject-context-heading span { color: #a6302f; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .teacher-subject-context-heading strong { color: #1b2a56; }
 .teacher-subject-context-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.teacher-subject-context-list span { padding: 7px 10px; border: 1px solid #d4dfed; border-radius: 999px; background: #fff; color: #40506f; font-size: .86rem; }
+.teacher-subject-context-list button { padding: 7px 10px; border: 1px solid #d4dfed; border-radius: 999px; background: #fff; color: #40506f; cursor: pointer; font: inherit; font-size: .86rem; text-align: left; }
+.teacher-subject-context-list button:hover, .teacher-subject-context-list button.active { border-color: #a6302f; background: #a6302f; color: #fff; }
+.teacher-subject-context-list button.active b { color: #fff; }
 .teacher-subject-context-list b { color: #1b2a56; }
 .teacher-subject-context p { margin: 0; color: #64748b; }
 @media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } }

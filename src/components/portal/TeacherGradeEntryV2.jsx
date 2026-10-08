@@ -28,20 +28,21 @@ const teacherSubjectGroups = {
 
 export default function TeacherGradeEntryV2() {
   const { supabase, user, profile } = useAuth()
-  const { teacherWorkspace } = useSection()
+  const { teacherWorkspace, selectedSubjectAllocationId } = useSection()
   const [students, setStudents] = useState([]); const [classFilter, setClassFilter] = useState(''); const [studentId, setStudentId] = useState('')
   const [form, setForm] = useState(blank); const [saved, setSaved] = useState([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('')
   useEffect(() => { let active = true; supabase.from('students').select('id, full_name, admission_number, class_level, class_stream').order('full_name').then(({ data, error: requestError }) => { if (!active) return; setStudents(data || []); setError(requestError ? 'Unable to load your learners.' : ''); setLoading(false) }); return () => { active = false } }, [supabase])
   const subjectAssignments = profile?.teacher_class_subject_assignments || []
+  const activeSubjectAssignments = selectedSubjectAllocationId ? subjectAssignments.filter(assignment => assignment.id === selectedSubjectAllocationId) : subjectAssignments
   const subjectWorkspaceStudents = useMemo(() => teacherWorkspace === 'subjects'
-    ? students.filter(student => subjectAssignments.some(assignment => assignment.class_level === student.class_level && (assignment.class_stream || '') === (student.class_stream || '')))
-    : students, [students, subjectAssignments, teacherWorkspace])
+    ? students.filter(student => activeSubjectAssignments.some(assignment => assignment.class_level === student.class_level && (assignment.class_stream || '') === (student.class_stream || '')))
+    : students, [students, activeSubjectAssignments, teacherWorkspace])
   const classes = useMemo(() => [...new Set(subjectWorkspaceStudents.map(classKey))].sort(), [subjectWorkspaceStudents])
   const visible = useMemo(() => classFilter ? subjectWorkspaceStudents.filter(row => classKey(row) === classFilter) : subjectWorkspaceStudents, [classFilter, subjectWorkspaceStudents])
   const learner = visible.find(row => row.id === studentId)
   // Senior teachers receive only secondary curriculum groups; class still controls the grade scale.
   const isSeniorTeacher = profile?.campus === 'senior' || students.some(row => /^Form\s/.test(row.class_level || ''))
-  const assignedSubjects = learner ? unique(subjectAssignments.filter(assignment => assignment.class_level === learner.class_level && (assignment.class_stream || '') === (learner.class_stream || '')).map(assignment => assignment.subject)) : unique(subjectAssignments.map(assignment => assignment.subject))
+  const assignedSubjects = learner ? unique(activeSubjectAssignments.filter(assignment => assignment.class_level === learner.class_level && (assignment.class_stream || '') === (learner.class_stream || '')).map(assignment => assignment.subject)) : unique(activeSubjectAssignments.map(assignment => assignment.subject))
   const groups = teacherWorkspace === 'subjects'
     ? { 'Assigned subjects': assignedSubjects }
     : uniqueSubjectGroups(isSeniorTeacher ? teacherSubjectGroups : { 'ECD & Foundation': unique([...(CURRICULUM_STRUCTURE.ECD_A.subjects || []), ...(CURRICULUM_STRUCTURE.ECD_B.subjects || [])]), Primary: unique(Object.values(CURRICULUM_STRUCTURE.GRADE_1_7).flat()), ...teacherSubjectGroups })
