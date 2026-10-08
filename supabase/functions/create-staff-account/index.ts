@@ -31,14 +31,15 @@ Deno.serve(async request => {
     const classStream = String(input.classStream ?? '').trim()
     const campus = String(input.campus ?? '').trim()
     const classAssigned = role === 'teacher' ? `${classLevel} ${classStream}`.trim() : null
+    const classAssignments = Array.isArray(input.classAssignments) && input.classAssignments.length ? input.classAssignments.map(String).filter(Boolean) : (classLevel ? [classLevel] : [])
 
     if (!fullName) throw new Error('Enter the staff member’s full name.')
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error('Enter a valid international phone number.')
     if (password.length < 8) throw new Error('The password must be at least 8 characters.')
     if (!roles.has(role)) throw new Error('Choose a valid staff role.')
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
-    if (role === 'teacher' && (!classLevel || (campus === 'senior' && !classStream))) throw new Error('Teachers require a class level; Senior teachers also require a stream.')
-    if (role === 'teacher' && ((campus === 'junior') !== /^(ECD|Grade)/.test(classLevel))) throw new Error('The selected teacher class must belong to the selected campus.')
+    if (role === 'teacher' && (!classAssignments.length || (campus === 'senior' && !classStream))) throw new Error('Teachers require a class level; Senior teachers also require a stream.')
+    if (role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) throw new Error('Each selected teacher class must belong to the selected campus.')
 
     const { data: existing, error: duplicateError } = await admin.from('profiles').select('id').eq('phone', phone).maybeSingle()
     if (duplicateError) throw duplicateError
@@ -56,7 +57,7 @@ Deno.serve(async request => {
     const account = await admin.from('staff_accounts').upsert({ user_id: createdUserId, role, phone_number: phone, name: fullName, class_assigned: classAssigned, campus, created_by: user.id }, { onConflict: 'user_id' })
     if (account.error) throw account.error
     if (role === 'teacher') {
-      const assignment = await admin.from('teacher_class_assignments').insert({ teacher_id: createdUserId, class_level: classLevel, class_stream: classStream, campus })
+      const assignment = await admin.from('teacher_class_assignments').insert(classAssignments.map((level: string) => ({ teacher_id: createdUserId, class_level: level, class_stream: classStream, campus })))
       if (assignment.error) throw assignment.error
     }
 

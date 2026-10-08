@@ -579,6 +579,7 @@ export default function StaffDashboard() {
     campus: "junior",
     classLevel: "",
     classStream: "",
+    classAssignments: [],
   });
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -842,6 +843,7 @@ export default function StaffDashboard() {
       campus: "junior",
       classLevel: "",
       classStream: "",
+      classAssignments: [],
     });
     loadStaff();
     setStaffModal(false);
@@ -1789,6 +1791,7 @@ export default function StaffDashboard() {
                   </label>
                   {staffForm.role === "teacher" && (
                     <>
+                      <fieldset style={{ gridColumn: "1 / -1" }}><legend>Class assignments</legend>{CLASS_LEVELS.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map(level => <label key={level} style={{ display: "inline-flex", marginRight: "12px", gap: "6px" }}><input type="checkbox" checked={staffForm.classAssignments.includes(level)} onChange={(e) => setStaffForm(x => ({ ...x, classAssignments: e.target.checked ? [...x.classAssignments, level] : x.classAssignments.filter(value => value !== level), classLevel: e.target.checked ? (x.classLevel || level) : x.classLevel }))} />{level}</label>)}</fieldset>
                       <label>
                         Class level
                         <select
