@@ -27,7 +27,7 @@ const LogoutIcon = () => (
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection } = useSection()
+  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace } = useSection()
 
   const handleLogout = async () => {
     navigate('/portal', { replace: true })
@@ -107,8 +107,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
         <div className="top-bar-user">
           {profile?.role === 'teacher' && (
             <div className="teacher-workspace-switch" aria-label="Teacher workspace">
-              <button type="button" className={section === 'coursework' ? '' : 'active'} onClick={() => setSection('roster')}>Classes</button>
-              <button type="button" className={section === 'coursework' ? 'active' : ''} onClick={() => setSection('coursework')}>Subjects</button>
+              <button type="button" className={teacherWorkspace === 'classes' ? 'active' : ''} onClick={() => setTeacherWorkspace('classes')}>Classes</button>
+              <button type="button" className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subjects</button>
             </div>
           )}
           <div className="top-bar-class-control" style={{ marginRight: '20px' }}>

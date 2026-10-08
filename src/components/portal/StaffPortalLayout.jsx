@@ -15,7 +15,9 @@ export const SectionContext = createContext({
   activeClassKey: '',
   setActiveClassKey: () => {},
   activeClassFilter: { level: null, stream: null },
-  setActiveClassFilter: () => {}
+  setActiveClassFilter: () => {},
+  teacherWorkspace: 'classes',
+  setTeacherWorkspace: () => {}
 })
 export const useSection = () => useContext(SectionContext)
 
@@ -24,7 +26,8 @@ export default function StaffPortalLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const role = profile?.active_role ?? profile?.role
-  const requestedSection = new URLSearchParams(location.search).get('section')
+  const searchParams = new URLSearchParams(location.search)
+  const requestedSection = searchParams.get('section')
   const sectionConfig = {
     admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'activity'] },
@@ -34,6 +37,7 @@ export default function StaffPortalLayout() {
   const section = requestedSection && sectionConfig.allowed.includes(requestedSection)
     ? requestedSection
     : sectionConfig.defaultSection
+  const teacherWorkspace = role === 'teacher' && searchParams.get('workspace') === 'subjects' ? 'subjects' : 'classes'
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [activeClassKey, setActiveClassKey] = useState('')
@@ -42,11 +46,16 @@ export default function StaffPortalLayout() {
   const toggleCollapse = () => setCollapsed(c => !c)
   const toggleMobile   = () => setMobileOpen(o => !o)
   const closeMobile    = () => setMobileOpen(false)
-  const changeSection = nextSection => {
-    if (!sectionConfig.allowed.includes(nextSection) || section === nextSection) return
-    const search = nextSection === sectionConfig.defaultSection ? '' : `?section=${nextSection}`
+  const navigateToSection = (nextSection, nextWorkspace = teacherWorkspace) => {
+    if (!sectionConfig.allowed.includes(nextSection)) return
+    const nextSearch = new URLSearchParams()
+    if (nextSection !== sectionConfig.defaultSection) nextSearch.set('section', nextSection)
+    if (role === 'teacher' && nextWorkspace === 'subjects') nextSearch.set('workspace', 'subjects')
+    const search = nextSearch.toString() ? `?${nextSearch.toString()}` : ''
     navigate({ pathname: location.pathname, search })
   }
+  const changeSection = nextSection => navigateToSection(nextSection)
+  const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'coursework' : 'roster', workspace)
   const goBack = () => changeSection(sectionConfig.defaultSection)
   useEffect(() => {
     if (!user || !profile) return
@@ -54,7 +63,7 @@ export default function StaffPortalLayout() {
   }, [section, location.pathname, profile, supabase, user])
 
   return (
-    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter }}>
+    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, setTeacherWorkspace: changeTeacherWorkspace }}>
       <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${profile?.role === 'accountant' ? ' no-sidebar' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}
@@ -88,6 +97,7 @@ export default function StaffPortalLayout() {
               <PortalSidebar
                 section={section}
                 setSection={changeSection}
+                teacherWorkspace={teacherWorkspace}
                 collapsed={collapsed}
                 onClose={closeMobile}
               />
