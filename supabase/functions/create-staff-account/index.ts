@@ -19,8 +19,8 @@ Deno.serve(async request => {
     if (!token) throw new Error('Your session has expired. Please sign in again.')
     const { data: { user }, error: userError } = await admin.auth.getUser(token)
     if (userError || !user) throw new Error('Your session has expired. Please sign in again.')
-    const { data: caller, error: callerError } = await admin.from('profiles').select('role').eq('id', user.id).single()
-    if (callerError || caller?.role !== 'admin') throw new Error('Only administrators can create staff accounts.')
+    const { data: caller, error: callerError } = await admin.from('profiles').select('role, active_role').eq('id', user.id).single()
+    if (callerError || caller?.role !== 'admin' || caller?.active_role !== 'admin') throw new Error('Switch to the Admin role before creating staff accounts.')
 
     const input = await request.json()
     const fullName = String(input.fullName ?? input.name ?? '').trim()
