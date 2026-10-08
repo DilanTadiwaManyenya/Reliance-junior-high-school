@@ -97,7 +97,7 @@ export default function ClassManager({ supabase, onChanged }) {
     const row = {
       ...form,
       class_level: form.class_level.trim(),
-      class_stream: form.class_stream.trim() || null,
+      class_stream: form.campus === "junior" ? null : form.class_stream.trim() || null,
       updated_at: new Date().toISOString(),
     };
     const previous = classes.find((item) => item.id === editingId);
@@ -291,7 +291,7 @@ export default function ClassManager({ supabase, onChanged }) {
               <p>
                 {editingId
                   ? "Update details; enrolled learners move with this class."
-                  : "Create a class level and optional stream."}
+                  : "Create a class. Junior classes do not use streams."}
               </p>
             </div>
           </div>
@@ -313,25 +313,30 @@ export default function ClassManager({ supabase, onChanged }) {
                 }
               />
             </label>
-            <label>
-              Stream <span className="field-optional">Optional</span>
-              <input
-                value={form.class_stream}
-                placeholder="e.g. Blue"
-                onChange={(e) =>
-                  setForm((value) => ({
-                    ...value,
-                    class_stream: e.target.value,
-                  }))
-                }
-              />
-            </label>
+            {form.campus === "senior" ? (
+              <label>
+                Stream <span className="field-optional">Optional</span>
+                <input
+                  value={form.class_stream}
+                  placeholder="e.g. Blue"
+                  onChange={(e) =>
+                    setForm((value) => ({ ...value, class_stream: e.target.value }))
+                  }
+                />
+              </label>
+            ) : (
+              <p className="muted">Junior classes are grade-based and do not use streams.</p>
+            )}
             <label>
               Campus
               <select
                 value={form.campus}
                 onChange={(e) =>
-                  setForm((value) => ({ ...value, campus: e.target.value }))
+                  setForm((value) => ({
+                    ...value,
+                    campus: e.target.value,
+                    class_stream: e.target.value === "junior" ? "" : value.class_stream,
+                  }))
                 }
               >
                 <option value="junior">Junior campus</option>
