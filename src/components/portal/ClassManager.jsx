@@ -526,6 +526,10 @@ export default function ClassManager({ supabase, onChanged }) {
                 Close
               </Button>
             </div>
+            <div className="class-manager-subject-teachers" aria-label="Assigned subject teachers">
+              <strong>Subject teachers</strong>
+              <div>{subjectCoverageForClass(selectedClass).map((item) => <span key={item.subject}><b>{item.subject}</b> — {item.teacher?.full_name || "Unassigned"}</span>)}</div>
+            </div>
             <div className="class-manager-detail-grid">
               <Card className="class-manager-panel class-manager-coverage">
                 <div className="class-manager-panel-heading">
@@ -534,7 +538,7 @@ export default function ClassManager({ supabase, onChanged }) {
                     <p>Assigned teachers are shown per subject. Gaps need a teacher allocation.</p>
                   </div>
                 </div>
-                {subjectCoverageForClass(selectedClass).length ? <div className="class-subject-coverage">{subjectCoverageForClass(selectedClass).map((item) => <div className="class-subject-coverage-row" key={item.subject}><span>{item.subject}</span>{item.teacher ? <strong>{item.teacher.full_name}</strong> : <span className="class-status is-inactive">Unassigned</span>}</div>)}</div> : <p className="muted">No curriculum subjects are configured for this class yet.</p>}
+                {subjectCoverageForClass(selectedClass).length ? <div className="class-subject-coverage">{subjectCoverageForClass(selectedClass).map((item) => <div className="class-subject-coverage-row" key={item.subject}><span>{item.subject}</span>{item.teacher ? <strong>Teacher: {item.teacher.full_name}</strong> : <span className="class-status is-inactive">Unassigned</span>}</div>)}</div> : <p className="muted">No curriculum subjects are configured for this class yet.</p>}
               </Card>
               <Card className="class-manager-panel class-manager-enrol">
                 <div className="class-manager-panel-heading">
