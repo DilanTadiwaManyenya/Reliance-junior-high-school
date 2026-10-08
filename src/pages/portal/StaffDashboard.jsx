@@ -593,6 +593,7 @@ export default function StaffDashboard() {
   });
   const [staffModal, setStaffModal] = useState(false);
   const [staffQuery, setStaffQuery] = useState("");
+  const [staffCampusFilter, setStaffCampusFilter] = useState("all");
   const [todayAttendance, setTodayAttendance] = useState({});
   const [savingAttendance, setSavingAttendance] = useState({});
   const [schoolClasses, setSchoolClasses] = useState([]);
@@ -604,7 +605,7 @@ export default function StaffDashboard() {
   const visibleStaff = staff.filter((row) =>
     [row.full_name, row.phone, row.role].some((value) =>
       value?.toLowerCase().includes(staffQuery.toLowerCase()),
-    ),
+    ) && (staffCampusFilter === "all" || row.campus === staffCampusFilter),
   );
   const showError = (value) => {
     setNotice("");
@@ -639,7 +640,7 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, phone, role, teacher_class_assignments (class_level, class_stream)",
+        "id, full_name, phone, role, campus, teacher_class_assignments (class_level, class_stream)",
       )
       .order("full_name");
     if (requestError) showError(requestError.message);
@@ -1156,6 +1157,7 @@ export default function StaffDashboard() {
                     placeholder="Name or admission number"
                   />
                 </label>
+                <label className="portal-inline-search">Campus<select value={staffCampusFilter} onChange={(e) => setStaffCampusFilter(e.target.value)}><option value="all">All campuses</option><option value="junior">Junior School</option><option value="senior">Senior School</option></select></label>
               </div>
               {loading ? (
                 <p className="muted">
@@ -1943,6 +1945,7 @@ export default function StaffDashboard() {
                       <th>Name</th>
                       <th>Phone</th>
                       <th>Role</th>
+                      <th>Campus</th>
                       <th>Class</th>
                       {isAdmin && <th>Action</th>}
                     </tr>
@@ -1972,6 +1975,7 @@ export default function StaffDashboard() {
                             {row.role}
                           </span>
                         </td>
+                        <td>{row.campus === "junior" ? "Junior" : row.campus === "senior" ? "Senior" : "—"}</td>
                         <td>
                           <span className="staff-class-list">
                             {row.role === "teacher"
