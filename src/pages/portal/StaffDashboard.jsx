@@ -30,6 +30,7 @@ import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import BulkStudentImport from "../../components/portal/BulkStudentImport";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
 import GradeBands from "../../components/portal/GradeBands";
+import ProgressReports from "../../components/portal/ProgressReports";
 
 const records = {
   attendance: "attendance",
@@ -596,6 +597,7 @@ export default function StaffDashboard() {
   const [schoolClasses, setSchoolClasses] = useState([]);
   const [attendanceStudent, setAttendanceStudent] = useState(null);
   const [profileStudent, setProfileStudent] = useState(null);
+  const [profileInitialTab, setProfileInitialTab] = useState("Summary");
 
   const selected = students.find((row) => row.id === selectedId);
   const visibleStaff = staff.filter((row) =>
@@ -1005,7 +1007,8 @@ export default function StaffDashboard() {
         supabase={supabase}
         student={profileStudent}
         teacherView={isTeacher}
-        onBack={() => setProfileStudent(null)}
+        initialTab={profileInitialTab}
+        onBack={() => { setProfileStudent(null); setProfileInitialTab("Summary"); }}
       />
     );
 
@@ -1092,6 +1095,8 @@ export default function StaffDashboard() {
     );
   if (section === "grade-bands" && isAdmin)
     return <div className="staff-content-area"><GradeBands /></div>;
+  if (section === "progress-reports" && (isAdmin || isTeacher))
+    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} onOpenReport={student => { setProfileInitialTab("Academics"); setProfileStudent(student); }} /></div>;
   if (section === "classes" && isAdmin)
     return (
       <div className="staff-content-area">

@@ -28,8 +28,8 @@ const term = (value) =>
 const termNumber = (value) => String(value ?? "").replace(/^term\s*/i, "");
 const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
 
-export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false }) {
-  const [activeTab, setActiveTab] = useState("Summary");
+export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false, initialTab = "Summary" }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [state, setState] = useState({
     loading: true,
     error: "",
@@ -139,6 +139,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       mounted = false;
     };
   }, [supabase, student.id]);
+
+  useEffect(() => setActiveTab(initialTab), [initialTab, student.id]);
 
   const summary = useMemo(() => {
     const present = state.attendance.filter((row) =>

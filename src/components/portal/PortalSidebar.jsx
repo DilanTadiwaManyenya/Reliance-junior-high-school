@@ -24,6 +24,7 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
         { id: 'bulk-import', label: 'Bulk learner import', iconKey: 'roster', show: profile?.role === 'admin' },
         { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: profile?.role === 'admin' },
         { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: profile?.role === 'admin' },
+        { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'teacher'].includes(profile?.role) },
         { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
         { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
         { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: ['admin', 'accountant'].includes(profile?.active_role ?? profile?.role) },

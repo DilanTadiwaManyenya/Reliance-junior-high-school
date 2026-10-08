@@ -1,0 +1,7 @@
+import { useMemo, useState } from 'react'
+
+export default function ProgressReports({ students, loading, onOpenReport }) {
+  const [query, setQuery] = useState('')
+  const shown = useMemo(() => students.filter(student => `${student.full_name} ${student.admission_number}`.toLowerCase().includes(query.toLowerCase())), [students, query])
+  return <div className="dash-section"><div className="dash-page-header"><div><h1 className="dash-page-title">Progress reports</h1><p className="dash-page-sub">Open an academic report, choose a term, then print or save it as a PDF.</p></div></div><section className="card" style={{ padding: '20px' }}><label className="portal-inline-search">Find a learner<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name or admission number" /></label>{loading ? <p className="muted">Loading learners…</p> : <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Admission no.</th><th>Class</th><th /></tr></thead><tbody>{shown.map(student => <tr key={student.id}><td><strong>{student.full_name}</strong></td><td>{student.admission_number || '—'}</td><td>{student.class_level} {student.class_stream || ''}</td><td><button type="button" className="btn secondary" onClick={() => onOpenReport(student)}>Open report</button></td></tr>)}</tbody></table></div>}{!loading && !shown.length && <p className="muted">No learners match this search.</p>}</section></div>
+}
