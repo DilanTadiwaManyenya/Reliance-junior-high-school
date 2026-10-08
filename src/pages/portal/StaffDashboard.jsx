@@ -34,6 +34,39 @@ import ProgressReports from "../../components/portal/ProgressReports";
 import CourseWork from "../../components/portal/CourseWork";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
+function StaffSubjectAssignments({ staff }) {
+  if (staff.role !== "teacher") return "—";
+
+  const assignments = staff.teacher_class_subject_assignments ?? [];
+  if (!assignments.length) {
+    return <span className="staff-subjects-empty">No subjects assigned</span>;
+  }
+
+  const assignmentsByClass = assignments.reduce((groups, assignment) => {
+    const classLabel = [assignment.class_level, assignment.class_stream]
+      .filter(Boolean)
+      .join(" ") || "Unassigned class";
+    if (!groups.has(classLabel)) groups.set(classLabel, new Set());
+    groups.get(classLabel).add(assignment.subject);
+    return groups;
+  }, new Map());
+
+  return (
+    <div className="staff-subjects-by-class">
+      {[...assignmentsByClass.entries()].map(([classLabel, subjects]) => (
+        <div className="staff-subject-group" key={classLabel}>
+          <strong>{classLabel}</strong>
+          <div className="staff-subject-chip-list">
+            {[...subjects].map((subject) => (
+              <span className="staff-subject-chip" key={subject}>{subject}</span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const records = {
   attendance: "attendance",
   academic: "academic_records",
@@ -2307,6 +2340,7 @@ export default function StaffDashboard() {
                       <th>Role</th>
                       <th>Campus</th>
                       <th>Class</th>
+                      <th>Subjects assigned</th>
                       <th>Status</th>
                       {isAdmin && <th>Action</th>}
                     </tr>
@@ -2357,6 +2391,7 @@ export default function StaffDashboard() {
                               : "—"}
                           </span>
                         </td>
+                        <td><StaffSubjectAssignments staff={row} /></td>
                         <td>
                           <span className={`class-status ${row.portal_access_enabled === false ? "is-inactive" : "is-active"}`}>
                             {row.portal_access_enabled === false ? "Deactivated" : "Active"}
@@ -2377,7 +2412,7 @@ export default function StaffDashboard() {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={isAdmin ? 7 : 6} className="muted">
+                        <td colSpan={isAdmin ? 8 : 7} className="muted">
                           No staff match these filters.
                         </td>
                       </tr>
