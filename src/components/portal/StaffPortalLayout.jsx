@@ -118,7 +118,7 @@ export default function StaffPortalLayout() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
-          {role === 'teacher' && teacherWorkspace === 'subjects' && <SubjectAllocationBanner profile={profile} />}
+          {role === 'teacher' && teacherWorkspace === 'subjects' && section !== 'settings' && <SubjectAllocationBanner profile={profile} />}
           <Outlet />
         </motion.main>
 

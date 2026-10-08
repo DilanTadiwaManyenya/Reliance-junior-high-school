@@ -111,15 +111,15 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
               <button type="button" className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subjects</button>
             </div>
           )}
-          <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
-          <ClassSelector 
-            role={profile?.role} 
-            assignedClasses={profile?.teacher_class_assignments || []} 
-            allClasses={ALL_CLASS_OPTIONS} 
-            activeClassKey={activeClassKey} 
-            onClassChange={handleClassChange} 
-          />
-          </div>
+          {!(profile?.role === 'teacher' && teacherWorkspace === 'subjects') && <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
+            <ClassSelector 
+              role={profile?.role} 
+              assignedClasses={profile?.teacher_class_assignments || []} 
+              allClasses={ALL_CLASS_OPTIONS} 
+              activeClassKey={activeClassKey} 
+              onClassChange={handleClassChange} 
+            />
+          </div>}
           {profile?.role === 'teacher' ? (
             section !== 'dashboard' && <button className="top-bar-back" onClick={() => setSection('dashboard')} title="Return to your teaching overview">← Overview</button>
           ) : (
