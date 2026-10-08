@@ -31,7 +31,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
   const handleLogout = async () => {
     await signOut()
-    navigate('/portal/login')
+    navigate('/portal', { replace: true })
   }
 
   const handleClassChange = (key, option) => {
