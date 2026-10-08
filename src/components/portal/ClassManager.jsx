@@ -17,6 +17,8 @@ const classLabel = (row) =>
 export default function ClassManager({ supabase, onChanged }) {
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [teacherAssignments, setTeacherAssignments] = useState([]);
+  const [staffProfiles, setStaffProfiles] = useState([]);
   const [form, setForm] = useState(blankClass);
   const [learner, setLearner] = useState(blankLearner);
   const [selectedId, setSelectedId] = useState("");
@@ -40,14 +42,26 @@ export default function ClassManager({ supabase, onChanged }) {
   const activeClassStudents = classStudents.filter(
     (row) => row.status === "active",
   ).length;
+  const teacherForClass = (classRow) => {
+    const assignment = teacherAssignments.find(
+      (item) =>
+        item.class_level === classRow.class_level &&
+        (item.class_stream || "") === (classRow.class_stream || ""),
+    );
+    if (!assignment) return null;
+    const teacher = staffProfiles.find((profile) => profile.id === assignment.teacher_id);
+    return teacher?.portal_access_enabled === false ? null : teacher || null;
+  };
   const load = async () => {
-    const [classResult, studentResult] = await Promise.all([
+    const [classResult, studentResult, assignmentResult, staffResult] = await Promise.all([
       supabase
         .from("school_classes")
         .select("*")
         .order("campus")
         .order("class_level"),
       supabase.from("students").select("*").order("full_name"),
+      supabase.from("teacher_class_assignments").select("teacher_id, class_level, class_stream"),
+      supabase.from("profiles").select("id, full_name, portal_access_enabled").eq("role", "teacher"),
     ]);
     if (classResult.error) {
       if (isMissingTable(classResult.error)) setSetupRequired(true);
@@ -58,6 +72,10 @@ export default function ClassManager({ supabase, onChanged }) {
     setClasses(classResult.data ?? []);
     if (studentResult.error) setError(studentResult.error.message);
     else setStudents(studentResult.data ?? []);
+    if (assignmentResult.error) setError(assignmentResult.error.message);
+    else setTeacherAssignments(assignmentResult.data ?? []);
+    if (staffResult.error) setError(staffResult.error.message);
+    else setStaffProfiles(staffResult.data ?? []);
   };
   useEffect(() => {
     load();
@@ -341,8 +359,9 @@ export default function ClassManager({ supabase, onChanged }) {
               <thead>
                 <tr>
                   <th>Class</th>
-                  <th>Campus</th>
-                  <th>Status</th>
+                      <th>Campus</th>
+                      <th>Teacher</th>
+                      <th>Status</th>
                   <th className="class-manager-actions-head">Manage</th>
                 </tr>
               </thead>
@@ -363,6 +382,13 @@ export default function ClassManager({ supabase, onChanged }) {
                       </td>
                       <td>
                         <span className="class-campus">{row.campus}</span>
+                      </td>
+                      <td>
+                        {teacherForClass(row) ? (
+                          <strong>{teacherForClass(row).full_name}</strong>
+                        ) : (
+                          <span className="class-status is-inactive">Unassigned</span>
+                        )}
                       </td>
                       <td>
                         <span
@@ -414,7 +440,7 @@ export default function ClassManager({ supabase, onChanged }) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="muted class-manager-empty">
+                    <td colSpan="5" className="muted class-manager-empty">
                       No classes have been added yet.
                     </td>
                   </tr>

@@ -559,6 +559,7 @@ export default function StaffDashboard() {
 
   const manager = ["admin", "principal"].includes(profile?.role);
   const isAdmin = profile?.role === "admin";
+  const isMainAdmin = isAdmin && profile?.campus === "all";
   const accountant = profile?.role === "accountant";
   const canViewLearnerProfile = manager || accountant;
 
@@ -593,6 +594,15 @@ export default function StaffDashboard() {
     saving: false,
   });
   const [staffModal, setStaffModal] = useState(false);
+  const [staffEditor, setStaffEditor] = useState({
+    open: false,
+    staff: null,
+    fullName: "",
+    campus: "junior",
+    classAssignments: [],
+    classStream: "",
+    saving: false,
+  });
   const [staffQuery, setStaffQuery] = useState("");
   const [staffCampusFilter, setStaffCampusFilter] = useState("all");
   const [todayAttendance, setTodayAttendance] = useState({});
@@ -641,7 +651,7 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, phone, role, campus, teacher_class_assignments (class_level, class_stream)",
+        "id, full_name, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream)",
       )
       .order("full_name");
     if (requestError) showError(requestError.message);
@@ -878,6 +888,88 @@ export default function StaffDashboard() {
       password: "",
       saving: false,
     });
+  };
+
+  const openStaffEditor = (row) => {
+    const assignments = row.teacher_class_assignments || [];
+    setStaffEditor({
+      open: true,
+      staff: row,
+      fullName: row.full_name || "",
+      campus: row.campus === "senior" ? "senior" : "junior",
+      classAssignments: assignments.map((assignment) => assignment.class_level),
+      classStream: assignments.find((assignment) => assignment.class_stream)?.class_stream || "",
+      saving: false,
+    });
+  };
+
+  const closeStaffEditor = () =>
+    setStaffEditor({ open: false, staff: null, fullName: "", campus: "junior", classAssignments: [], classStream: "", saving: false });
+
+  const saveStaffEditor = async (event) => {
+    event.preventDefault();
+    if (!staffEditor.staff) return;
+    setError("");
+    setNotice("");
+    setStaffEditor((value) => ({ ...value, saving: true }));
+    const { data, error: requestError } = await invokeEdgeFunction(supabase, "manage-staff-account", {
+      action: "update",
+      user_id: staffEditor.staff.id,
+      full_name: staffEditor.fullName,
+      campus: staffEditor.campus,
+      class_assignments: staffEditor.classAssignments,
+      class_stream: staffEditor.campus === "senior" ? staffEditor.classStream : "",
+    });
+    setStaffEditor((value) => ({ ...value, saving: false }));
+    if (requestError || data?.success === false || data?.error)
+      return showError(data?.error || requestError?.message || "Unable to update staff account.");
+    logActivity(supabase, user, profile, {
+      actionType: "update",
+      description: `Updated staff account for ${staffEditor.fullName}`,
+      targetTable: "profiles",
+      targetId: staffEditor.staff.id,
+    });
+    setNotice(data?.message || "Staff account updated.");
+    closeStaffEditor();
+    loadStaff();
+  };
+
+  const changeStaffAccess = async (row, action) => {
+    const label = action === "deactivate" ? "deactivate" : "reactivate";
+    if (!window.confirm(`${label[0].toUpperCase()}${label.slice(1)} ${row.full_name}'s portal account? Their staff record and class history will be retained.`)) return;
+    setError("");
+    setNotice("");
+    const { data, error: requestError } = await invokeEdgeFunction(supabase, "manage-staff-account", {
+      action,
+      user_id: row.id,
+    });
+    if (requestError || data?.success === false || data?.error)
+      return showError(data?.error || requestError?.message || `Unable to ${label} staff account.`);
+    logActivity(supabase, user, profile, {
+      actionType: "update",
+      description: `${action === "deactivate" ? "Deactivated" : "Reactivated"} staff account for ${row.full_name}`,
+      targetTable: "profiles",
+      targetId: row.id,
+    });
+    setNotice(data?.message || `Staff account ${label}d.`);
+    loadStaff();
+  };
+
+  const deleteStaffAccount = async (row) => {
+    if (!window.confirm(`Permanently delete ${row.full_name}'s account? This cannot be undone. Their teaching assignments will be removed, and affected classes will show as unassigned.`)) return;
+    setError("");
+    setNotice("");
+    const { data, error: requestError } = await invokeEdgeFunction(supabase, "remove-staff-account", { user_id: row.id });
+    if (requestError || data?.success === false || data?.error)
+      return showError(data?.error || requestError?.message || "Unable to delete staff account.");
+    logActivity(supabase, user, profile, {
+      actionType: "delete",
+      description: `Deleted staff account for ${row.full_name}`,
+      targetTable: "profiles",
+      targetId: row.id,
+    });
+    setNotice(`${row.full_name}'s account was permanently deleted.`);
+    loadStaff();
   };
 
   const handleResetSubmit = async (event) => {
@@ -1862,6 +1954,101 @@ export default function StaffDashboard() {
               </SlideOver>
             )}
 
+            {isMainAdmin && staffEditor.open && (
+              <SlideOver
+                open={staffEditor.open}
+                onClose={closeStaffEditor}
+                title={`Manage ${staffEditor.staff?.full_name || "staff member"}`}
+                description="Update their account details, class allocations and portal access. Removing a class allocation immediately leaves that class unassigned unless another active teacher is allocated."
+              >
+                <form className="form portal-form" onSubmit={saveStaffEditor}>
+                  <label>
+                    Full name
+                    <input
+                      required
+                      value={staffEditor.fullName}
+                      onChange={(e) => setStaffEditor((value) => ({ ...value, fullName: e.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    Campus
+                    <select
+                      value={staffEditor.campus}
+                      onChange={(e) => setStaffEditor((value) => ({
+                        ...value,
+                        campus: e.target.value,
+                        classAssignments: [],
+                        classStream: "",
+                      }))}
+                    >
+                      <option value="junior">Junior School</option>
+                      <option value="senior">Senior School</option>
+                    </select>
+                  </label>
+                  {staffEditor.staff?.role === "teacher" && (
+                    <>
+                      <fieldset style={{ gridColumn: "1 / -1" }}>
+                        <legend>Class assignments</legend>
+                        <p className="muted" style={{ marginTop: 0 }}>
+                          Untick a class to remove this teacher from it. A class with no active teacher will be marked Unassigned in Class Management.
+                        </p>
+                        {CLASS_LEVELS.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
+                          <label key={level} style={{ display: "inline-flex", marginRight: "12px", gap: "6px" }}>
+                            <input
+                              type="checkbox"
+                              checked={staffEditor.classAssignments.includes(level)}
+                              onChange={(e) => setStaffEditor((value) => ({
+                                ...value,
+                                classAssignments: e.target.checked
+                                  ? [...new Set([...value.classAssignments, level])]
+                                  : value.classAssignments.filter((assignment) => assignment !== level),
+                              }))}
+                            />
+                            {level}
+                          </label>
+                        ))}
+                      </fieldset>
+                      {staffEditor.campus === "senior" ? (
+                        <label>
+                          Class stream
+                          <select
+                            required
+                            disabled={!staffEditor.classAssignments.length}
+                            value={staffEditor.classStream}
+                            onChange={(e) => setStaffEditor((value) => ({ ...value, classStream: e.target.value }))}
+                          >
+                            <option value="">Choose class stream</option>
+                            {getStreamsForLevel(staffEditor.classAssignments[0] || "").map((stream) => <option key={stream}>{stream}</option>)}
+                          </select>
+                        </label>
+                      ) : (
+                        <p className="muted">Junior classes do not require a stream.</p>
+                      )}
+                    </>
+                  )}
+                  <div className="portal-action-row">
+                    <Button type="submit" disabled={staffEditor.saving}>
+                      {staffEditor.saving ? "Saving…" : "Save staff changes"}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={closeStaffEditor}>Cancel</Button>
+                  </div>
+                  <hr />
+                  <div className="portal-action-row">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => changeStaffAccess(staffEditor.staff, staffEditor.staff.portal_access_enabled === false ? "reactivate" : "deactivate")}
+                    >
+                      {staffEditor.staff?.portal_access_enabled === false ? "Reactivate account" : "Deactivate account"}
+                    </Button>
+                    <Button type="button" variant="secondary" className="class-manager-danger" onClick={() => deleteStaffAccount(staffEditor.staff)}>
+                      Permanently delete account
+                    </Button>
+                  </div>
+                </form>
+              </SlideOver>
+            )}
+
             {isAdmin && resetModal.open && (
               <Card>
                 <h2>Reset credentials: {resetModal.staff?.full_name}</h2>
@@ -1964,6 +2151,7 @@ export default function StaffDashboard() {
                       <th>Role</th>
                       <th>Campus</th>
                       <th>Class</th>
+                      <th>Status</th>
                       {isAdmin && <th>Action</th>}
                     </tr>
                   </thead>
@@ -2009,15 +2197,21 @@ export default function StaffDashboard() {
                               : "—"}
                           </span>
                         </td>
-                        {isAdmin && (
+                        <td>
+                          <span className={`class-status ${row.portal_access_enabled === false ? "is-inactive" : "is-active"}`}>
+                            {row.portal_access_enabled === false ? "Deactivated" : "Active"}
+                          </span>
+                        </td>
+                        {isMainAdmin && (
                           <td>
-                            <Button
-                              className="staff-reset-button"
-                              variant="secondary"
-                              onClick={() => openResetModal(row)}
-                            >
-                              Account support
-                            </Button>
+                            <div className="portal-action-row">
+                              <Button className="staff-reset-button" variant="secondary" onClick={() => openStaffEditor(row)}>
+                                Manage
+                              </Button>
+                              <Button className="staff-reset-button" variant="secondary" onClick={() => openResetModal(row)}>
+                                Credentials
+                              </Button>
+                            </div>
                           </td>
                         )}
                       </tr>
