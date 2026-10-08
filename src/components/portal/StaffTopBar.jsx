@@ -107,8 +107,10 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
         <div className="top-bar-user">
           {profile?.role === 'teacher' && (
             <div className="teacher-workspace-switch" aria-label="Teacher workspace">
-              <button type="button" className={section === 'coursework' ? '' : 'active'} onClick={() => setSection('roster')}>Classes</button>
-              <button type="button" className={section === 'coursework' ? 'active' : ''} onClick={() => setSection('coursework')}>Subjects</button>
+              <button type="button" className={section === 'roster' ? 'active' : ''} onClick={() => setSection('roster')}>Classes</button>
+              <button type="button" className={section === 'entry' ? 'active' : ''} onClick={() => setSection('entry')}>Markbook</button>
+              <button type="button" className={section === 'coursework' ? 'active' : ''} onClick={() => setSection('coursework')}>Course Work</button>
+              <button type="button" className={section === 'progress-reports' ? 'active' : ''} onClick={() => setSection('progress-reports')}>Reports</button>
             </div>
           )}
           <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
