@@ -27,6 +27,7 @@ import TeacherAttendanceHistory from "../../components/portal/TeacherAttendanceH
 import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
 import { logActivity } from "../../lib/logActivity";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
+import BulkStudentImport from "../../components/portal/BulkStudentImport";
 
 const records = {
   attendance: "attendance",
@@ -1053,6 +1054,20 @@ export default function StaffDashboard() {
     return (
       <div className="staff-content-area">
         <ActivityLog />
+      </div>
+    );
+  if (section === "bulk-import" && isAdmin)
+    return (
+      <div className="staff-content-area">
+        <div className="dash-section">
+          <div className="dash-page-header">
+            <div>
+              <h1 className="dash-page-title">Bulk learner import</h1>
+              <p className="dash-page-sub">Upload a validated CSV to add learners and their current-term fee records.</p>
+            </div>
+          </div>
+          <BulkStudentImport supabase={supabase} onSaved={loadStudents} />
+        </div>
       </div>
     );
   if (section === "classes" && isAdmin)
