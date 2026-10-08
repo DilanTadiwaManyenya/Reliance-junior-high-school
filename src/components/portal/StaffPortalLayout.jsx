@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import PortalSidebar from './PortalSidebar'
 import StaffTopBar from './StaffTopBar'
@@ -22,7 +22,13 @@ export const useSection = () => useContext(SectionContext)
 export default function StaffPortalLayout() {
   const { profile, user, supabase } = useAuth()
   const location = useLocation()
-  const [section, setSection]         = useState('dashboard')
+  const navigate = useNavigate()
+  const requestedSection = new URLSearchParams(location.search).get('section') || 'dashboard'
+  const permittedSections = profile?.role === 'teacher'
+    ? ['dashboard', 'roster', 'entry', 'settings']
+    : ['dashboard', 'roster', 'entry', 'settings', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity']
+  const sectionFromUrl = permittedSections.includes(requestedSection) ? requestedSection : 'dashboard'
+  const [section, setSection]         = useState(sectionFromUrl)
   const [sectionHistory, setSectionHistory] = useState([])
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
@@ -36,12 +42,13 @@ export default function StaffPortalLayout() {
     if (section === nextSection) return
     setSectionHistory(history => [...history, section])
     setSection(nextSection)
+    navigate({ pathname: location.pathname, search: nextSection === 'dashboard' ? '' : `?section=${nextSection}` })
   }
   const goBack = () => {
-    const previous = sectionHistory.at(-1)
-    if (!previous) return
+    const previous = sectionHistory.at(-1) || 'dashboard'
     setSection(previous)
     setSectionHistory(history => history.slice(0, -1))
+    navigate({ pathname: location.pathname, search: previous === 'dashboard' ? '' : `?section=${previous}` })
   }
   useEffect(() => {
     if (!user || !profile) return

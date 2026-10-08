@@ -27,7 +27,7 @@ const LogoutIcon = () => (
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack } = useSection()
+  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection } = useSection()
 
   const handleLogout = async () => {
     await signOut()
@@ -108,7 +108,11 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             onClassChange={handleClassChange} 
           />
           </div>
-          <button className="top-bar-back" onClick={goBack} disabled={!canGoBack} title={canGoBack ? 'Return to the previous portal page' : 'You are already at the portal home'}>← Back</button>
+          {profile?.role === 'teacher' ? (
+            section !== 'dashboard' && <button className="top-bar-back" onClick={() => setSection('dashboard')} title="Return to your teaching overview">← Overview</button>
+          ) : (
+            <button className="top-bar-back" onClick={goBack} disabled={!canGoBack} title={canGoBack ? 'Return to the previous portal page' : 'You are already at the portal home'}>← Back</button>
+          )}
           <PortalSiteExitLink className="top-bar-site-link">← Website</PortalSiteExitLink>
           <div className="top-bar-avatar" aria-hidden="true">{initials}</div>
         <div className="top-bar-user-info">
