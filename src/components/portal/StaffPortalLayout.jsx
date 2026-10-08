@@ -26,7 +26,7 @@ export default function StaffPortalLayout() {
   const role = profile?.active_role ?? profile?.role
   const requestedSection = new URLSearchParams(location.search).get('section')
   const sectionConfig = {
-    admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity'] },
+    admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'activity'] },
     teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings'] },
     accountant: { defaultSection: 'fees',      allowed: ['fees', 'expenses', 'inventory'] },

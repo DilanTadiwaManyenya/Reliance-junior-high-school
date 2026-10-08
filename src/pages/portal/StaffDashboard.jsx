@@ -29,6 +29,7 @@ import { logActivity } from "../../lib/logActivity";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import BulkStudentImport from "../../components/portal/BulkStudentImport";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
+import GradeBands from "../../components/portal/GradeBands";
 
 const records = {
   attendance: "attendance",
@@ -1089,6 +1090,8 @@ export default function StaffDashboard() {
         </div>
       </div>
     );
+  if (section === "grade-bands" && isAdmin)
+    return <div className="staff-content-area"><GradeBands /></div>;
   if (section === "classes" && isAdmin)
     return (
       <div className="staff-content-area">
