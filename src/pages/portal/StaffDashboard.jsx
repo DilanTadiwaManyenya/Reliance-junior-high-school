@@ -605,6 +605,7 @@ export default function StaffDashboard() {
   });
   const [staffQuery, setStaffQuery] = useState("");
   const [staffCampusFilter, setStaffCampusFilter] = useState("all");
+  const [staffCategory, setStaffCategory] = useState("all");
   const [todayAttendance, setTodayAttendance] = useState({});
   const [savingAttendance, setSavingAttendance] = useState({});
   const [schoolClasses, setSchoolClasses] = useState([]);
@@ -613,11 +614,25 @@ export default function StaffDashboard() {
   const [profileInitialTab, setProfileInitialTab] = useState("Summary");
 
   const selected = students.find((row) => row.id === selectedId);
-  const visibleStaff = staff.filter((row) =>
-    [row.full_name, row.phone, row.role].some((value) =>
+  const staffCategoryCounts = useMemo(() => ({
+    all: staff.length,
+    admins: staff.filter((row) => row.portal_access_enabled !== false && ["admin", "principal"].includes(row.role)).length,
+    teachers: staff.filter((row) => row.portal_access_enabled !== false && row.role === "teacher").length,
+    accountants: staff.filter((row) => row.portal_access_enabled !== false && row.role === "accountant").length,
+    deactivated: staff.filter((row) => row.portal_access_enabled === false).length,
+  }), [staff]);
+  const visibleStaff = staff.filter((row) => {
+    const matchesSearch = [row.full_name, row.phone, row.role].some((value) =>
       value?.toLowerCase().includes(staffQuery.toLowerCase()),
-    ) && (staffCampusFilter === "all" || row.campus === staffCampusFilter),
-  );
+    );
+    const matchesCampus = staffCampusFilter === "all" || row.campus === staffCampusFilter;
+    const matchesCategory = staffCategory === "all"
+      || (staffCategory === "admins" && row.portal_access_enabled !== false && ["admin", "principal"].includes(row.role))
+      || (staffCategory === "teachers" && row.portal_access_enabled !== false && row.role === "teacher")
+      || (staffCategory === "accountants" && row.portal_access_enabled !== false && row.role === "accountant")
+      || (staffCategory === "deactivated" && row.portal_access_enabled === false);
+    return matchesSearch && matchesCampus && matchesCategory;
+  });
   const showError = (value) => {
     setNotice("");
     setError(value);
@@ -2160,6 +2175,50 @@ export default function StaffDashboard() {
                   />
                 </label>
               </div>
+              <div className="staff-category-tabs" role="tablist" aria-label="Staff categories">
+                {[
+                  ["all", "All staff"],
+                  ["admins", "Admins"],
+                  ["teachers", "Teachers"],
+                  ["accountants", "Accountants"],
+                  ["deactivated", "Deactivated accounts"],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={staffCategory === id}
+                    className={staffCategory === id ? "is-active" : ""}
+                    onClick={() => {
+                      setStaffCategory(id);
+                      if (id !== "teachers") setStaffCampusFilter("all");
+                    }}
+                  >
+                    {label} <span>{staffCategoryCounts[id]}</span>
+                  </button>
+                ))}
+              </div>
+              {staffCategory === "teachers" && (
+                <div className="staff-campus-tabs" role="tablist" aria-label="Teacher campus">
+                  <span>Teacher campus</span>
+                  {[
+                    ["all", "All teachers"],
+                    ["junior", "Junior School"],
+                    ["senior", "Senior School"],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={staffCampusFilter === id}
+                      className={staffCampusFilter === id ? "is-active" : ""}
+                      onClick={() => setStaffCampusFilter(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="portal-table-wrap">
                 <table className="portal-table staff-directory-table">
                   <thead>
@@ -2174,7 +2233,7 @@ export default function StaffDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleStaff.map((row) => (
+                    {visibleStaff.length ? visibleStaff.map((row) => (
                       <tr
                         key={row.id}
                         className={isAdmin ? "staff-directory-row-action" : undefined}
@@ -2237,7 +2296,13 @@ export default function StaffDashboard() {
                           </td>
                         )}
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan={isAdmin ? 7 : 6} className="muted">
+                          No staff match these filters.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

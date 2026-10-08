@@ -2323,6 +2323,74 @@
 .staff-directory-controls .portal-inline-search {
   width: min(100%, 300px);
 }
+.staff-category-tabs,
+.staff-campus-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0;
+}
+.staff-category-tabs button,
+.staff-campus-tabs button {
+  appearance: none;
+  border: 1px solid #d7e0f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #40506f;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.staff-category-tabs button:hover,
+.staff-campus-tabs button:hover {
+  border-color: #9eb4df;
+  background: #f4f7ff;
+}
+.staff-category-tabs button.is-active,
+.staff-campus-tabs button.is-active {
+  border-color: #b62d31;
+  background: #b62d31;
+  color: #fff;
+}
+.staff-category-tabs button span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #eef2f8;
+  color: #40506f;
+  font-size: 0.7rem;
+}
+.staff-category-tabs button.is-active span {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+}
+.staff-campus-tabs {
+  margin-top: -7px;
+  padding: 12px 14px;
+  border: 1px solid #e1e8f4;
+  border-radius: 12px;
+  background: #f8faff;
+}
+.staff-campus-tabs > span {
+  margin-right: 4px;
+  color: #1b2a56;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+@media (max-width: 640px) {
+  .staff-category-tabs button,
+  .staff-campus-tabs button { font-size: 0.76rem; padding: 8px 10px; }
+  .staff-campus-tabs > span { width: 100%; }
+}
 .staff-directory-table td {
   vertical-align: middle;
 }
