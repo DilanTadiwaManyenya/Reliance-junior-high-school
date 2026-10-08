@@ -43,14 +43,18 @@ export default function ClassManager({ supabase, onChanged }) {
     (row) => row.status === "active",
   ).length;
   const teacherForClass = (classRow) => {
-    const assignment = teacherAssignments.find(
-      (item) =>
-        item.class_level === classRow.class_level &&
-        (item.class_stream || "") === (classRow.class_stream || ""),
+    // Junior teachers are allocated to a grade, not a particular stream. A
+    // Grade 5 teacher therefore covers Grade 5 Blue (and any future stream).
+    // Senior allocations remain specific to both level and stream.
+    const matches = teacherAssignments.filter((item) =>
+      item.class_level === classRow.class_level &&
+      item.campus === classRow.campus &&
+      (classRow.campus === "junior" ||
+        (item.class_stream || "") === (classRow.class_stream || "")),
     );
-    if (!assignment) return null;
-    const teacher = staffProfiles.find((profile) => profile.id === assignment.teacher_id);
-    return teacher?.portal_access_enabled === false ? null : teacher || null;
+    return matches
+      .map((assignment) => staffProfiles.find((profile) => profile.id === assignment.teacher_id))
+      .find((teacher) => teacher && teacher.portal_access_enabled !== false) || null;
   };
   const load = async () => {
     const [classResult, studentResult, assignmentResult, staffResult] = await Promise.all([
@@ -60,7 +64,7 @@ export default function ClassManager({ supabase, onChanged }) {
         .order("campus")
         .order("class_level"),
       supabase.from("students").select("*").order("full_name"),
-      supabase.from("teacher_class_assignments").select("teacher_id, class_level, class_stream"),
+      supabase.from("teacher_class_assignments").select("teacher_id, class_level, class_stream, campus"),
       supabase.from("profiles").select("id, full_name, portal_access_enabled").eq("role", "teacher"),
     ]);
     if (classResult.error) {
