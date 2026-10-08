@@ -23,13 +23,17 @@ export default function StaffPortalLayout() {
   const { profile, user, supabase } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const requestedSection = new URLSearchParams(location.search).get('section') || 'dashboard'
-  const permittedSections = profile?.role === 'teacher'
-    ? ['dashboard', 'roster', 'entry', 'settings']
-    : ['dashboard', 'roster', 'entry', 'settings', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity']
-  const sectionFromUrl = permittedSections.includes(requestedSection) ? requestedSection : 'dashboard'
-  const [section, setSection]         = useState(sectionFromUrl)
-  const [sectionHistory, setSectionHistory] = useState([])
+  const role = profile?.active_role ?? profile?.role
+  const requestedSection = new URLSearchParams(location.search).get('section')
+  const sectionConfig = {
+    admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity'] },
+    principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'activity'] },
+    teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings'] },
+    accountant: { defaultSection: 'fees',      allowed: ['fees', 'expenses', 'inventory'] },
+  }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
+  const section = requestedSection && sectionConfig.allowed.includes(requestedSection)
+    ? requestedSection
+    : sectionConfig.defaultSection
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [activeClassKey, setActiveClassKey] = useState('')
@@ -39,24 +43,18 @@ export default function StaffPortalLayout() {
   const toggleMobile   = () => setMobileOpen(o => !o)
   const closeMobile    = () => setMobileOpen(false)
   const changeSection = nextSection => {
-    if (section === nextSection) return
-    setSectionHistory(history => [...history, section])
-    setSection(nextSection)
-    navigate({ pathname: location.pathname, search: nextSection === 'dashboard' ? '' : `?section=${nextSection}` })
+    if (!sectionConfig.allowed.includes(nextSection) || section === nextSection) return
+    const search = nextSection === sectionConfig.defaultSection ? '' : `?section=${nextSection}`
+    navigate({ pathname: location.pathname, search })
   }
-  const goBack = () => {
-    const previous = sectionHistory.at(-1) || 'dashboard'
-    setSection(previous)
-    setSectionHistory(history => history.slice(0, -1))
-    navigate({ pathname: location.pathname, search: previous === 'dashboard' ? '' : `?section=${previous}` })
-  }
+  const goBack = () => changeSection(sectionConfig.defaultSection)
   useEffect(() => {
     if (!user || !profile) return
     logActivity(supabase, user, profile, { actionType: 'page_view', description: `Viewed ${section}`, metadata: { path: location.pathname, section } })
   }, [section, location.pathname, profile, supabase, user])
 
   return (
-    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: sectionHistory.length > 0, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter }}>
+    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter }}>
       <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${profile?.role === 'accountant' ? ' no-sidebar' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}
