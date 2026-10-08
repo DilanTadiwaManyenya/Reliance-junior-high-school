@@ -576,6 +576,7 @@ export default function StaffDashboard() {
     phone: "",
     password: "",
     role: "teacher",
+    campus: "junior",
     classLevel: "",
     classStream: "",
   });
@@ -837,6 +838,7 @@ export default function StaffDashboard() {
       phone: "",
       password: "",
       role: "teacher",
+      campus: "junior",
       classLevel: "",
       classStream: "",
     });
@@ -1776,6 +1778,13 @@ export default function StaffDashboard() {
                       <option value="principal">Principal</option>
                     </select>
                   </label>
+                  <label>
+                    Campus
+                    <select value={staffForm.campus} onChange={(e) => setStaffForm((x) => ({ ...x, campus: e.target.value, classLevel: "", classStream: "" }))}>
+                      <option value="junior">Junior School</option>
+                      <option value="senior">Senior School</option>
+                    </select>
+                  </label>
                   {staffForm.role === "teacher" && (
                     <>
                       <label>
@@ -1792,7 +1801,7 @@ export default function StaffDashboard() {
                           }
                         >
                           <option value="">Choose class level</option>
-                          {CLASS_LEVELS.map((level) => (
+                          {CLASS_LEVELS.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
                             <option key={level}>{level}</option>
                           ))}
                         </select>
