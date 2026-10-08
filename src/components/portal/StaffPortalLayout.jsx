@@ -21,6 +21,12 @@ export const SectionContext = createContext({
 })
 export const useSection = () => useContext(SectionContext)
 
+function SubjectAllocationBanner({ profile }) {
+  const assignments = profile?.teacher_class_subject_assignments || []
+  const teacherName = profile?.full_name || 'Assigned teacher'
+  return <section className="teacher-subject-context" aria-label="Subject class teacher allocations"><div className="teacher-subject-context-heading"><span>Subject workspace</span><strong>Assigned subject classes</strong></div>{assignments.length ? <div className="teacher-subject-context-list">{assignments.map((assignment, index) => <span key={assignment.id || `${assignment.subject}-${assignment.class_level}-${assignment.class_stream || ''}-${index}`}><b>{assignment.subject}</b> · {assignment.class_level}{assignment.class_stream ? ` ${assignment.class_stream}` : ''} · Teacher: {teacherName}</span>)}</div> : <p>No subject classes have been assigned yet.</p>}</section>
+}
+
 export default function StaffPortalLayout() {
   const { profile, user, supabase } = useAuth()
   const location = useLocation()
@@ -112,6 +118,7 @@ export default function StaffPortalLayout() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
+          {role === 'teacher' && teacherWorkspace === 'subjects' && <SubjectAllocationBanner profile={profile} />}
           <Outlet />
         </motion.main>
 

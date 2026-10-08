@@ -2403,14 +2403,14 @@
 .coursework-heading label { min-width: min(100%, 360px); font-weight: 700; color: #1b2a56; }
 .coursework-heading select { width: 100%; margin-top: 6px; }
 .coursework-page .portal-table input { min-width: 92px; max-width: 120px; }
-.coursework-allocations { display: grid; gap: 14px; }
-.coursework-allocations h2 { margin: 0; color: #1b2a56; }
-.coursework-allocations p { margin: 5px 0 0; color: #64748b; }
-.coursework-allocations ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
-.coursework-allocations li { display: grid; gap: 3px; padding: 12px; border: 1px solid #dce5f0; border-radius: 10px; background: #f8faff; }
-.coursework-allocations li strong { color: #1b2a56; }
-.coursework-allocations li span { color: #40506f; font-weight: 700; }
-.coursework-allocations li small { color: #64748b; }
+.teacher-subject-context { display: grid; gap: 10px; margin: 20px 20px 0; padding: 14px 18px; border: 1px solid #dce5f0; border-radius: 12px; background: #f8faff; }
+.teacher-subject-context-heading { display: grid; gap: 2px; }
+.teacher-subject-context-heading span { color: #a6302f; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.teacher-subject-context-heading strong { color: #1b2a56; }
+.teacher-subject-context-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.teacher-subject-context-list span { padding: 7px 10px; border: 1px solid #d4dfed; border-radius: 999px; background: #fff; color: #40506f; font-size: .86rem; }
+.teacher-subject-context-list b { color: #1b2a56; }
+.teacher-subject-context p { margin: 0; color: #64748b; }
 @media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } }
 .staff-directory-table tbody tr.staff-directory-row-action {
   cursor: pointer;
