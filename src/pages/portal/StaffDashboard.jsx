@@ -983,7 +983,7 @@ export default function StaffDashboard() {
       targetTable: "profiles",
       targetId: row.id,
     });
-    setNotice(`${row.full_name}'s account was deactivated and permanently deleted.`);
+    setNotice(data?.message || `${row.full_name}'s portal access and staff allocation were removed.`);
     loadStaff();
   };
 
