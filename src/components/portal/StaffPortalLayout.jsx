@@ -28,7 +28,7 @@ export default function StaffPortalLayout() {
   const sectionConfig = {
     admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'activity'] },
-    teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'progress-reports'] },
+    teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'coursework', 'settings', 'progress-reports'] },
     accountant: { defaultSection: 'fees',      allowed: ['fees', 'expenses', 'inventory'] },
   }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
   const section = requestedSection && sectionConfig.allowed.includes(requestedSection)

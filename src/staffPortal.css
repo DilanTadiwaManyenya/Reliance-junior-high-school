@@ -2394,6 +2394,16 @@
 .staff-directory-table td {
   vertical-align: middle;
 }
+.coursework-page { display: grid; gap: 20px; }
+.coursework-page .portal-form { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.coursework-page .portal-form h2 { grid-column: 1 / -1; margin: 0; color: #1b2a56; }
+.coursework-heading { display: flex; justify-content: space-between; gap: 16px; align-items: end; margin-bottom: 16px; }
+.coursework-heading h2 { margin: 0; color: #1b2a56; }
+.coursework-heading p { margin: 5px 0 0; color: #64748b; }
+.coursework-heading label { min-width: min(100%, 360px); font-weight: 700; color: #1b2a56; }
+.coursework-heading select { width: 100%; margin-top: 6px; }
+.coursework-page .portal-table input { min-width: 92px; max-width: 120px; }
+@media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } }
 .staff-directory-table tbody tr.staff-directory-row-action {
   cursor: pointer;
 }

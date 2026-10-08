@@ -15,6 +15,7 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
         { id: 'dashboard', label: 'Overview', iconKey: 'dashboard', show: true },
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: true },
         { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || profile?.role === 'teacher' },
+        { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: profile?.role === 'teacher' },
         { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'teacher'].includes(profile?.role) },
         { id: 'settings', label: 'Account settings', iconKey: 'staff', show: true }
       ].filter(i => i.show)

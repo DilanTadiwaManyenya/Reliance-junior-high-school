@@ -32,6 +32,7 @@ export default function LearnerRecords({ student, records, fees }) {
   const present = weekly.filter(row => row.status === 'present' || row.status === 'late').length
   const pages = [
     { key: 'academics', title: 'Academics', summary: locked ? `Results locked — balance: $${owing.toFixed(2)} owing.` : records.academics.length ? `${records.academics.length} result${records.academics.length === 1 ? '' : 's'} available.` : 'No academic records have been shared yet.' },
+    { key: 'coursework', title: 'Course Work', summary: records.coursework?.length ? `${records.coursework.length} coursework mark${records.coursework.length === 1 ? '' : 's'} available.` : 'No coursework marks have been shared yet.' },
     { key: 'attendance', title: 'Attendance', summary: records.attendance.length ? `${records.attendance.length} attendance record${records.attendance.length === 1 ? '' : 's'} available.` : 'No attendance records have been shared yet.' },
     { key: 'behavior', title: 'Behaviour', summary: records.behavior.length ? `${records.behavior.length} behaviour note${records.behavior.length === 1 ? '' : 's'} available.` : 'No behaviour notes have been shared yet.' },
     { key: 'sports', title: 'Sport', summary: records.sports.length ? `${records.sports.length} sport record${records.sports.length === 1 ? '' : 's'} available.` : 'No sports records have been shared yet.' },

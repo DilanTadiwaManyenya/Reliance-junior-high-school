@@ -31,6 +31,7 @@ import BulkStudentImport from "../../components/portal/BulkStudentImport";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
 import GradeBands from "../../components/portal/GradeBands";
 import ProgressReports from "../../components/portal/ProgressReports";
+import CourseWork from "../../components/portal/CourseWork";
 
 const records = {
   attendance: "attendance",
@@ -1225,6 +1226,8 @@ export default function StaffDashboard() {
     return <div className="staff-content-area"><GradeBands /></div>;
   if (section === "progress-reports" && (isAdmin || isTeacher))
     return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} onOpenReport={student => { setProfileInitialTab("Academics"); setProfileStudent(student); }} /></div>;
+  if (section === "coursework" && isTeacher)
+    return <div className="staff-content-area"><CourseWork /></div>;
   if (section === "classes" && isAdmin)
     return (
       <div className="staff-content-area">
