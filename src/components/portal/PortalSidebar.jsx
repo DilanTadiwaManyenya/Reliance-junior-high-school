@@ -13,7 +13,7 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
       title: 'Workspace',
       items: [
         { id: 'dashboard', label: 'Overview', iconKey: 'dashboard', show: true },
-        { id: 'roster', label: 'Learners', iconKey: 'roster', show: true },
+        { id: 'roster', label: 'Learners', iconKey: 'roster', show: !(profile?.role === 'teacher' && section === 'coursework') },
         { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || profile?.role === 'teacher' },
         { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: profile?.role === 'teacher' },
         { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'teacher'].includes(profile?.role) },
