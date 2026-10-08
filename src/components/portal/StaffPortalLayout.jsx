@@ -68,7 +68,7 @@ export default function StaffPortalLayout() {
   }
   const changeSection = nextSection => navigateToSection(nextSection)
   const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'dashboard' : 'roster', workspace, '', '', '')
-  const changeSubjectAllocation = allocationId => navigateToSection('entry', 'subjects', allocationId)
+  const changeSubjectAllocation = allocationId => navigateToSection('dashboard', 'subjects', allocationId)
   const changeSubjectGroup = (subject, level) => navigateToSection('dashboard', 'subjects', '', subject, level)
   const clearSubjectGroup = () => navigateToSection('dashboard', 'subjects', '', '', '')
   const goBack = () => changeSection(sectionConfig.defaultSection)
