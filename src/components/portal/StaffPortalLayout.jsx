@@ -19,15 +19,26 @@ export const SectionContext = createContext({
   teacherWorkspace: 'classes',
   setTeacherWorkspace: () => {},
   selectedSubjectAllocationId: '',
-  setSubjectAllocation: () => {}
+  setSubjectAllocation: () => {},
+  selectedSubject: '',
+  selectedSubjectLevel: '',
+  setSubjectGroup: () => {},
+  clearSubjectGroup: () => {}
 })
 export const useSection = () => useContext(SectionContext)
 
 function SubjectAllocationBanner({ profile }) {
-  const { selectedSubjectAllocationId, setSubjectAllocation } = useSection()
+  const { selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, setSubjectAllocation, setSubjectGroup, clearSubjectGroup } = useSection()
   const assignments = profile?.teacher_class_subject_assignments || []
   const teacherName = profile?.full_name || 'Assigned teacher'
-  return <section className="teacher-subject-context" aria-label="Subject class teacher allocations"><div className="teacher-subject-context-heading"><span>Subject workspace</span><strong>Select an assigned subject class to open its learners</strong></div>{assignments.length ? <div className="teacher-subject-context-list">{assignments.map((assignment, index) => <button type="button" className={selectedSubjectAllocationId === assignment.id ? 'active' : ''} key={assignment.id || `${assignment.subject}-${assignment.class_level}-${assignment.class_stream || ''}-${index}`} onClick={() => setSubjectAllocation(assignment.id)}><b>{assignment.subject}</b> · {assignment.class_level}{assignment.class_stream ? ` ${assignment.class_stream}` : ''} · Teacher: {teacherName}</button>)}</div> : <p>No subject classes have been assigned yet.</p>}</section>
+  const subjectGroups = [...assignments.reduce((groups, assignment) => {
+    const key = `${assignment.subject}::${assignment.class_level}`
+    if (!groups.has(key)) groups.set(key, { subject: assignment.subject, level: assignment.class_level, assignments: [] })
+    groups.get(key).assignments.push(assignment)
+    return groups
+  }, new Map()).values()]
+  const selectedGroup = subjectGroups.find(group => group.subject === selectedSubject && group.level === selectedSubjectLevel)
+  return <section className="teacher-subject-context" aria-label="Subject class teacher allocations"><div className="teacher-subject-context-heading"><span>Subject workspace</span><strong>{selectedGroup ? `${selectedGroup.subject} · ${selectedGroup.level}: choose a class` : 'Choose a subject and form'}</strong></div>{assignments.length ? selectedGroup ? <><div className="teacher-subject-context-list">{selectedGroup.assignments.map((assignment, index) => <button type="button" className={selectedSubjectAllocationId === assignment.id ? 'active' : ''} key={assignment.id || `${assignment.subject}-${assignment.class_level}-${assignment.class_stream || ''}-${index}`} onClick={() => setSubjectAllocation(assignment.id)}><b>{assignment.class_level}{assignment.class_stream ? ` ${assignment.class_stream}` : ''}</b> · Teacher: {teacherName}</button>)}</div><button type="button" className="teacher-subject-context-back" onClick={clearSubjectGroup}>← All subject allocations</button></> : <div className="teacher-subject-context-list">{subjectGroups.map(group => <button type="button" key={`${group.subject}-${group.level}`} onClick={() => setSubjectGroup(group.subject, group.level)}><b>{group.subject}</b> · {group.level}</button>)}</div> : <p>No subject classes have been assigned yet.</p>}</section>
 }
 
 export default function StaffPortalLayout() {
@@ -48,6 +59,8 @@ export default function StaffPortalLayout() {
     : sectionConfig.defaultSection
   const teacherWorkspace = role === 'teacher' && searchParams.get('workspace') === 'subjects' ? 'subjects' : 'classes'
   const selectedSubjectAllocationId = teacherWorkspace === 'subjects' ? searchParams.get('allocation') || '' : ''
+  const selectedSubject = teacherWorkspace === 'subjects' ? searchParams.get('subject') || '' : ''
+  const selectedSubjectLevel = teacherWorkspace === 'subjects' ? searchParams.get('level') || '' : ''
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [activeClassKey, setActiveClassKey] = useState('')
@@ -56,18 +69,22 @@ export default function StaffPortalLayout() {
   const toggleCollapse = () => setCollapsed(c => !c)
   const toggleMobile   = () => setMobileOpen(o => !o)
   const closeMobile    = () => setMobileOpen(false)
-  const navigateToSection = (nextSection, nextWorkspace = teacherWorkspace, nextAllocationId = selectedSubjectAllocationId) => {
+  const navigateToSection = (nextSection, nextWorkspace = teacherWorkspace, nextAllocationId = selectedSubjectAllocationId, nextSubject = selectedSubject, nextLevel = selectedSubjectLevel) => {
     if (!sectionConfig.allowed.includes(nextSection)) return
     const nextSearch = new URLSearchParams()
     if (nextSection !== sectionConfig.defaultSection) nextSearch.set('section', nextSection)
     if (role === 'teacher' && nextWorkspace === 'subjects') nextSearch.set('workspace', 'subjects')
     if (role === 'teacher' && nextWorkspace === 'subjects' && nextAllocationId) nextSearch.set('allocation', nextAllocationId)
+    if (role === 'teacher' && nextWorkspace === 'subjects' && nextSubject) nextSearch.set('subject', nextSubject)
+    if (role === 'teacher' && nextWorkspace === 'subjects' && nextLevel) nextSearch.set('level', nextLevel)
     const search = nextSearch.toString() ? `?${nextSearch.toString()}` : ''
     navigate({ pathname: location.pathname, search })
   }
   const changeSection = nextSection => navigateToSection(nextSection)
   const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'coursework' : 'roster', workspace)
   const changeSubjectAllocation = allocationId => navigateToSection('entry', 'subjects', allocationId)
+  const changeSubjectGroup = (subject, level) => navigateToSection('dashboard', 'subjects', '', subject, level)
+  const clearSubjectGroup = () => navigateToSection('dashboard', 'subjects', '', '', '')
   const goBack = () => changeSection(sectionConfig.defaultSection)
   useEffect(() => {
     if (!user || !profile) return
@@ -75,7 +92,7 @@ export default function StaffPortalLayout() {
   }, [section, location.pathname, profile, supabase, user])
 
   return (
-    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, setSubjectAllocation: changeSubjectAllocation }}>
+    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
       <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${profile?.role === 'accountant' ? ' no-sidebar' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}

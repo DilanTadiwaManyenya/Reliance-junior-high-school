@@ -2411,6 +2411,7 @@
 .teacher-subject-context-list button { padding: 7px 10px; border: 1px solid #d4dfed; border-radius: 999px; background: #fff; color: #40506f; cursor: pointer; font: inherit; font-size: .86rem; text-align: left; }
 .teacher-subject-context-list button:hover, .teacher-subject-context-list button.active { border-color: #a6302f; background: #a6302f; color: #fff; }
 .teacher-subject-context-list button.active b { color: #fff; }
+.teacher-subject-context-back { justify-self: start; padding: 0; border: 0; background: transparent; color: #1b2a56; cursor: pointer; font: 700 .86rem var(--font-ui, inherit); }
 .teacher-subject-context-list b { color: #1b2a56; }
 .teacher-subject-context p { margin: 0; color: #64748b; }
 @media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } }
