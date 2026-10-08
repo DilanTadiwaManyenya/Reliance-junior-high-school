@@ -50,7 +50,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
     }
   }
 
-  const roleLabel = {
+  const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
+  const roleLabel = isMainAdmin ? 'Main Admin Portal' : {
     principal: 'Principal Portal',
     admin:     'Admin Portal',
     teacher:   'Teacher Portal',
@@ -122,7 +123,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
           <div className="top-bar-avatar" aria-hidden="true">{initials}</div>
         <div className="top-bar-user-info">
           <span className="top-bar-username">{profile?.full_name || 'Portal User'}</span>
-          <span className="top-bar-role-badge">{profile?.role || 'staff'}</span>
+          <span className="top-bar-role-badge">{isMainAdmin ? 'Main Admin' : profile?.role || 'staff'}</span>
         </div>
         <button className="top-bar-logout" onClick={handleLogout} title="Log out">
           <LogoutIcon />
