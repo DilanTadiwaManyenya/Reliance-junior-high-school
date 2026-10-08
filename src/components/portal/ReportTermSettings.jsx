@@ -5,6 +5,7 @@ const SCHOOL_LEVELS = ['ECD A', 'ECD B', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade
 const JUNIOR_LEVELS = SCHOOL_LEVELS.filter(level => level.startsWith('ECD') || level.startsWith('Grade'))
 const SENIOR_LEVELS = SCHOOL_LEVELS.filter(level => !JUNIOR_LEVELS.includes(level))
 const currentYear = new Date().getFullYear()
+const missingCampusDateColumns = error => ['42703', 'PGRST204'].includes(error?.code) || /junior_next_term_begins_on|senior_next_term_begins_on/i.test(error?.message || '')
 
 export default function ReportTermSettings({ supabase, onClose, onSaved }) {
   const [year, setYear] = useState(currentYear)
@@ -19,7 +20,7 @@ export default function ReportTermSettings({ supabase, onClose, onSaved }) {
   useEffect(() => {
     const load = async () => {
       let settings = await supabase.from('term_settings').select('next_term_begins_on, junior_next_term_begins_on, senior_next_term_begins_on').eq('academic_year', Number(year)).eq('term', Number(term)).maybeSingle()
-      if (settings.error?.code === '42703') {
+      if (missingCampusDateColumns(settings.error)) {
         settings = await supabase.from('term_settings').select('next_term_begins_on').eq('academic_year', Number(year)).eq('term', Number(term)).maybeSingle()
         setSeparateDatesAvailable(false)
       } else setSeparateDatesAvailable(true)
@@ -34,7 +35,7 @@ export default function ReportTermSettings({ supabase, onClose, onSaved }) {
   const saveDates = async () => {
     setError(''); setNotice(''); setSaving(true)
     let settings = await supabase.from('term_settings').upsert({ academic_year: Number(year), term: Number(term), next_term_begins_on: nextTermDates.junior || nextTermDates.senior || null, junior_next_term_begins_on: nextTermDates.junior || null, senior_next_term_begins_on: nextTermDates.senior || null }, { onConflict: 'academic_year,term' })
-    if (settings.error?.code === '42703') settings = await supabase.from('term_settings').upsert({ academic_year: Number(year), term: Number(term), next_term_begins_on: nextTermDates.junior || nextTermDates.senior || null }, { onConflict: 'academic_year,term' })
+    if (missingCampusDateColumns(settings.error)) settings = await supabase.from('term_settings').upsert({ academic_year: Number(year), term: Number(term), next_term_begins_on: nextTermDates.junior || nextTermDates.senior || null }, { onConflict: 'academic_year,term' })
     setSaving(false)
     if (settings.error) return setError(settings.error.message || 'Unable to save reopening dates.')
     setNotice('Reopening dates saved.'); onSaved?.()
