@@ -6,7 +6,15 @@ import PortalSiteExitLink from './PortalSiteExitLink'
 export default function PortalHeader() {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const handleLogout = async () => { await signOut(); navigate('/portal', { replace: true }) }
+  const handleLogout = async () => {
+    navigate('/portal', { replace: true })
+    sessionStorage.removeItem('reliance-active-role')
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Portal sign-out failed:', error)
+    }
+  }
   const goBack = () => window.history.length > 1 ? navigate(-1) : navigate('/portal/dashboard')
   return <header className="portal-header"><div className="container portal-nav"><Link to={profile?.role === 'staff' || profile?.role === 'admin' ? '/portal/staff' : '/portal/dashboard'} className="brand"><img src={logo} alt="Reliance Learning Centre crest"/><span>Reliance Learning Centre<small>Portal · My dashboard</small></span></Link><div className="portal-user"><button className="btn secondary portal-history-back" onClick={goBack}>← Back</button><PortalSiteExitLink className="portal-website-button portal-site-link">← Website</PortalSiteExitLink><span>{profile?.full_name || 'Portal account'}{profile?.role && <small>{profile.role}</small>}</span><button className="btn secondary" onClick={handleLogout}>Log out</button></div></div></header>
 }

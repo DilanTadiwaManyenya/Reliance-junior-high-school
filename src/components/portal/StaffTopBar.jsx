@@ -30,8 +30,13 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection } = useSection()
 
   const handleLogout = async () => {
-    await signOut()
     navigate('/portal', { replace: true })
+    sessionStorage.removeItem('reliance-active-role')
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Portal sign-out failed:', error)
+    }
   }
 
   const handleClassChange = (key, option) => {
