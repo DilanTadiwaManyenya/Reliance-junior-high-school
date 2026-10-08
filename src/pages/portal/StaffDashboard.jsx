@@ -32,6 +32,7 @@ import ReportTermSettings from "../../components/portal/ReportTermSettings";
 import GradeBands from "../../components/portal/GradeBands";
 import ProgressReports from "../../components/portal/ProgressReports";
 import CourseWork from "../../components/portal/CourseWork";
+import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
 const records = {
   attendance: "attendance",
@@ -582,6 +583,8 @@ export default function StaffDashboard() {
     classLevel: "",
     classStream: "",
     classAssignments: [],
+    subjectAssignments: [],
+    subjectName: "",
   });
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -887,6 +890,8 @@ export default function StaffDashboard() {
       classLevel: "",
       classStream: "",
       classAssignments: [],
+      subjectAssignments: [],
+      subjectName: "",
     });
     loadStaff();
     setStaffModal(false);
@@ -1937,6 +1942,8 @@ export default function StaffDashboard() {
                           classLevel: "",
                           classStream: "",
                           classAssignments: [],
+                          subjectAssignments: [],
+                          subjectName: "",
                         }))
                       }
                     >
@@ -1948,7 +1955,7 @@ export default function StaffDashboard() {
                   </label>
                   <label>
                     Campus
-                    <select value={staffForm.campus} onChange={(e) => setStaffForm((x) => ({ ...x, campus: e.target.value, classLevel: "", classStream: "", classAssignments: [] }))}>
+                    <select value={staffForm.campus} onChange={(e) => setStaffForm((x) => ({ ...x, campus: e.target.value, classLevel: "", classStream: "", classAssignments: [], subjectAssignments: [], subjectName: "" }))}>
                       <option value="junior">Junior School</option>
                       <option value="senior">Senior School</option>
                     </select>
@@ -2009,6 +2016,18 @@ export default function StaffDashboard() {
                           Junior classes currently do not use streams.
                         </p>
                       )}
+                      <fieldset style={{ gridColumn: "1 / -1" }}>
+                        <legend>Subject allocations</legend>
+                        <p className="muted" style={{ marginTop: 0 }}>Add the subjects this teacher teaches. These are available immediately in their Subject workspace.</p>
+                        <div className="portal-action-row">
+                          <select value={staffForm.subjectName} disabled={!staffForm.classLevel} onChange={(e) => setStaffForm((x) => ({ ...x, subjectName: e.target.value }))}>
+                            <option value="">Choose subject</option>
+                            {getSubjectsByGradeStream(staffForm.classLevel, staffForm.classStream || (staffForm.campus === "junior" ? "Blue" : "")).map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                          </select>
+                          <Button type="button" variant="secondary" onClick={() => setStaffForm((x) => !x.subjectName ? x : ({ ...x, subjectAssignments: x.subjectAssignments.includes(x.subjectName) ? x.subjectAssignments : [...x.subjectAssignments, x.subjectName], subjectName: "" }))}>Add subject</Button>
+                        </div>
+                        {staffForm.subjectAssignments.length ? <div className="allocation-chip-list">{staffForm.subjectAssignments.map((subject) => <span className="allocation-chip" key={subject}>{subject}<button type="button" onClick={() => setStaffForm((x) => ({ ...x, subjectAssignments: x.subjectAssignments.filter((value) => value !== subject) }))}>×</button></span>)}</div> : <p className="muted">No subjects selected yet.</p>}
+                      </fieldset>
                     </>
                   )}
                   <div className="portal-action-row">

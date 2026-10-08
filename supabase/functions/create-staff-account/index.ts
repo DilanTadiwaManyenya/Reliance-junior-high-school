@@ -32,6 +32,7 @@ Deno.serve(async request => {
     const campus = String(input.campus ?? '').trim()
     const classAssigned = role === 'teacher' ? `${classLevel} ${classStream}`.trim() : null
     const classAssignments = Array.isArray(input.classAssignments) && input.classAssignments.length ? input.classAssignments.map(String).filter(Boolean) : (classLevel ? [classLevel] : [])
+    const subjectAssignments = Array.isArray(input.subjectAssignments) ? [...new Set(input.subjectAssignments.map(String).map(value => value.trim()).filter(Boolean))] : []
 
     if (!fullName) throw new Error('Enter the staff member’s full name.')
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error('Enter a valid international phone number.')
@@ -59,6 +60,12 @@ Deno.serve(async request => {
     if (role === 'teacher') {
       const assignment = await admin.from('teacher_class_assignments').insert(classAssignments.map((level: string) => ({ teacher_id: createdUserId, class_level: level, class_stream: classStream, campus })))
       if (assignment.error) throw assignment.error
+      if (subjectAssignments.length) {
+        const classSubject = await admin.from('teacher_class_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ teacher_id: createdUserId, class_level, class_stream: classStream, subject, campus }))))
+        if (classSubject.error) throw classSubject.error
+        const legacySubjects = await admin.from('teacher_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(form_level => ({ teacher_id: createdUserId, subject, form_level }))))
+        if (legacySubjects.error) throw legacySubjects.error
+      }
     }
 
     return reply({ success: true, message: 'Staff account created successfully.' })
