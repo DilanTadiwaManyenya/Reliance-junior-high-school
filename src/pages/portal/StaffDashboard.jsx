@@ -28,6 +28,7 @@ import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
 import { logActivity } from "../../lib/logActivity";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import BulkStudentImport from "../../components/portal/BulkStudentImport";
+import ReportTermSettings from "../../components/portal/ReportTermSettings";
 
 const records = {
   attendance: "attendance",
@@ -1067,6 +1068,24 @@ export default function StaffDashboard() {
             </div>
           </div>
           <BulkStudentImport supabase={supabase} onSaved={loadStudents} />
+        </div>
+      </div>
+    );
+  if (section === "report-settings" && isAdmin)
+    return (
+      <div className="staff-content-area">
+        <div className="dash-section">
+          <div className="dash-page-header">
+            <div>
+              <h1 className="dash-page-title">Report settings</h1>
+              <p className="dash-page-sub">Set the report term’s next-term date and fee schedule before generating report books.</p>
+            </div>
+          </div>
+          <ReportTermSettings
+            supabase={supabase}
+            onClose={() => setSection("dashboard")}
+            onSaved={() => setNotice("Report settings saved.")}
+          />
         </div>
       </div>
     );
