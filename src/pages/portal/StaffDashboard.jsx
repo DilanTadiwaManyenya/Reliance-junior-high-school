@@ -67,7 +67,7 @@ function StaffSubjectAssignments({ staff }) {
   );
 }
 
-function SubjectWorkspaceLanding({ assignments, selectedSubject, selectedSubjectLevel, selectedAllocationId, onSelect, onSelectClass, onBack }) {
+function SubjectWorkspaceLanding({ assignments, students, selectedSubject, selectedSubjectLevel, selectedAllocationId, onSelect, onSelectClass, onBack }) {
   const options = [...assignments.reduce((groups, assignment) => {
     const key = `${assignment.subject}::${assignment.class_level}`;
     if (!groups.has(key)) groups.set(key, { subject: assignment.subject, classLevel: assignment.class_level, assignments: [] });
@@ -75,6 +75,8 @@ function SubjectWorkspaceLanding({ assignments, selectedSubject, selectedSubject
     return groups;
   }, new Map()).values()].sort((a, b) => `${a.subject} ${a.classLevel}`.localeCompare(`${b.subject} ${b.classLevel}`));
   const selectedOption = options.find(option => option.subject === selectedSubject && option.classLevel === selectedSubjectLevel);
+  const selectedAllocation = selectedOption?.assignments.find(assignment => assignment.id === selectedAllocationId);
+  if (selectedAllocation) return <div className="staff-content-area"><section className="subject-workspace-landing"><header className="dash-page-header"><div><p className="eyebrow">Subject class learners</p><h1 className="dash-page-title">{selectedAllocation.subject} · {selectedAllocation.class_level} {selectedAllocation.class_stream || ''}</h1><p className="dash-page-sub">All learners assigned to this subject class.</p></div></header><Card><div className="portal-card-title"><h2>Learners</h2><span className="muted">{students.length} learner{students.length === 1 ? '' : 's'}</span></div>{students.length ? <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Admission no.</th><th>Class</th></tr></thead><tbody>{students.map(student => <tr key={student.id}><td><strong>{student.full_name}</strong></td><td>{student.admission_number || '—'}</td><td>{student.class_level} {student.class_stream || ''}</td></tr>)}</tbody></table></div> : <p className="muted">No learners are enrolled in this class.</p>}</Card><button type="button" className="subject-workspace-back" onClick={() => onSelect(selectedSubject, selectedSubjectLevel)}>← Choose another class</button></section></div>;
   return <div className="staff-content-area"><section className="subject-workspace-landing"><header className="dash-page-header"><div><p className="eyebrow">Subject workspace</p><h1 className="dash-page-title">{selectedOption ? `${selectedOption.subject} · ${selectedOption.classLevel}` : 'Choose a subject and form'}</h1><p className="dash-page-sub">{selectedOption ? 'Choose one of your assigned classes.' : 'Select one of your teaching allocations to continue.'}</p></div></header>{selectedOption ? <><div className="subject-workspace-options">{selectedOption.assignments.map((assignment, index) => <button type="button" className={selectedAllocationId === assignment.id ? 'active' : ''} key={assignment.id || `${assignment.subject}-${assignment.class_level}-${assignment.class_stream}-${index}`} onClick={() => onSelectClass(assignment.id)}><strong>{assignment.class_level} {assignment.class_stream || ''}</strong><span>Assigned class</span></button>)}</div><button type="button" className="subject-workspace-back" onClick={onBack}>← Choose another subject</button></> : options.length ? <div className="subject-workspace-options">{options.map(option => <button type="button" key={`${option.subject}-${option.classLevel}`} onClick={() => onSelect(option.subject, option.classLevel)}><strong>{option.subject}</strong><span>{option.classLevel}</span></button>)}</div> : <p className="muted">No subject classes have been assigned to you yet.</p>}</section></div>
 }
 
@@ -1152,7 +1154,7 @@ export default function StaffDashboard() {
 
   // Filter students based on active class selection (class_level & class_stream)
   const filteredStudents = useMemo(() => {
-    const { level, stream } = activeClassFilter;
+    const { level, stream } = isTeacher && teacherWorkspace === "subjects" ? { level: null, stream: null } : activeClassFilter;
     const activeSubjectAssignments = selectedSubjectAllocationId ? teacherSubjectAssignments.filter((assignment) => assignment.id === selectedSubjectAllocationId) : teacherSubjectAssignments;
     const workspaceStudents = isTeacher && teacherWorkspace === "subjects"
       ? students.filter((student) => activeSubjectAssignments.some((assignment) => assignment.class_level === student.class_level && (assignment.class_stream || "") === (student.class_stream || "")))
@@ -1190,7 +1192,7 @@ export default function StaffDashboard() {
   );
 
   if (isTeacher && teacherWorkspace === "subjects" && section === "dashboard")
-    return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} selectedSubject={selectedSubject} selectedSubjectLevel={selectedSubjectLevel} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onSelectClass={setSubjectAllocation} onBack={clearSubjectGroup} />;
+    return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} students={filteredStudents} selectedSubject={selectedSubject} selectedSubjectLevel={selectedSubjectLevel} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onSelectClass={setSubjectAllocation} onBack={clearSubjectGroup} />;
 
   const shopRole = profile?.active_role ?? profile?.role;
   if (section === "inventory" && ["admin", "accountant"].includes(shopRole))
