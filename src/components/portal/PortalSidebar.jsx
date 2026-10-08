@@ -15,21 +15,31 @@ export default function PortalSidebar({ section, setSection, collapsed, onClose 
         { id: 'dashboard', label: 'Overview', iconKey: 'dashboard', show: true },
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: true },
         { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || profile?.role === 'teacher' },
+        { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'teacher'].includes(profile?.role) },
         { id: 'settings', label: 'Account settings', iconKey: 'staff', show: true }
+      ].filter(i => i.show)
+    },
+    {
+      title: 'Academic services',
+      items: [
+        { id: 'bulk-import', label: 'Bulk learner import', iconKey: 'roster', show: profile?.role === 'admin' },
+        { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: profile?.role === 'admin' },
+        { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: profile?.role === 'admin' },
+        { id: 'classes', label: 'Classes', iconKey: 'staff', show: profile?.role === 'admin' },
+      ].filter(i => i.show)
+    },
+    {
+      title: 'Finance',
+      items: [
+        { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
+        { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
+        { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: ['admin', 'accountant'].includes(profile?.active_role ?? profile?.role) },
       ].filter(i => i.show)
     },
     {
       title: 'Administration',
       items: [
-        { id: 'bulk-import', label: 'Bulk learner import', iconKey: 'roster', show: profile?.role === 'admin' },
-        { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: profile?.role === 'admin' },
-        { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: profile?.role === 'admin' },
-        { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'teacher'].includes(profile?.role) },
-        { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
-        { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
-        { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: ['admin', 'accountant'].includes(profile?.active_role ?? profile?.role) },
         { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager },
-        { id: 'classes', label: 'Classes', iconKey: 'staff', show: profile?.role === 'admin' },
         { id: 'activity', label: 'Activity Log', iconKey: 'staff', show: manager }
       ].filter(i => i.show)
     }
