@@ -37,7 +37,7 @@ Deno.serve(async request => {
     if (password.length < 8) throw new Error('The password must be at least 8 characters.')
     if (!roles.has(role)) throw new Error('Choose a valid staff role.')
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
-    if (role === 'teacher' && (!classLevel || !classStream)) throw new Error('Teachers require both a class level and stream.')
+    if (role === 'teacher' && (!classLevel || (campus === 'senior' && !classStream))) throw new Error('Teachers require a class level; Senior teachers also require a stream.')
     if (role === 'teacher' && ((campus === 'junior') !== /^(ECD|Grade)/.test(classLevel))) throw new Error('The selected teacher class must belong to the selected campus.')
 
     const { data: existing, error: duplicateError } = await admin.from('profiles').select('id').eq('phone', phone).maybeSingle()

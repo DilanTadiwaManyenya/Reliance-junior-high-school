@@ -1792,7 +1792,7 @@ export default function StaffDashboard() {
                       <label>
                         Class level
                         <select
-                          required
+                          required={getStreamsForLevel(staffForm.classLevel).length > 0}
                           value={staffForm.classLevel}
                           onChange={(e) =>
                             setStaffForm((x) => ({
