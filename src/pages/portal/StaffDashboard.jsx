@@ -1954,7 +1954,7 @@ export default function StaffDashboard() {
               </SlideOver>
             )}
 
-            {isMainAdmin && staffEditor.open && (
+            {isAdmin && staffEditor.open && (
               <SlideOver
                 open={staffEditor.open}
                 onClose={closeStaffEditor}
@@ -2041,9 +2041,11 @@ export default function StaffDashboard() {
                     >
                       {staffEditor.staff?.portal_access_enabled === false ? "Reactivate account" : "Deactivate account"}
                     </Button>
-                    <Button type="button" variant="secondary" className="class-manager-danger" onClick={() => deleteStaffAccount(staffEditor.staff)}>
-                      Permanently delete account
-                    </Button>
+                    {isMainAdmin && (
+                      <Button type="button" variant="secondary" className="class-manager-danger" onClick={() => deleteStaffAccount(staffEditor.staff)}>
+                        Permanently delete account
+                      </Button>
+                    )}
                   </div>
                 </form>
               </SlideOver>
@@ -2157,7 +2159,11 @@ export default function StaffDashboard() {
                   </thead>
                   <tbody>
                     {visibleStaff.map((row) => (
-                      <tr key={row.id}>
+                      <tr
+                        key={row.id}
+                        className={isAdmin ? "staff-directory-row-action" : undefined}
+                        onClick={isAdmin ? () => openStaffEditor(row) : undefined}
+                      >
                         <td>
                           <div className="staff-directory-person">
                             <span>
@@ -2202,13 +2208,13 @@ export default function StaffDashboard() {
                             {row.portal_access_enabled === false ? "Deactivated" : "Active"}
                           </span>
                         </td>
-                        {isMainAdmin && (
+                        {isAdmin && (
                           <td>
                             <div className="portal-action-row">
-                              <Button className="staff-reset-button" variant="secondary" onClick={() => openStaffEditor(row)}>
+                              <Button className="staff-reset-button" variant="secondary" onClick={(event) => { event.stopPropagation(); openStaffEditor(row); }}>
                                 Manage
                               </Button>
-                              <Button className="staff-reset-button" variant="secondary" onClick={() => openResetModal(row)}>
+                              <Button className="staff-reset-button" variant="secondary" onClick={(event) => { event.stopPropagation(); openResetModal(row); }}>
                                 Credentials
                               </Button>
                             </div>

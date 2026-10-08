@@ -26,8 +26,8 @@ Deno.serve(async (request) => {
       .select('role, active_role, campus')
       .eq('id', user.id)
       .single()
-    if (callerError || caller?.role !== 'admin' || caller?.active_role !== 'admin' || caller?.campus !== 'all') {
-      throw new Error('Only the Main Admin can manage staff accounts.')
+    if (callerError || caller?.role !== 'admin' || caller?.active_role !== 'admin' || !['junior', 'senior', 'all'].includes(caller?.campus ?? '')) {
+      throw new Error('Switch to the Admin role before managing staff accounts.')
     }
 
     const input = await request.json()
@@ -37,11 +37,15 @@ Deno.serve(async (request) => {
 
     const { data: target, error: targetError } = await admin
       .from('profiles')
-      .select('id, role, is_protected')
+      .select('id, role, campus, is_protected')
       .eq('id', userId)
       .single()
     if (targetError || !target) throw new Error('Staff account not found.')
     if (target.is_protected) throw new Error('This protected account cannot be changed here.')
+    const isMainAdmin = caller.campus === 'all'
+    if (!isMainAdmin && (target.campus !== caller.campus || target.role === 'admin')) {
+      throw new Error('Campus Admins can manage only non-admin staff in their own campus.')
+    }
 
     if (action === 'deactivate' || action === 'reactivate') {
       const active = action === 'reactivate'
@@ -66,6 +70,7 @@ Deno.serve(async (request) => {
     const classStream = String(input.class_stream ?? '').trim()
     if (!fullName) throw new Error('Enter the staff member’s full name.')
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
+    if (!isMainAdmin && campus !== caller.campus) throw new Error('Campus Admins cannot move staff to another campus.')
     if (target.role === 'teacher' && !classAssignments.length) throw new Error('Assign at least one class to a teacher.')
     if (target.role === 'teacher' && campus === 'senior' && !classStream) throw new Error('Choose a stream for a Senior teacher.')
     if (target.role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) {

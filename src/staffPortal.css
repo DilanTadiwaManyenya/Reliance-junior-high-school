@@ -2326,6 +2326,12 @@
 .staff-directory-table td {
   vertical-align: middle;
 }
+.staff-directory-table tbody tr.staff-directory-row-action {
+  cursor: pointer;
+}
+.staff-directory-table tbody tr.staff-directory-row-action:hover td {
+  background: #f4f7ff;
+}
 .staff-directory-person {
   display: flex;
   align-items: center;
