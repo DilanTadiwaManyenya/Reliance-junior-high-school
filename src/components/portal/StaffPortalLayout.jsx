@@ -87,7 +87,7 @@ export default function StaffPortalLayout() {
             >
               <PortalSidebar
                 section={section}
-                setSection={setSection}
+                setSection={changeSection}
                 collapsed={collapsed}
                 onClose={closeMobile}
               />
