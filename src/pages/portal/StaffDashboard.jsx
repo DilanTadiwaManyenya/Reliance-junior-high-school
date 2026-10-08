@@ -1773,6 +1773,7 @@ export default function StaffDashboard() {
                           role: e.target.value,
                           classLevel: "",
                           classStream: "",
+                          classAssignments: [],
                         }))
                       }
                     >
@@ -1784,54 +1785,67 @@ export default function StaffDashboard() {
                   </label>
                   <label>
                     Campus
-                    <select value={staffForm.campus} onChange={(e) => setStaffForm((x) => ({ ...x, campus: e.target.value, classLevel: "", classStream: "" }))}>
+                    <select value={staffForm.campus} onChange={(e) => setStaffForm((x) => ({ ...x, campus: e.target.value, classLevel: "", classStream: "", classAssignments: [] }))}>
                       <option value="junior">Junior School</option>
                       <option value="senior">Senior School</option>
                     </select>
                   </label>
                   {staffForm.role === "teacher" && (
                     <>
-                      <fieldset style={{ gridColumn: "1 / -1" }}><legend>Class assignments</legend>{CLASS_LEVELS.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map(level => <label key={level} style={{ display: "inline-flex", marginRight: "12px", gap: "6px" }}><input type="checkbox" checked={staffForm.classAssignments.includes(level)} onChange={(e) => setStaffForm(x => ({ ...x, classAssignments: e.target.checked ? [...x.classAssignments, level] : x.classAssignments.filter(value => value !== level), classLevel: e.target.checked ? (x.classLevel || level) : x.classLevel }))} />{level}</label>)}</fieldset>
-                      <label>
-                        Class level
-                        <select
-                          required={getStreamsForLevel(staffForm.classLevel).length > 0}
-                          value={staffForm.classLevel}
-                          onChange={(e) =>
-                            setStaffForm((x) => ({
-                              ...x,
-                              classLevel: e.target.value,
-                              classStream: "",
-                            }))
-                          }
-                        >
-                          <option value="">Choose class level</option>
-                          {CLASS_LEVELS.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
-                            <option key={level}>{level}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        Class stream
-                        <select
-                          required
-                          disabled={!staffForm.classLevel}
-                          value={staffForm.classStream}
-                          onChange={(e) =>
-                            setStaffForm((x) => ({
-                              ...x,
-                              classStream: e.target.value,
-                            }))
-                          }
-                        >
-                          <option value="">Choose class stream</option>
-                          {getStreamsForLevel(staffForm.classLevel).map(
-                            (stream) => (
+                      <fieldset style={{ gridColumn: "1 / -1" }}>
+                        <legend>Class assignments</legend>
+                        <p className="muted" style={{ marginTop: 0 }}>
+                          Select every class this teacher teaches. One teacher can be assigned to more than one class.
+                        </p>
+                        {CLASS_LEVELS.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
+                          <label key={level} style={{ display: "inline-flex", marginRight: "12px", gap: "6px" }}>
+                            <input
+                              type="checkbox"
+                              checked={staffForm.classAssignments.includes(level)}
+                              onChange={(e) => setStaffForm((x) => {
+                                const classAssignments = e.target.checked
+                                  ? [...new Set([...x.classAssignments, level])]
+                                  : x.classAssignments.filter((value) => value !== level);
+                                return {
+                                  ...x,
+                                  classAssignments,
+                                  // Keep the legacy primary-class value in sync with the chosen assignments.
+                                  classLevel: classAssignments[0] || "",
+                                  classStream: x.campus === "junior" ? "" : x.classStream,
+                                };
+                              })}
+                            />
+                            {level}
+                          </label>
+                        ))}
+                        <p className="muted" style={{ marginBottom: 0 }}>
+                          {staffForm.classAssignments.length
+                            ? `${staffForm.classAssignments.length} class${staffForm.classAssignments.length === 1 ? "" : "es"} selected.`
+                            : "Select at least one class to create a teacher account."}
+                        </p>
+                      </fieldset>
+                      {staffForm.campus === "senior" ? (
+                        <label>
+                          Class stream
+                          <select
+                            required
+                            disabled={!staffForm.classAssignments.length}
+                            value={staffForm.classStream}
+                            onChange={(e) =>
+                              setStaffForm((x) => ({ ...x, classStream: e.target.value }))
+                            }
+                          >
+                            <option value="">Choose class stream</option>
+                            {getStreamsForLevel(staffForm.classLevel).map((stream) => (
                               <option key={stream}>{stream}</option>
-                            ),
-                          )}
-                        </select>
-                      </label>
+                            ))}
+                          </select>
+                        </label>
+                      ) : (
+                        <p className="muted" style={{ alignSelf: "end" }}>
+                          Junior classes currently do not use streams.
+                        </p>
+                      )}
                     </>
                   )}
                   <div className="portal-action-row">
