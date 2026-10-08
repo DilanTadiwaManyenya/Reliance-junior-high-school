@@ -3824,3 +3824,24 @@
   font: 700 1rem/1 sans-serif;
 }
 .allocation-chip button:hover { background: #8f2020; }
+
+.teacher-workspace-switch {
+  display: inline-flex;
+  overflow: hidden;
+  margin-right: 12px;
+  border: 1px solid #cbd8e9;
+  border-radius: 9px;
+  background: #f8faff;
+}
+.teacher-workspace-switch button {
+  border: 0;
+  border-right: 1px solid #cbd8e9;
+  padding: 9px 12px;
+  background: transparent;
+  color: #40506f;
+  cursor: pointer;
+  font: 800 0.78rem var(--font-ui, inherit);
+}
+.teacher-workspace-switch button:last-child { border-right: 0; }
+.teacher-workspace-switch button.active { background: #b63131; color: #fff; }
+@media (max-width: 860px) { .teacher-workspace-switch { order: 3; margin: 4px 0 0; } }

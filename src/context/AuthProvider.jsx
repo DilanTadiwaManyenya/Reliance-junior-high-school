@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
   const loadProfile = useCallback(async user => {
     const requestId = ++profileRequest.current
     if (!supabase || !user) { setProfile(null); return null }
-    const detailed = await supabase.from('profiles').select('*, user_roles(role), teacher_class_assignments(class_level, class_stream)').eq('id', user.id).single()
+    const detailed = await supabase.from('profiles').select('*, user_roles(role), teacher_class_assignments(class_level, class_stream), teacher_class_subject_assignments(id, class_level, class_stream, subject, campus)').eq('id', user.id).single()
     // Role-assignment tables may not be present in older deployments. A valid
     // staff/parent profile must still be able to sign in while those optional
     // joins are unavailable.

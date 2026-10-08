@@ -105,6 +105,12 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
       {/* ── Right: user info + logout ──────── */}
         <div className="top-bar-user">
+          {profile?.role === 'teacher' && (
+            <div className="teacher-workspace-switch" aria-label="Teacher workspace">
+              <button type="button" className={section === 'coursework' ? '' : 'active'} onClick={() => setSection('roster')}>Classes</button>
+              <button type="button" className={section === 'coursework' ? 'active' : ''} onClick={() => setSection('coursework')}>Subjects</button>
+            </div>
+          )}
           <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
           <ClassSelector 
             role={profile?.role} 
