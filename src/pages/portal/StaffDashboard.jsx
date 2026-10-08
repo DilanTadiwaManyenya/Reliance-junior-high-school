@@ -829,7 +829,7 @@ export default function StaffDashboard() {
       return showError(data?.error || requestError.message);
     logActivity(supabase, user, profile, {
       actionType: "create",
-      description: `Created staff account for ${staffForm.fullName}`,
+      description: `Created ${staffForm.campus} ${staffForm.role} account for ${staffForm.fullName}`,
       targetTable: "profiles",
       targetId: data?.user_id,
     });
