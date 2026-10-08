@@ -3794,3 +3794,33 @@
 .teacher-attendance-date-result.is-break b {
   color: #6d28d9;
 }
+
+.allocation-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.allocation-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px 7px 11px;
+  border: 1px solid #cbd8e9;
+  border-radius: 999px;
+  background: #f8faff;
+  color: #1b2a56;
+  font: 700 0.78rem var(--font-ui, inherit);
+}
+.allocation-chip button {
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #b63131;
+  color: #fff;
+  cursor: pointer;
+  font: 700 1rem/1 sans-serif;
+}
+.allocation-chip button:hover { background: #8f2020; }

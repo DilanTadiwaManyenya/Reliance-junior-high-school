@@ -70,6 +70,13 @@ Deno.serve(async (request) => {
       ? [...new Set(input.class_assignments.map(String).map((value: string) => value.trim()).filter(Boolean))]
       : []
     const classStream = String(input.class_stream ?? '').trim()
+    const classSubjectAssignments = Array.isArray(input.class_subject_assignments)
+      ? input.class_subject_assignments.map((entry: Record<string, unknown>) => ({
+        subject: String(entry?.subject ?? '').trim(),
+        class_level: String(entry?.class_level ?? '').trim(),
+        class_stream: String(entry?.class_stream ?? '').trim(),
+      }))
+      : []
     if (!fullName) throw new Error('Enter the staff member’s full name.')
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
     if (!isMainAdmin && campus !== caller.campus) throw new Error('Campus Admins cannot move staff to another campus.')
@@ -77,6 +84,20 @@ Deno.serve(async (request) => {
     if (target.role === 'teacher' && campus === 'senior' && !classStream) throw new Error('Choose a stream for a Senior teacher.')
     if (target.role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) {
       throw new Error('Each selected class must belong to the selected campus.')
+    }
+    if (target.role === 'teacher' && classSubjectAssignments.some((assignment) =>
+      !assignment.subject
+      || !assignment.class_level
+      || (campus === 'senior' && !assignment.class_stream)
+      || ((campus === 'junior') !== /^(ECD|Grade)/.test(assignment.class_level)),
+    )) {
+      throw new Error('Each subject allocation needs a valid class, subject and (for Senior) stream.')
+    }
+    const duplicateSubjectAllocation = new Set<string>()
+    for (const assignment of classSubjectAssignments) {
+      const key = `${assignment.subject.toLowerCase()}|${assignment.class_level}|${assignment.class_stream}`
+      if (duplicateSubjectAllocation.has(key)) throw new Error('A subject can be allocated only once to the same class.')
+      duplicateSubjectAllocation.add(key)
     }
 
     const primaryClass = classAssignments[0] ?? null
@@ -113,6 +134,42 @@ Deno.serve(async (request) => {
           campus,
         })))
       if (assignmentsError) throw assignmentsError
+
+      // Keep the new precise allocations and the established report-card
+      // subject table in sync while older portal pages transition to it.
+      const { error: removeClassSubjectError } = await admin
+        .from('teacher_class_subject_assignments')
+        .delete()
+        .eq('teacher_id', userId)
+      if (removeClassSubjectError) throw removeClassSubjectError
+      if (classSubjectAssignments.length) {
+        const { error: classSubjectError } = await admin
+          .from('teacher_class_subject_assignments')
+          .insert(classSubjectAssignments.map((assignment) => ({
+            teacher_id: userId,
+            subject: assignment.subject,
+            class_level: assignment.class_level,
+            class_stream: assignment.class_stream,
+            campus,
+          })))
+        if (classSubjectError) throw classSubjectError
+      }
+
+      const { error: removeSubjectError } = await admin
+        .from('teacher_subject_assignments')
+        .delete()
+        .eq('teacher_id', userId)
+      if (removeSubjectError) throw removeSubjectError
+      const legacySubjectAssignments = [...new Map(classSubjectAssignments.map((assignment) => [
+        `${assignment.subject.toLowerCase()}|${assignment.class_level}`,
+        { teacher_id: userId, subject: assignment.subject, form_level: assignment.class_level },
+      ])).values()]
+      if (legacySubjectAssignments.length) {
+        const { error: legacySubjectError } = await admin
+          .from('teacher_subject_assignments')
+          .insert(legacySubjectAssignments)
+        if (legacySubjectError) throw legacySubjectError
+      }
     }
 
     return reply({ success: true, message: 'Staff account updated.' })
