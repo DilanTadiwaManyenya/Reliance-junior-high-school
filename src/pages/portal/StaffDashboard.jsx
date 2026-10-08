@@ -970,7 +970,7 @@ export default function StaffDashboard() {
   };
 
   const deleteStaffAccount = async (row) => {
-    if (!window.confirm(`Permanently delete ${row.full_name}'s account? This cannot be undone. Their teaching assignments will be removed, and affected classes will show as unassigned.`)) return;
+    if (!window.confirm(`Deactivate and permanently delete ${row.full_name}'s account? This cannot be undone. Their teaching assignments will be removed, and affected classes will show as unassigned.`)) return;
     if (!(await ensureAdminRole())) return;
     setError("");
     setNotice("");
@@ -983,7 +983,7 @@ export default function StaffDashboard() {
       targetTable: "profiles",
       targetId: row.id,
     });
-    setNotice(`${row.full_name}'s account was permanently deleted.`);
+    setNotice(`${row.full_name}'s account was deactivated and permanently deleted.`);
     loadStaff();
   };
 
@@ -2059,7 +2059,7 @@ export default function StaffDashboard() {
                     </Button>
                     {isMainAdmin && (
                       <Button type="button" variant="secondary" className="class-manager-danger" onClick={() => deleteStaffAccount(staffEditor.staff)}>
-                        Permanently delete account
+                        Deactivate &amp; delete account
                       </Button>
                     )}
                   </div>
