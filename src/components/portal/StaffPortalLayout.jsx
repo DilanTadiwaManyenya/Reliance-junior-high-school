@@ -27,20 +27,6 @@ export const SectionContext = createContext({
 })
 export const useSection = () => useContext(SectionContext)
 
-function SubjectAllocationBanner({ profile }) {
-  const { selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, setSubjectAllocation, setSubjectGroup, clearSubjectGroup } = useSection()
-  const assignments = profile?.teacher_class_subject_assignments || []
-  const teacherName = profile?.full_name || 'Assigned teacher'
-  const subjectGroups = [...assignments.reduce((groups, assignment) => {
-    const key = `${assignment.subject}::${assignment.class_level}`
-    if (!groups.has(key)) groups.set(key, { subject: assignment.subject, level: assignment.class_level, assignments: [] })
-    groups.get(key).assignments.push(assignment)
-    return groups
-  }, new Map()).values()]
-  const selectedGroup = subjectGroups.find(group => group.subject === selectedSubject && group.level === selectedSubjectLevel)
-  return <section className="teacher-subject-context" aria-label="Subject class teacher allocations"><div className="teacher-subject-context-heading"><span>Subject workspace</span><strong>{selectedGroup ? `${selectedGroup.subject} · ${selectedGroup.level}: choose a class` : 'Choose a subject and form'}</strong></div>{assignments.length ? selectedGroup ? <><div className="teacher-subject-context-list">{selectedGroup.assignments.map((assignment, index) => <button type="button" className={selectedSubjectAllocationId === assignment.id ? 'active' : ''} key={assignment.id || `${assignment.subject}-${assignment.class_level}-${assignment.class_stream || ''}-${index}`} onClick={() => setSubjectAllocation(assignment.id)}><b>{assignment.class_level}{assignment.class_stream ? ` ${assignment.class_stream}` : ''}</b> · Teacher: {teacherName}</button>)}</div><button type="button" className="teacher-subject-context-back" onClick={clearSubjectGroup}>← All subject allocations</button></> : <div className="teacher-subject-context-list">{subjectGroups.map(group => <button type="button" key={`${group.subject}-${group.level}`} onClick={() => setSubjectGroup(group.subject, group.level)}><b>{group.subject}</b> · {group.level}</button>)}</div> : <p>No subject classes have been assigned yet.</p>}</section>
-}
-
 export default function StaffPortalLayout() {
   const { profile, user, supabase } = useAuth()
   const location = useLocation()
@@ -81,7 +67,7 @@ export default function StaffPortalLayout() {
     navigate({ pathname: location.pathname, search })
   }
   const changeSection = nextSection => navigateToSection(nextSection)
-  const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'coursework' : 'roster', workspace)
+  const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'dashboard' : 'roster', workspace, '', '', '')
   const changeSubjectAllocation = allocationId => navigateToSection('entry', 'subjects', allocationId)
   const changeSubjectGroup = (subject, level) => navigateToSection('dashboard', 'subjects', '', subject, level)
   const clearSubjectGroup = () => navigateToSection('dashboard', 'subjects', '', '', '')
@@ -141,7 +127,6 @@ export default function StaffPortalLayout() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
-          {role === 'teacher' && teacherWorkspace === 'subjects' && section !== 'settings' && <SubjectAllocationBanner profile={profile} />}
           <Outlet />
         </motion.main>
 
