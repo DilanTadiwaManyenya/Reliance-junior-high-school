@@ -2932,6 +2932,27 @@
 .class-manager-enrol .class-manager-form-actions .btn {
   width: 100%;
 }
+.class-manager-coverage {
+  min-width: 0;
+}
+.class-subject-coverage {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+.class-subject-coverage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  background: #fafcff;
+  color: #40506f;
+  font-size: 0.8rem;
+}
+.class-subject-coverage-row strong { color: #1b2a56; }
 .class-manager-learners {
   min-width: 0;
 }

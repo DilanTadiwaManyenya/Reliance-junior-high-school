@@ -3,6 +3,7 @@ import Button from "../ui/Button";
 import Card from "../ui/Card";
 import PortalNotice from "./PortalNotice";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
+import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
 const blankClass = { class_level: "", class_stream: "", campus: "junior" };
 const blankLearner = {
@@ -18,6 +19,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [teacherAssignments, setTeacherAssignments] = useState([]);
+  const [subjectAssignments, setSubjectAssignments] = useState([]);
   const [staffProfiles, setStaffProfiles] = useState([]);
   const [form, setForm] = useState(blankClass);
   const [learner, setLearner] = useState(blankLearner);
@@ -56,8 +58,31 @@ export default function ClassManager({ supabase, onChanged }) {
       .map((assignment) => staffProfiles.find((profile) => profile.id === assignment.teacher_id))
       .find((teacher) => teacher && teacher.portal_access_enabled !== false) || null;
   };
+  const subjectKey = (subject) => String(subject || "")
+    .toLowerCase()
+    .replace(/english language/g, "english")
+    .replace(/heritage studies/g, "heritage")
+    .replace(/family religious studies/g, "frs")
+    .replace(/chishona/g, "shona")
+    .replace(/[^a-z0-9]/g, "");
+  const subjectCoverageForClass = (classRow) => {
+    const expected = getSubjectsByGradeStream(
+      classRow.class_level,
+      classRow.class_stream || (classRow.campus === "junior" ? "Blue" : ""),
+    );
+    const assigned = subjectAssignments.filter((item) =>
+      item.class_level === classRow.class_level &&
+      item.campus === classRow.campus &&
+      (classRow.campus === "junior" || !item.class_stream || item.class_stream === classRow.class_stream),
+    );
+    return expected.map((subject) => {
+      const assignment = assigned.find((item) => subjectKey(item.subject) === subjectKey(subject));
+      const teacher = assignment && staffProfiles.find((profile) => profile.id === assignment.teacher_id && profile.portal_access_enabled !== false);
+      return { subject, teacher };
+    });
+  };
   const load = async () => {
-    const [classResult, studentResult, assignmentResult, staffResult] = await Promise.all([
+    const [classResult, studentResult, assignmentResult, subjectResult, staffResult] = await Promise.all([
       supabase
         .from("school_classes")
         .select("*")
@@ -65,6 +90,7 @@ export default function ClassManager({ supabase, onChanged }) {
         .order("class_level"),
       supabase.from("students").select("*").order("full_name"),
       supabase.from("teacher_class_assignments").select("teacher_id, class_level, class_stream, campus"),
+      supabase.from("teacher_class_subject_assignments").select("teacher_id, class_level, class_stream, subject, campus"),
       supabase.from("profiles").select("id, full_name, portal_access_enabled").eq("role", "teacher"),
     ]);
     if (classResult.error) {
@@ -78,6 +104,8 @@ export default function ClassManager({ supabase, onChanged }) {
     else setStudents(studentResult.data ?? []);
     if (assignmentResult.error) setError(assignmentResult.error.message);
     else setTeacherAssignments(assignmentResult.data ?? []);
+    if (subjectResult.error) setError(subjectResult.error.message);
+    else setSubjectAssignments(subjectResult.data ?? []);
     if (staffResult.error) setError(staffResult.error.message);
     else setStaffProfiles(staffResult.data ?? []);
   };
@@ -370,6 +398,7 @@ export default function ClassManager({ supabase, onChanged }) {
                   <th>Class</th>
                       <th>Campus</th>
                       <th>Teacher</th>
+                      <th>Subject coverage</th>
                       <th>Status</th>
                   <th className="class-manager-actions-head">Manage</th>
                 </tr>
@@ -388,6 +417,13 @@ export default function ClassManager({ supabase, onChanged }) {
                             ? `${row.class_level} stream`
                             : "No stream assigned"}
                         </small>
+                      </td>
+                      <td>
+                        {(() => {
+                          const coverage = subjectCoverageForClass(row);
+                          const covered = coverage.filter((item) => item.teacher).length;
+                          return coverage.length ? <><strong>{covered}/{coverage.length}</strong><small>{coverage.length - covered ? `${coverage.length - covered} unassigned` : "Fully assigned"}</small></> : <span className="class-status is-inactive">No subject plan</span>;
+                        })()}
                       </td>
                       <td>
                         <span className="class-campus">{row.campus}</span>
@@ -449,7 +485,7 @@ export default function ClassManager({ supabase, onChanged }) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="muted class-manager-empty">
+                    <td colSpan="6" className="muted class-manager-empty">
                       No classes have been added yet.
                     </td>
                   </tr>
@@ -491,6 +527,15 @@ export default function ClassManager({ supabase, onChanged }) {
               </Button>
             </div>
             <div className="class-manager-detail-grid">
+              <Card className="class-manager-panel class-manager-coverage">
+                <div className="class-manager-panel-heading">
+                  <div>
+                    <h2>Subject coverage</h2>
+                    <p>Assigned teachers are shown per subject. Gaps need a teacher allocation.</p>
+                  </div>
+                </div>
+                {subjectCoverageForClass(selectedClass).length ? <div className="class-subject-coverage">{subjectCoverageForClass(selectedClass).map((item) => <div className="class-subject-coverage-row" key={item.subject}><span>{item.subject}</span>{item.teacher ? <strong>{item.teacher.full_name}</strong> : <span className="class-status is-inactive">Unassigned</span>}</div>)}</div> : <p className="muted">No curriculum subjects are configured for this class yet.</p>}
+              </Card>
               <Card className="class-manager-panel class-manager-enrol">
                 <div className="class-manager-panel-heading">
                   <div>
