@@ -69,7 +69,24 @@ export default function StaffPortalLayout() {
     const search = nextSearch.toString() ? `?${nextSearch.toString()}` : ''
     navigate({ pathname: location.pathname, search })
   }
-  const changeSection = nextSection => navigateToSection(nextSection)
+  const changeSection = nextSection => {
+    if (role !== 'teacher') return navigateToSection(nextSection)
+
+    const subjectSections = ['entry', 'coursework', 'progress-reports']
+    const nextWorkspace = subjectSections.includes(nextSection)
+      ? 'subjects'
+      : nextSection === 'roster' ? 'classes' : teacherWorkspace
+    const preserveSubjectScope = nextWorkspace === 'subjects' && teacherWorkspace === 'subjects'
+
+    navigateToSection(
+      nextSection,
+      nextWorkspace,
+      preserveSubjectScope ? selectedSubjectAllocationId : '',
+      preserveSubjectScope ? selectedSubject : '',
+      preserveSubjectScope ? selectedSubjectLevel : '',
+      preserveSubjectScope ? selectedSubjectClassStream : '',
+    )
+  }
   const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'dashboard' : 'roster', workspace, '', '', '')
   const changeSubjectAllocation = (allocationId, classStream = '') => navigateToSection('dashboard', 'subjects', allocationId, selectedSubject, selectedSubjectLevel, classStream)
   const changeSubjectGroup = (subject, level, allocationId = '') => navigateToSection(section, 'subjects', allocationId, subject, level, '')
