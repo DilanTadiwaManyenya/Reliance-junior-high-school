@@ -28,6 +28,16 @@ const term = (value) =>
 const termNumber = (value) => String(value ?? "").replace(/^term\s*/i, "");
 const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
 
+function TeacherAcademicProgress({ academics, student }) {
+  const current = currentTerm();
+  const currentYear = String(new Date().getFullYear());
+  const currentRecords = academics.filter((row) => termNumber(row.term) === current && String(row.year ?? (row.created_at ? new Date(row.created_at).getFullYear() : currentYear)) === currentYear);
+  const marks = currentRecords.map((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score)).filter(Number.isFinite);
+  const average = marks.length ? (marks.reduce((total, mark) => total + mark, 0) / marks.length).toFixed(1) : null;
+  const passed = marks.filter((mark) => mark >= 50).length;
+  return <section className="learner-academic-progress"><header className="dash-page-header"><div><p className="eyebrow">Teacher view</p><h2 className="dash-page-title">Academic progress</h2><p className="dash-page-sub">{student.full_name} · marks recorded for your allocated subject only.</p></div></header><section className="learner-profile-metrics"><Card><span>Current term average</span><strong>{average ? `${average}%` : "—"}</strong><small>Term {current} · {currentYear}</small></Card><Card><span>Subject progress</span><strong>{passed}/{marks.length}</strong><small>Recorded subject{marks.length === 1 ? "" : "s"} passed</small></Card></section><Card><div className="portal-card-title"><h2>Recorded marks</h2><span className="muted">No report card or printing is available in teacher view.</span></div>{currentRecords.length ? <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Subject</th><th>Term mark</th><th>Exam mark</th><th>Grade</th><th>Comment</th></tr></thead><tbody>{currentRecords.map((row) => <tr key={row.id}><td><strong>{row.subject}</strong></td><td>{row.term_mark ?? row.percentage ?? row.score ?? "—"}</td><td>{row.exam_mark ?? "—"}</td><td>{row.grade || "—"}</td><td>{row.comment || "—"}</td></tr>)}</tbody></table></div> : <p className="muted">No marks have been recorded for this learner in the current term.</p>}</Card></section>;
+}
+
 export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false, initialTab = "Summary" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [state, setState] = useState({
@@ -48,50 +58,53 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
   useEffect(() => {
     let mounted = true;
     const load = async () => {
+      const unavailableToTeacher = Promise.resolve({ data: [], error: null });
       const results = await Promise.all([
         supabase
           .from("academic_records")
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
-        supabase
+        teacherView ? unavailableToTeacher : supabase
           .from("attendance")
           .select("*")
           .eq("student_id", student.id)
           .order("date", { ascending: false }),
-        supabase
+        teacherView ? unavailableToTeacher : supabase
           .from("sports_records")
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
-        supabase
+        teacherView ? unavailableToTeacher : supabase
           .from("behavior_notes")
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
-        supabase
+        teacherView ? unavailableToTeacher : supabase
           .from("student_awards")
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
-        supabase
+        teacherView ? unavailableToTeacher : supabase
           .from("fee_balances")
           .select("*")
           .eq("student_id", student.id)
           .order("academic_year", { ascending: false }),
-        supabase
+        teacherView ? unavailableToTeacher : supabase
           .from("fee_payments")
           .select("*")
           .eq("student_id", student.id)
           .order("paid_on", { ascending: false }),
-        supabase.from("term_settings").select("*"),
-        supabase
+        teacherView ? unavailableToTeacher : supabase.from("term_settings").select("*"),
+        teacherView ? unavailableToTeacher : supabase
           .from("report_term_fee_settings")
           .select("academic_year, term, class_level, amount"),
-        supabase
-          .from("teacher_subject_assignments")
-          .select("subject, form_level")
-          .eq("form_level", student.class_level),
+        teacherView
+          ? Promise.resolve({ data: [], error: null })
+          : supabase
+            .from("teacher_subject_assignments")
+            .select("subject, form_level")
+            .eq("form_level", student.class_level),
       ]);
       if (!mounted) return;
       const [
@@ -138,7 +151,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     return () => {
       mounted = false;
     };
-  }, [supabase, student.id]);
+  }, [supabase, student.id, teacherView]);
 
   useEffect(() => setActiveTab(initialTab), [initialTab, student.id]);
 
@@ -202,10 +215,10 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       )}
     </Card>
   );
-  const visibleTabs = teacherView ? tabs.filter((tab) => !["Academics", "Fees"].includes(tab)) : tabs;
+  const visibleTabs = teacherView ? ["Summary", "Academic progress"] : tabs;
   const summaryYear = String(new Date().getFullYear());
   const summaryTerm = currentTerm();
-  const currentTermAcademics = state.academics.filter((row) => termNumber(row.term) === summaryTerm && String(row.year ?? new Date(row.created_at || Date.now()).getFullYear()) === summaryYear);
+  const currentTermAcademics = state.academics.filter((row) => termNumber(row.term) === summaryTerm && String(row.year ?? (row.created_at ? new Date(row.created_at).getFullYear() : summaryYear)) === summaryYear);
   const currentTermMarks = currentTermAcademics.map((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score)).filter(Number.isFinite);
   const currentTermPassed = currentTermMarks.filter((mark) => mark >= 50).length;
   const currentTermAverage = currentTermMarks.length ? (currentTermMarks.reduce((total, mark) => total + mark, 0) / currentTermMarks.length).toFixed(1) : null;
@@ -260,28 +273,28 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       {activeTab === "Summary" && (
         <>
           <section className="learner-profile-metrics">
-            <Card>
+            {!teacherView && <Card>
               <span>Academic average · Term {summaryTerm} {summaryYear}</span>
               <strong>{currentTermAverage ? `${currentTermAverage}%` : "—"}</strong>
               <small>
                 {currentTermPassed}/{currentTermMarks.length} subjects passed this term
               </small>
-            </Card>
-            <Card>
+            </Card>}
+            {!teacherView && <Card>
               <span>Attendance</span>
               <strong>{summary.rate}%</strong>
               <small>
                 {summary.present} present · {summary.absent} absent
               </small>
-            </Card>
-            <Card>
+            </Card>}
+            {!teacherView && <Card>
               <span>Sport & conduct</span>
               <strong>{state.sports.length + state.behavior.length}</strong>
               <small>
                 {state.sports.length} sport · {state.behavior.length} behaviour
                 records
               </small>
-            </Card>
+            </Card>}
             {!teacherView && <Card>
               <span>
                 {summary.credit ? "Overpayment credit" : "Outstanding fees"}
@@ -298,6 +311,17 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                 {state.fees.length === 1 ? "" : "s"} recorded
               </small>
             </Card>}
+            {teacherView && <Card>
+              <h2>Academic progress</h2>
+              <p>
+                {currentTermMarks.length
+                  ? `${currentTermPassed} of ${currentTermMarks.length} recorded subject${currentTermMarks.length === 1 ? "" : "s"} are currently passing.`
+                  : "No marks have been recorded for your allocated subject yet."}
+              </p>
+              <button type="button" onClick={() => setActiveTab("Academic progress")}>
+                View academic progress →
+              </button>
+            </Card>}
           </section>
           <section className="learner-profile-summary-grid">
             {!teacherView && <Card>
@@ -311,7 +335,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                 View academic report →
               </button>
             </Card>}
-            <Card>
+            {!teacherView && <Card>
               <h2>Attendance snapshot</h2>
               <p>
                 {state.attendance.length
@@ -321,7 +345,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
               <button type="button" onClick={() => setActiveTab("Attendance")}>
                 View attendance history →
               </button>
-            </Card>
+            </Card>}
           </section>
         </>
       )}
@@ -343,6 +367,9 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           subjectTeachers={state.subjectTeachers}
           adminAccess
         />
+      )}
+      {activeTab === "Academic progress" && teacherView && (
+        <TeacherAcademicProgress academics={state.academics} student={student} />
       )}
       {activeTab === "Attendance" && <TeacherAttendanceHistory supabase={supabase} student={student} onClose={() => setActiveTab("Summary")} />}
       {activeTab === "Sport" &&
