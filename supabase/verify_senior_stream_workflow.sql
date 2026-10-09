@@ -94,3 +94,17 @@ where school_class.campus = 'senior'
   and official.class_level is null
 group by school_class.class_level, school_class.class_stream
 order by school_class.class_level, class_stream;
+
+-- 6. No staffing or coursework record should retain the retired Form 5/Form 6
+-- terminology after the allocation-normalisation migration.
+select 'subject allocations' as record_type, count(*) as remaining_records
+from public.teacher_class_subject_assignments
+where campus = 'senior' and class_level in ('Form 5', 'Form 6')
+union all
+select 'class teacher allocations', count(*)
+from public.teacher_class_assignments
+where campus = 'senior' and class_level in ('Form 5', 'Form 6')
+union all
+select 'coursework assessments', count(*)
+from public.coursework_assessments
+where campus = 'senior' and class_level in ('Form 5', 'Form 6');
