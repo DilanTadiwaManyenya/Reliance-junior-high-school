@@ -22,9 +22,8 @@ import { getFeeAmount } from "../../lib/FeeStructure";
 import { logActivity } from "../../lib/logActivity";
 import {
   CLASS_LEVELS,
-  getStreamsForLevel,
-  isJuniorLevel,
 } from "../../data/classOptions";
+import { useSchoolClasses } from "../../hooks/useSchoolClasses";
 
 const CURRENT_YEAR = 2026;
 const CURRENT_TERM = "Term 3";
@@ -209,7 +208,7 @@ function PaymentModal({ student, onClose, onSave, saving }) {
   );
 }
 
-function EnrolmentModal({ supabase, onClose, onSaved }) {
+function EnrolmentModal({ supabase, onClose, onSaved, classLevels, streamsForLevel }) {
   const [form, setForm] = useState({
     full_name: "",
     date_of_birth: "",
@@ -297,7 +296,7 @@ function EnrolmentModal({ supabase, onClose, onSaved }) {
               }
             >
               <option value="">Choose class level</option>
-              {CLASS_LEVELS.map((level) => (
+              {classLevels.map((level) => (
                 <option key={level}>{level}</option>
               ))}
             </select>
@@ -306,16 +305,16 @@ function EnrolmentModal({ supabase, onClose, onSaved }) {
             Class stream
             <select
               required
-              disabled={!form.class_level || isJuniorLevel(form.class_level)}
+              disabled={!form.class_level || !streamsForLevel(form.class_level).length}
               value={form.class_stream}
               onChange={update("class_stream")}
             >
               <option value="">
-                {isJuniorLevel(form.class_level)
-                  ? "N/A (Junior)"
+                {!streamsForLevel(form.class_level).length
+                  ? "N/A (single class)"
                   : "Choose class stream"}
               </option>
-              {getStreamsForLevel(form.class_level).map((stream) => (
+              {streamsForLevel(form.class_level).map((stream) => (
                 <option key={stream}>{stream}</option>
               ))}
             </select>
@@ -794,6 +793,8 @@ export default function FeesDashboard({
   const [toast, setToast] = useState("");
   const [quickStatus, setQuickStatus] = useState("");
   const readOnly = profile?.role === "principal";
+  const { levels: registryLevels, streamsForLevel } = useSchoolClasses(supabase);
+  const classLevels = registryLevels.length ? registryLevels : CLASS_LEVELS;
 
   const loadFees = useCallback(async () => {
     if (!supabase) return;
@@ -1200,6 +1201,8 @@ export default function FeesDashboard({
             onStudentAdded?.();
             setToast("Learner enrolled — admission number and current-term fee account are ready");
           }}
+          classLevels={classLevels}
+          streamsForLevel={streamsForLevel}
         />
       )}
       {showStructureModal && (

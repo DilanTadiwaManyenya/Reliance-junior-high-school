@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
 import ClassSelector, { parseClassKey } from './ClassSelector'
-import { ALL_CLASS_OPTIONS } from '../../data/classOptions'
 import { useSection } from './StaffPortalLayout'
 import PortalSiteExitLink from './PortalSiteExitLink'
+import { useSchoolClasses } from '../../hooks/useSchoolClasses'
 
 /* ── Hamburger / collapse icon ───────────────────────────────────── */
 const MenuIcon = () => (
@@ -25,9 +25,10 @@ const LogoutIcon = () => (
 )
 
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, supabase } = useAuth()
   const navigate = useNavigate()
   const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace } = useSection()
+  const { classes: schoolClasses } = useSchoolClasses(supabase)
 
   const handleLogout = async () => {
     navigate('/portal', { replace: true })
@@ -115,7 +116,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             <ClassSelector 
               role={profile?.role} 
               assignedClasses={profile?.teacher_class_assignments || []} 
-              allClasses={ALL_CLASS_OPTIONS} 
+              allClasses={schoolClasses.map((row) => ({ level: row.class_level, stream: row.class_stream || '' }))}
               activeClassKey={activeClassKey} 
               onClassChange={handleClassChange} 
             />

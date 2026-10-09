@@ -10,12 +10,7 @@ import FeesDashboard from "../../components/portal/FeesDashboard";
 import { useSection } from "../../components/portal/StaffPortalLayout";
 import { useAuth } from "../../context/useAuth";
 import { invokeEdgeFunction } from "../../lib/edgeFunction";
-import {
-  CLASS_LEVELS,
-  getStreamsForLevel,
-  ALL_CLASS_OPTIONS,
-  isJuniorLevel,
-} from "../../data/classOptions";
+import { isJuniorLevel } from "../../data/classOptions";
 import ClassSelector, {
   parseClassKey,
 } from "../../components/portal/ClassSelector";
@@ -1137,14 +1132,10 @@ export default function StaffDashboard() {
   const teacherAssignments = profile?.teacher_class_assignments || [];
   const teacherSubjectAssignments = profile?.teacher_class_subject_assignments || [];
   const adminClassLevels = [
-    ...new Set([
-      ...CLASS_LEVELS,
-      ...schoolClasses.map((row) => row.class_level),
-    ]),
+    ...new Set(schoolClasses.map((row) => row.class_level)),
   ];
   const streamsForAdminLevel = (level) => [
     ...new Set([
-      ...getStreamsForLevel(level),
       ...schoolClasses
         .filter((row) => row.class_level === level)
         .map((row) => row.class_stream)
@@ -2021,7 +2012,7 @@ export default function StaffDashboard() {
                         <p className="muted" style={{ marginTop: 0 }}>
                           Select every class this teacher teaches. One teacher can be assigned to more than one class.
                         </p>
-                        {CLASS_LEVELS.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
+                        {adminClassLevels.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
                           <label key={level} style={{ display: "inline-flex", marginRight: "12px", gap: "6px" }}>
                             <input
                               type="checkbox"
@@ -2060,7 +2051,7 @@ export default function StaffDashboard() {
                             }
                           >
                             <option value="">Choose class stream</option>
-                            {getStreamsForLevel(staffForm.classLevel).map((stream) => (
+                            {streamsForAdminLevel(staffForm.classLevel).map((stream) => (
                               <option key={stream}>{stream}</option>
                             ))}
                           </select>
@@ -2144,7 +2135,7 @@ export default function StaffDashboard() {
                         <p className="muted" style={{ marginTop: 0 }}>
                           Untick a class to remove this teacher from it. A class with no active teacher will be marked Unassigned in Class Management.
                         </p>
-                        {CLASS_LEVELS.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
+                        {adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
                           <label key={level} style={{ display: "inline-flex", marginRight: "12px", gap: "6px" }}>
                             <input
                               type="checkbox"
@@ -2164,8 +2155,8 @@ export default function StaffDashboard() {
                             Allocate the subject to the exact class this teacher teaches. Learner rosters remain controlled by the Classes tab.
                           </p>
                           <div className="portal-form" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", alignItems: "end" }}>
-                            <label>Class<select value={staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectLevel: e.target.value, subjectStream: "" }))}><option value="">Choose class</option>{CLASS_LEVELS.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
-                            {staffEditor.campus === "senior" && <label>Stream<select value={staffEditor.subjectStream} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">Choose stream</option>{getStreamsForLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream}</option>)}</select></label>}
+                            <label>Class<select value={staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectLevel: e.target.value, subjectStream: "" }))}><option value="">Choose class</option>{adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
+                            {staffEditor.campus === "senior" && <label>Stream<select value={staffEditor.subjectStream} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">Choose stream</option>{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream}</option>)}</select></label>}
                             <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{getSubjectsByGradeStream(staffEditor.subjectLevel, staffEditor.subjectStream || (staffEditor.campus === "junior" ? "Blue" : "")).map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
                             <Button type="button" onClick={addSubjectAllocation}>Add subject</Button>
                           </div>
@@ -2182,7 +2173,7 @@ export default function StaffDashboard() {
                             onChange={(e) => setStaffEditor((value) => ({ ...value, classStream: e.target.value }))}
                           >
                             <option value="">Choose class stream</option>
-                            {getStreamsForLevel(staffEditor.classAssignments[0] || "").map((stream) => <option key={stream}>{stream}</option>)}
+                            {streamsForAdminLevel(staffEditor.classAssignments[0] || "").map((stream) => <option key={stream}>{stream}</option>)}
                           </select>
                         </label>
                       ) : (
