@@ -1197,7 +1197,7 @@ export default function StaffDashboard() {
       (s) =>
         s.class_level === level && (stream ? s.class_stream === stream : true),
     );
-  }, [students, activeClassFilter, isTeacher, teacherSubjectAssignments, teacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream]);
+  }, [students, activeClassFilter, isTeacher, teacherSubjectAssignments, teacherWorkspace, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId, selectedSubjectClassStream]);
 
   const visible = filteredStudents.filter((row) =>
     `${row.full_name} ${row.admission_number}`
