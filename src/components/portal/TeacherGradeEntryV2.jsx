@@ -139,15 +139,17 @@ export default function TeacherGradeEntryV2() {
       comment: form.comment || null,
       recorded_by: user.id,
     }
-    const request = recordId
-      ? supabase.from('academic_records').update(payload).eq('id', recordId).select('id').single()
-      : supabase.from('academic_records').insert(payload).select('id').single()
-    const { data, error: requestError } = await request
+    const wasSaved = Boolean(recordId)
+    const { data, error: requestError } = await supabase
+      .from('academic_records')
+      .upsert(payload, { onConflict: 'student_id,subject,term,year' })
+      .select('id')
+      .single()
     setSaving(false)
     if (requestError) return setError(requestError.message || 'The mark could not be saved. Please try again.')
     setRecordId(data?.id || recordId)
     setMarkedStudentIds(current => new Set([...current, learner.id]))
-    setNotice(recordId ? `${selectedSubject} mark updated. You can return and edit it again at any time.` : `${selectedSubject} mark saved. You can return and edit it at any time.`)
+    setNotice(wasSaved ? `${selectedSubject} mark updated. You can return and edit it again at any time.` : `${selectedSubject} mark saved. You can return and edit it at any time.`)
   }
 
   if (loading) return <section className="grade-entry-v2"><p>Loading assigned subject learners…</p></section>
