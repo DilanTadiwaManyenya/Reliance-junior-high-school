@@ -19,6 +19,7 @@ export const SectionContext = createContext({
   teacherWorkspace: 'classes',
   setTeacherWorkspace: () => {},
   selectedSubjectAllocationId: '',
+  selectedSubjectClassStream: '',
   setSubjectAllocation: () => {},
   selectedSubject: '',
   selectedSubjectLevel: '',
@@ -45,6 +46,7 @@ export default function StaffPortalLayout() {
     : sectionConfig.defaultSection
   const teacherWorkspace = role === 'teacher' && searchParams.get('workspace') === 'subjects' ? 'subjects' : 'classes'
   const selectedSubjectAllocationId = teacherWorkspace === 'subjects' ? searchParams.get('allocation') || '' : ''
+  const selectedSubjectClassStream = teacherWorkspace === 'subjects' ? searchParams.get('subjectStream') || '' : ''
   const selectedSubject = teacherWorkspace === 'subjects' ? searchParams.get('subject') || '' : ''
   const selectedSubjectLevel = teacherWorkspace === 'subjects' ? searchParams.get('level') || '' : ''
   const [collapsed, setCollapsed]     = useState(false)
@@ -55,7 +57,7 @@ export default function StaffPortalLayout() {
   const toggleCollapse = () => setCollapsed(c => !c)
   const toggleMobile   = () => setMobileOpen(o => !o)
   const closeMobile    = () => setMobileOpen(false)
-  const navigateToSection = (nextSection, nextWorkspace = teacherWorkspace, nextAllocationId = selectedSubjectAllocationId, nextSubject = selectedSubject, nextLevel = selectedSubjectLevel) => {
+  const navigateToSection = (nextSection, nextWorkspace = teacherWorkspace, nextAllocationId = selectedSubjectAllocationId, nextSubject = selectedSubject, nextLevel = selectedSubjectLevel, nextSubjectStream = selectedSubjectClassStream) => {
     if (!sectionConfig.allowed.includes(nextSection)) return
     const nextSearch = new URLSearchParams()
     if (nextSection !== sectionConfig.defaultSection) nextSearch.set('section', nextSection)
@@ -63,14 +65,15 @@ export default function StaffPortalLayout() {
     if (role === 'teacher' && nextWorkspace === 'subjects' && nextAllocationId) nextSearch.set('allocation', nextAllocationId)
     if (role === 'teacher' && nextWorkspace === 'subjects' && nextSubject) nextSearch.set('subject', nextSubject)
     if (role === 'teacher' && nextWorkspace === 'subjects' && nextLevel) nextSearch.set('level', nextLevel)
+    if (role === 'teacher' && nextWorkspace === 'subjects' && nextSubjectStream) nextSearch.set('subjectStream', nextSubjectStream)
     const search = nextSearch.toString() ? `?${nextSearch.toString()}` : ''
     navigate({ pathname: location.pathname, search })
   }
   const changeSection = nextSection => navigateToSection(nextSection)
   const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'dashboard' : 'roster', workspace, '', '', '')
-  const changeSubjectAllocation = allocationId => navigateToSection('dashboard', 'subjects', allocationId)
-  const changeSubjectGroup = (subject, level) => navigateToSection('dashboard', 'subjects', '', subject, level)
-  const clearSubjectGroup = () => navigateToSection('dashboard', 'subjects', '', '', '')
+  const changeSubjectAllocation = (allocationId, classStream = '') => navigateToSection('dashboard', 'subjects', allocationId, selectedSubject, selectedSubjectLevel, classStream)
+  const changeSubjectGroup = (subject, level) => navigateToSection('dashboard', 'subjects', '', subject, level, '')
+  const clearSubjectGroup = () => navigateToSection('dashboard', 'subjects', '', '', '', '')
   const goBack = () => changeSection(sectionConfig.defaultSection)
   useEffect(() => {
     if (!user || !profile) return
@@ -78,7 +81,7 @@ export default function StaffPortalLayout() {
   }, [section, location.pathname, profile, supabase, user])
 
   return (
-    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
+    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
       <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${profile?.role === 'accountant' ? ' no-sidebar' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}

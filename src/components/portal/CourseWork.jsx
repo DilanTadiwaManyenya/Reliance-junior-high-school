@@ -11,6 +11,7 @@ const allocationLabel = allocation => `${allocation.subject} · ${allocation.cla
 export default function CourseWork() {
   const { supabase, user, profile } = useAuth()
   const [allocations, setAllocations] = useState([])
+  const [schoolClasses, setSchoolClasses] = useState([])
   const [students, setStudents] = useState([])
   const [assessments, setAssessments] = useState([])
   const [form, setForm] = useState(blankAssessment)
@@ -22,19 +23,22 @@ export default function CourseWork() {
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
 
+  const allocationOptions = useMemo(() => allocations.flatMap(allocation => allocation.class_stream ? [{ ...allocation, optionId: `${allocation.id}::${allocation.class_stream}` }] : schoolClasses.filter(schoolClass => schoolClass.active && schoolClass.class_level === allocation.class_level && schoolClass.campus === allocation.campus).map(schoolClass => ({ ...allocation, class_stream: schoolClass.class_stream || null, optionId: `${allocation.id}::${schoolClass.class_stream || '__none__'}` }))), [allocations, schoolClasses])
   const selectedAssessment = assessments.find(row => row.id === selected)
-  const selectedAllocation = allocations.find(row => row.id === form.allocationId)
+  const selectedAllocation = allocationOptions.find(row => row.optionId === form.allocationId)
   const reuseSource = assessments.find(row => row.id === reuseAssessment)
-  const reuseOptions = useMemo(() => allocations.filter(allocation => !reuseSource || allocation.subject.toLowerCase() === reuseSource.subject.toLowerCase()), [allocations, reuseSource])
+  const reuseOptions = useMemo(() => allocationOptions.filter(allocation => !reuseSource || allocation.subject.toLowerCase() === reuseSource.subject.toLowerCase()), [allocationOptions, reuseSource])
 
   const load = async () => {
-    const [allocationResult, assessmentResult] = await Promise.all([
+    const [allocationResult, assessmentResult, classResult] = await Promise.all([
       supabase.from('teacher_class_subject_assignments').select('id,class_level,class_stream,subject,campus').eq('teacher_id', user.id).order('class_level').order('subject'),
       supabase.from('coursework_assessments').select('*').eq('teacher_id', user.id).order('assessment_date', { ascending: false }),
+      supabase.from('school_classes').select('class_level,class_stream,campus,active').eq('active', true),
     ])
-    if (allocationResult.error || assessmentResult.error) setError(allocationResult.error?.message || assessmentResult.error?.message)
+    if (allocationResult.error || assessmentResult.error || classResult.error) setError(allocationResult.error?.message || assessmentResult.error?.message || classResult.error?.message)
     setAllocations(allocationResult.data || [])
     setAssessments(assessmentResult.data || [])
+    setSchoolClasses(classResult.data || [])
   }
 
   useEffect(() => { load() }, [supabase, user.id])
@@ -77,7 +81,7 @@ export default function CourseWork() {
   const reuse = async event => {
     event.preventDefault(); setError(''); setNotice('')
     const source = assessments.find(row => row.id === reuseAssessment)
-    const target = allocations.find(row => row.id === reuseAllocation)
+    const target = allocationOptions.find(row => row.optionId === reuseAllocation)
     if (!source || !target) return setError('Choose an assessment and another allocated class subject.')
     if (source.subject.toLowerCase() !== target.subject.toLowerCase()) return setError('An assessment can only be reused for the same subject.')
     if (source.class_level === target.class_level && (source.class_stream || '') === (target.class_stream || '')) return setError('Choose a different class.')
@@ -114,8 +118,8 @@ export default function CourseWork() {
     <header className="grade-entry-heading"><p className="eyebrow">Subject workspace</p><h1>Course Work</h1><p>Select an allocated subject and class, then enter weekly, monthly or exam marks. Your learner roster remains in the Classes workspace.</p></header>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}
     {!allocations.length && <PortalNotice tone="error">No class subjects are assigned to you yet. Ask the Main Admin to add your subject allocation.</PortalNotice>}
-    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label>Allocated class subject<select required value={form.allocationId} onChange={e => setForm(value => ({ ...value, allocationId: e.target.value }))}><option value="">Choose assigned subject</option>{allocations.map(allocation => <option key={allocation.id} value={allocation.id}>{allocationLabel(allocation)}</option>)}</select></label><label>Subject<input readOnly value={selectedAllocation?.subject || ''} placeholder="Select an allocated class subject" /></label><label>Assessment title<input required value={form.title} onChange={e => setForm(value => ({ ...value, title: e.target.value }))} placeholder="e.g. Week 4 fractions test" /></label><label>Type<select value={form.assessment_type} onChange={e => setForm(value => ({ ...value, assessment_type: e.target.value }))}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={e => setForm(value => ({ ...value, total_marks: e.target.value }))} /></label><label>Date<input required type="date" value={form.assessment_date} onChange={e => setForm(value => ({ ...value, assessment_date: e.target.value }))} /></label><Button type="submit" disabled={saving || !allocations.length}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
-    <Card><form className="form portal-form" onSubmit={reuse}><h2>2. Reuse for another class</h2><p className="muted" style={{ gridColumn: '1 / -1', margin: 0 }}>Copy an assessment only to another class you teach the same subject. The new class starts with blank marks.</p><label>Existing assessment<select value={reuseAssessment} onChange={e => { setReuseAssessment(e.target.value); setReuseAllocation('') }}><option value="">Choose assessment</option>{assessments.map(row => <option key={row.id} value={row.id}>{row.subject} · {row.title} ({row.class_level} {row.class_stream || ''})</option>)}</select></label><label>Other allocated class<select value={reuseAllocation} onChange={e => setReuseAllocation(e.target.value)}><option value="">Choose another class</option>{reuseOptions.map(allocation => <option key={allocation.id} value={allocation.id}>{allocationLabel(allocation)}</option>)}</select></label><Button type="submit" disabled={saving}>{saving ? 'Copying…' : 'Copy assessment to class'}</Button></form></Card>
+    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label>Allocated class subject<select required value={form.allocationId} onChange={e => setForm(value => ({ ...value, allocationId: e.target.value }))}><option value="">Choose assigned subject</option>{allocationOptions.map(allocation => <option key={allocation.optionId} value={allocation.optionId}>{allocationLabel(allocation)}</option>)}</select></label><label>Subject<input readOnly value={selectedAllocation?.subject || ''} placeholder="Select an allocated class subject" /></label><label>Assessment title<input required value={form.title} onChange={e => setForm(value => ({ ...value, title: e.target.value }))} placeholder="e.g. Week 4 fractions test" /></label><label>Type<select value={form.assessment_type} onChange={e => setForm(value => ({ ...value, assessment_type: e.target.value }))}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={e => setForm(value => ({ ...value, total_marks: e.target.value }))} /></label><label>Date<input required type="date" value={form.assessment_date} onChange={e => setForm(value => ({ ...value, assessment_date: e.target.value }))} /></label><Button type="submit" disabled={saving || !allocationOptions.length}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
+    <Card><form className="form portal-form" onSubmit={reuse}><h2>2. Reuse for another class</h2><p className="muted" style={{ gridColumn: '1 / -1', margin: 0 }}>Copy an assessment only to another class you teach the same subject. The new class starts with blank marks.</p><label>Existing assessment<select value={reuseAssessment} onChange={e => { setReuseAssessment(e.target.value); setReuseAllocation('') }}><option value="">Choose assessment</option>{assessments.map(row => <option key={row.id} value={row.id}>{row.subject} · {row.title} ({row.class_level} {row.class_stream || ''})</option>)}</select></label><label>Other allocated class<select value={reuseAllocation} onChange={e => setReuseAllocation(e.target.value)}><option value="">Choose another class</option>{reuseOptions.map(allocation => <option key={allocation.optionId} value={allocation.optionId}>{allocationLabel(allocation)}</option>)}</select></label><Button type="submit" disabled={saving}>{saving ? 'Copying…' : 'Copy assessment to class'}</Button></form></Card>
     <Card><div className="coursework-heading"><div><h2>3. Enter class marks</h2><p>Select an assessment to see marks entered and marks still missing.</p></div><label>Assessment<select value={selected} onChange={e => setSelected(e.target.value)}><option value="">Choose assessment</option>{assessments.map(row => <option key={row.id} value={row.id}>{row.subject} · {row.title} ({row.class_level} {row.class_stream || ''})</option>)}</select></label></div>{selectedAssessment && <><p className="muted">{completed}/{students.length} marks entered · Missing marks remain blank until saved.</p><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Admission no.</th><th>Mark / {selectedAssessment.total_marks}</th><th>Status</th></tr></thead><tbody>{students.map(student => { const value = marks[student.id] ?? ''; return <tr key={student.id}><td><strong>{student.full_name}</strong></td><td>{student.admission_number}</td><td><input aria-label={`Mark for ${student.full_name}`} type="number" min="0" max={selectedAssessment.total_marks} value={value} onChange={e => setMarks(current => ({ ...current, [student.id]: e.target.value }))} /></td><td><span className={`class-status ${value === '' ? 'is-inactive' : 'is-active'}`}>{value === '' ? 'Missing' : 'Entered'}</span></td></tr>})}</tbody></table></div><Button type="button" onClick={saveMarks} disabled={saving}>{saving ? 'Saving…' : `Save ${completed} marks`}</Button></>}</Card>
   </section>
 }
