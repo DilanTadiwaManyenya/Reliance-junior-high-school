@@ -1,6 +1,6 @@
 /* ── Class levels ─────────────────────────────────────────────────
    Junior campus: ECD A/B, Grade 1-7
-   Senior campus: Form 1-6
+   Senior campus: Form 1-4, Lower Six, Upper Six
 ──────────────────────────────────────────────────────────────── */
 export const JUNIOR_LEVELS = [
   'ECD A', 'ECD B',
@@ -8,7 +8,7 @@ export const JUNIOR_LEVELS = [
 ]
 
 export const SENIOR_LEVELS = [
-  'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 6'
+  'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Lower Six', 'Upper Six'
 ]
 
 export const CLASS_LEVELS = [...JUNIOR_LEVELS, ...SENIOR_LEVELS]

@@ -8,8 +8,8 @@ with official_streams (class_level, class_stream) as (
     ('Form 2', 'Red'), ('Form 2', 'Blue'), ('Form 2', 'White'), ('Form 2', 'Green'),
     ('Form 3', 'Red'), ('Form 3', 'Blue'), ('Form 3', 'White'), ('Form 3', 'Green'), ('Form 3', 'Purple'),
     ('Form 4', 'Red'), ('Form 4', 'Blue'), ('Form 4', 'White'), ('Form 4', 'Green'), ('Form 4', 'Purple'),
-    ('Form 5', 'Commercials'), ('Form 5', 'Arts'),
-    ('Form 6', 'Commercials'), ('Form 6', 'Arts')
+    ('Lower Six', 'Commercials'), ('Lower Six', 'Arts'),
+    ('Upper Six', 'Commercials'), ('Upper Six', 'Arts')
 )
 select official.class_level, official.class_stream,
   case
@@ -77,8 +77,8 @@ with official_streams (class_level, class_stream) as (
     ('Form 2', 'Red'), ('Form 2', 'Blue'), ('Form 2', 'White'), ('Form 2', 'Green'),
     ('Form 3', 'Red'), ('Form 3', 'Blue'), ('Form 3', 'White'), ('Form 3', 'Green'), ('Form 3', 'Purple'),
     ('Form 4', 'Red'), ('Form 4', 'Blue'), ('Form 4', 'White'), ('Form 4', 'Green'), ('Form 4', 'Purple'),
-    ('Form 5', 'Commercials'), ('Form 5', 'Arts'),
-    ('Form 6', 'Commercials'), ('Form 6', 'Arts')
+    ('Lower Six', 'Commercials'), ('Lower Six', 'Arts'),
+    ('Upper Six', 'Commercials'), ('Upper Six', 'Arts')
 )
 select school_class.class_level, coalesce(school_class.class_stream, '') as class_stream,
   count(learner.id) as learner_records

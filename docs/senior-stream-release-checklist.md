@@ -5,9 +5,9 @@ Apply the Stage 3, Stage 4, and Stage 5 Supabase migrations first. Then run
 
 Before release, confirm:
 
-- Every official Form 1-6 stream reports `ready`.
+- Every official Form 1-4, Lower Six, and Upper Six stream reports `ready`.
 - Form 4 has exactly Red, Blue, White, Green, and Purple—one Green only.
-- Form 5 and Form 6 have Commercials and Arts only.
+- Lower Six and Upper Six have Commercials and Arts only.
 - Any remaining non-official active stream has a deliberate correction plan.
 - A class at capacity shows **New stream recommended** and the administrator
   can create a named stream from that recommendation.
