@@ -741,7 +741,7 @@ export default function StaffDashboard() {
   const loadSchoolClasses = useCallback(async () => {
     const { data } = await supabase
       .from("school_classes")
-      .select("class_level, class_stream")
+      .select("class_level, class_stream, campus")
       .eq("active", true);
     setSchoolClasses(data ?? []);
   }, [supabase]);
