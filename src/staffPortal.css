@@ -3942,4 +3942,13 @@
 }
 .teacher-workspace-switch button:last-child { border-right: 0; }
 .teacher-workspace-switch button.active { background: #b63131; color: #fff; }
+.teacher-subject-scope { display: grid; gap: 2px; min-width: 170px; margin-right: 4px; padding: 6px 10px; border: 1px solid #e7c6c6; border-radius: 9px; background: #fff7f7; color: #1b2a56; }
+.teacher-subject-scope span { color: #a6302f; font-size: .62rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.teacher-subject-scope strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .78rem; }
+.subject-scope-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.subject-scope-summary > div { display: grid; gap: 4px; min-height: 76px; padding: 13px 15px; border: 1px solid #dce5f0; border-radius: 12px; background: #f8faff; }
+.subject-scope-summary span { color: #60708f; font-size: .68rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.subject-scope-summary strong { color: #1b2a56; font-size: .94rem; }
+@media (max-width: 980px) { .teacher-subject-scope { display: none; } .subject-scope-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .subject-scope-summary { grid-template-columns: 1fr; } }
 @media (max-width: 860px) { .teacher-workspace-switch { order: 3; margin: 4px 0 0; } }

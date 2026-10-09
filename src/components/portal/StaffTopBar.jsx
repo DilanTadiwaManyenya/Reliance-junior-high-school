@@ -27,7 +27,7 @@ const LogoutIcon = () => (
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   const { profile, signOut, supabase } = useAuth()
   const navigate = useNavigate()
-  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, clearSubjectGroup } = useSection()
+  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, clearSubjectGroup } = useSection()
   const { classes: schoolClasses } = useSchoolClasses(supabase)
 
   const handleLogout = async () => {
@@ -109,10 +109,11 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
         <div className="top-bar-user">
           {profile?.role === 'teacher' && (
             <div className="teacher-workspace-switch" aria-label="Teacher workspace">
-              <button type="button" className={teacherWorkspace === 'classes' ? 'active' : ''} onClick={() => setTeacherWorkspace('classes')}>Classes</button>
-              <button type="button" className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subjects</button>
+              <button type="button" className={teacherWorkspace === 'classes' ? 'active' : ''} onClick={() => setTeacherWorkspace('classes')}>Class work</button>
+              <button type="button" className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subject work</button>
             </div>
           )}
+          {hasTeacherSubjectScope && <div className="teacher-subject-scope" aria-label="Active subject allocation"><span>Subject work</span><strong>{selectedSubject} · {selectedSubjectLevel}</strong></div>}
           {!(profile?.role === 'teacher' && teacherWorkspace === 'subjects') && <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
             <ClassSelector 
               role={profile?.role} 
