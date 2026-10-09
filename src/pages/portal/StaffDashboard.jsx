@@ -38,9 +38,11 @@ function StaffSubjectAssignments({ staff }) {
   }
 
   const assignmentsByClass = assignments.reduce((groups, assignment) => {
-    const classLabel = [assignment.class_level, assignment.class_stream]
-      .filter(Boolean)
-      .join(" ") || "Unassigned class";
+    const classLabel = assignment.class_stream
+      ? `${assignment.class_level} ${assignment.class_stream}`
+      : assignment.class_level
+        ? `${assignment.class_level} · Whole form`
+        : "Unassigned class";
     if (!groups.has(classLabel)) groups.set(classLabel, new Set());
     groups.get(classLabel).add(assignment.subject);
     return groups;
@@ -994,9 +996,9 @@ export default function StaffDashboard() {
   const addSubjectAllocation = () => {
     const subject = staffEditor.subjectName.trim();
     const classLevel = staffEditor.subjectLevel;
-    const classStream = staffEditor.campus === "senior" ? staffEditor.subjectStream : "";
-    if (!subject || !classLevel || (staffEditor.campus === "senior" && !classStream)) {
-      showError("Choose a class, stream and subject before adding the subject allocation.");
+    const classStream = "";
+    if (!subject || !classLevel) {
+      showError("Choose a form and subject before adding the subject allocation.");
       return;
     }
     const exists = staffEditor.subjectAssignments.some((assignment) =>
@@ -1004,7 +1006,7 @@ export default function StaffDashboard() {
       && assignment.class_level === classLevel
       && (assignment.class_stream || "") === classStream,
     );
-    if (exists) return showError("That subject is already allocated to this teacher for the selected class.");
+    if (exists) return showError("That subject is already allocated to this teacher for the selected form.");
     setError("");
     setStaffEditor((value) => ({
       ...value,
@@ -1143,6 +1145,11 @@ export default function StaffDashboard() {
         .filter(Boolean),
     ]),
   ];
+  const subjectOptionsForLevel = (level, campus) => {
+    if (!level) return [];
+    if (campus !== "senior") return getSubjectsByGradeStream(level, "Blue");
+    return [...new Set(streamsForAdminLevel(level).flatMap((stream) => getSubjectsByGradeStream(level, stream)))];
+  };
 
   // Filter students based on active class selection (class_level & class_stream)
   const filteredStudents = useMemo(() => {
@@ -2068,7 +2075,7 @@ export default function StaffDashboard() {
                         <div className="portal-action-row">
                           <select value={staffForm.subjectName} disabled={!staffForm.classLevel} onChange={(e) => setStaffForm((x) => ({ ...x, subjectName: e.target.value }))}>
                             <option value="">Choose subject</option>
-                            {getSubjectsByGradeStream(staffForm.classLevel, staffForm.classStream || (staffForm.campus === "junior" ? "Blue" : "")).map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                            {subjectOptionsForLevel(staffForm.classLevel, staffForm.campus).map((subject) => <option key={subject} value={subject}>{subject}</option>)}
                           </select>
                           <Button type="button" variant="secondary" onClick={() => setStaffForm((x) => !x.subjectName ? x : ({ ...x, subjectAssignments: x.subjectAssignments.includes(x.subjectName) ? x.subjectAssignments : [...x.subjectAssignments, x.subjectName], subjectName: "" }))}>Add subject</Button>
                         </div>
@@ -2153,15 +2160,14 @@ export default function StaffDashboard() {
                         ))}
                         </> : <>
                           <p className="muted" style={{ marginTop: 0 }}>
-                            Allocate the subject to the exact class this teacher teaches. Learner rosters remain controlled by the Classes tab.
+                            Senior subject allocations apply to the whole form and every active stream. Class-teacher responsibility remains controlled by the Classes tab.
                           </p>
                           <div className="portal-form" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", alignItems: "end" }}>
                             <label>Class<select value={staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectLevel: e.target.value, subjectStream: "" }))}><option value="">Choose class</option>{adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
-                            {staffEditor.campus === "senior" && <label>Stream<select value={staffEditor.subjectStream} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">Choose stream</option>{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream}</option>)}</select></label>}
-                            <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{getSubjectsByGradeStream(staffEditor.subjectLevel, staffEditor.subjectStream || (staffEditor.campus === "junior" ? "Blue" : "")).map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
+                            <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{subjectOptionsForLevel(staffEditor.subjectLevel, staffEditor.campus).map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
                             <Button type="button" onClick={addSubjectAllocation}>Add subject</Button>
                           </div>
-                          {staffEditor.subjectAssignments.length ? <div className="allocation-chip-list">{staffEditor.subjectAssignments.map((assignment, index) => <span className="allocation-chip" key={`${assignment.subject}-${assignment.class_level}-${assignment.class_stream}-${index}`}>{assignment.subject} · {assignment.class_level}{assignment.class_stream ? ` · ${assignment.class_stream}` : ""}<button type="button" aria-label={`Remove ${assignment.subject} from ${assignment.class_level}`} onClick={() => setStaffEditor((value) => ({ ...value, subjectAssignments: value.subjectAssignments.filter((_, position) => position !== index) }))}>×</button></span>)}</div> : <p className="muted">No subjects allocated yet.</p>}
+                          {staffEditor.subjectAssignments.length ? <div className="allocation-chip-list">{staffEditor.subjectAssignments.map((assignment, index) => <span className="allocation-chip" key={`${assignment.subject}-${assignment.class_level}-${assignment.class_stream}-${index}`}>{assignment.subject} · {assignment.class_level} · Whole form<button type="button" aria-label={`Remove ${assignment.subject} from ${assignment.class_level}`} onClick={() => setStaffEditor((value) => ({ ...value, subjectAssignments: value.subjectAssignments.filter((_, position) => position !== index) }))}>×</button></span>)}</div> : <p className="muted">No subjects allocated yet.</p>}
                         </>}
                       </fieldset>
                       {staffEditor.campus === "senior" ? (

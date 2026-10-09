@@ -25,7 +25,9 @@ export function getSubjectsByGradeStream(gradeLevel = '', stream = '') {
   if (gradeLevel === 'ECD A') return CURRICULUM_STRUCTURE.ECD_A.subjects
   if (gradeLevel === 'ECD B') return CURRICULUM_STRUCTURE.ECD_B.subjects
   if (gradeLevel.startsWith('Grade ')) return CURRICULUM_STRUCTURE.GRADE_1_7[stream] ?? []
-  if (/^Form [1-4]$/.test(gradeLevel)) return CURRICULUM_STRUCTURE.FORM_1_4[stream] ?? []
+  // Senior Forms 1–4 share one O-Level subject plan across every stream.
+  // Streams classify learners; they do not change the form's subject list.
+  if (/^Form [1-4]$/.test(gradeLevel)) return oLevelSubjects
   return CURRICULUM_STRUCTURE.FORM_5_6[stream] ?? []
 }
 

@@ -88,10 +88,9 @@ Deno.serve(async (request) => {
     if (target.role === 'teacher' && classSubjectAssignments.some((assignment) =>
       !assignment.subject
       || !assignment.class_level
-      || (campus === 'senior' && !assignment.class_stream)
       || ((campus === 'junior') !== /^(ECD|Grade)/.test(assignment.class_level)),
     )) {
-      throw new Error('Each subject allocation needs a valid class, subject and (for Senior) stream.')
+      throw new Error('Each subject allocation needs a valid form and subject.')
     }
     const duplicateSubjectAllocation = new Set<string>()
     for (const assignment of classSubjectAssignments) {

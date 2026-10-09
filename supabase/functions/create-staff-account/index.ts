@@ -61,7 +61,7 @@ Deno.serve(async request => {
       const assignment = await admin.from('teacher_class_assignments').insert(classAssignments.map((level: string) => ({ teacher_id: createdUserId, class_level: level, class_stream: classStream, campus })))
       if (assignment.error) throw assignment.error
       if (subjectAssignments.length) {
-        const classSubject = await admin.from('teacher_class_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ teacher_id: createdUserId, class_level, class_stream: classStream, subject, campus }))))
+        const classSubject = await admin.from('teacher_class_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ teacher_id: createdUserId, class_level, class_stream: '', subject, campus }))))
         if (classSubject.error) throw classSubject.error
         const legacySubjects = await admin.from('teacher_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(form_level => ({ teacher_id: createdUserId, subject, form_level }))))
         if (legacySubjects.error) throw legacySubjects.error
