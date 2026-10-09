@@ -216,3 +216,137 @@ img, svg { max-width: 100%; }
   .learner-profile-metrics { grid-template-columns: 1fr; }
   .teacher-attendance-summary { grid-template-columns: 1fr; }
 }
+
+/* Portal-wide responsive baseline.  These rules sit last deliberately: the
+   individual dashboard styles were added over time and otherwise make a
+   phone inherit conflicting desktop widths. */
+@media (max-width: 900px) {
+  .staff-main, .staff-content-area, .portal-workspace, .portal-record-grid,
+  .portal-form-grid, .record-entry-workspace, .class-manager-workspace,
+  .fees-dashboard, .inventory-dashboard, .shop-dashboard {
+    min-width: 0;
+  }
+
+  .dash-page-header, .dashboard-header-controls, .fees-page-header,
+  .coursework-heading, .record-entry-heading, .class-manager-header {
+    min-width: 0;
+  }
+
+  .dash-page-header > *, .dashboard-header-controls > *, .fees-page-header > *,
+  .coursework-heading > *, .record-entry-heading > *, .class-manager-header > * {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Keep the app shell within the viewport even when an older page has a
+     fixed desktop minimum width.  Tables retain their own horizontal scroll. */
+  #root, .staff-shell, .staff-main, .portal-shell, .portal-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .staff-main, .portal-content, .staff-content-area {
+    overflow-x: clip;
+  }
+
+  /* A compact, predictable mobile header.  Context is kept in the page,
+     rather than crowding the top bar beside navigation and account actions. */
+  .staff-top-bar {
+    gap: 6px;
+    padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right));
+  }
+  .teacher-workspace-switch {
+    min-width: 0;
+    margin-right: 0;
+  }
+  .teacher-workspace-switch button {
+    min-height: 42px;
+    padding-inline: 9px;
+    white-space: nowrap;
+  }
+  .top-bar-class-control .class-switcher-select,
+  .top-bar-toggle,
+  .top-bar-logout {
+    min-height: 42px;
+  }
+
+  /* Forms and actions always fit one thumb-width column. */
+  .portal-form, .portal-student-selector, .portal-student-picker,
+  .record-entry-card .portal-student-selector, .class-manager-form,
+  .class-manager-enrol .class-manager-form, .coursework-page .portal-form,
+  .fee-modal form, .shop-learner-picker > div {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .portal-form input, .portal-form select, .portal-form textarea,
+  .portal-student-selector input, .portal-student-selector select,
+  .portal-student-picker input, .portal-student-picker select,
+  .class-manager-form input, .class-manager-form select,
+  .coursework-page select, .coursework-page input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .portal-form .btn, .portal-action-row .btn, .class-manager-form-actions .btn,
+  .class-manager-actions .btn, .record-entry-save .btn, .fee-modal-actions .fee-button {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  /* Do not force data grids to become tiny unreadable cards.  They scroll
+     inside a visible container and retain comfortable tap targets. */
+  .portal-table-wrap, .fee-table-wrap, .shop-table, .subject-progress-table,
+  .class-manager-table-wrap, .report-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+  }
+  .portal-table th, .portal-table td, .fee-table th, .fee-table td,
+  .shop-table th, .shop-table td {
+    min-height: 48px;
+    vertical-align: middle;
+  }
+  .portal-table td button, .fee-table td button, .shop-table td button {
+    min-height: 40px;
+  }
+
+  /* Complex admin pages retain hierarchy instead of side-by-side panels. */
+  .class-manager-detail-grid, .class-manager-insights, .shop-operational-grid,
+  .shop-profit-layout, .fee-summary-grid, .fees-stats-grid,
+  .subject-scope-summary, .learner-profile-summary-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .dash-stats-row, .learner-profile-metrics, .shop-stats-grid,
+  .shop-stats-five, .fee-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dash-stat-card, .learner-profile-metrics .card {
+    min-width: 0;
+  }
+
+  /* Keep page-level action headings readable and keep the primary action
+     reachable without relying on a narrow flex row. */
+  .dash-page-header, .fees-page-header, .coursework-heading,
+  .record-entry-heading, .class-manager-header, .portal-card-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .dash-page-header .btn, .fees-page-header .btn, .coursework-heading .btn,
+  .record-entry-heading .btn, .class-manager-header .btn, .portal-card-title .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 390px) {
+  .teacher-workspace-switch button {
+    padding-inline: 6px;
+    font-size: .68rem;
+  }
+  .dash-stats-row, .learner-profile-metrics, .shop-stats-grid,
+  .shop-stats-five, .fee-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
