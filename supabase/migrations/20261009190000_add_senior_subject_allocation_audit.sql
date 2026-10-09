@@ -21,7 +21,7 @@ join public.profiles as teacher on teacher.id = assignment.teacher_id
 left join public.school_classes as class_item
   on class_item.campus = assignment.campus
   and class_item.class_level = assignment.class_level
-  and class_item.is_active = true
+  and class_item.active = true
   and (assignment.class_stream = '' or assignment.class_stream = class_item.class_stream)
 where assignment.campus = 'senior'
 group by
