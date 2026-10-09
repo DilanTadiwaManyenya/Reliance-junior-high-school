@@ -125,7 +125,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
           </div>}
           {profile?.role === 'teacher' ? (
             hasTeacherSubjectScope ? <button className="top-bar-back" onClick={clearSubjectGroup} title="Choose another subject and form">← Subject allocations</button>
-              : section !== 'dashboard' && <button className="top-bar-back" onClick={() => setSection('dashboard')} title="Return to your teaching overview">← Overview</button>
+              : !['dashboard', 'subject-allocations'].includes(section) && <button className="top-bar-back" onClick={() => setSection('subject-allocations')} title="Return to subject allocations">← Subject allocations</button>
           ) : (
             <button className="top-bar-back" onClick={goBack} disabled={!canGoBack} title={canGoBack ? 'Return to the previous portal page' : 'You are already at the portal home'}>← Back</button>
           )}

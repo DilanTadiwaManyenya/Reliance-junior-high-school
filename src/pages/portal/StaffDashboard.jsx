@@ -1208,7 +1208,7 @@ export default function StaffDashboard() {
   if (
     isTeacher &&
     teacherWorkspace === "subjects" &&
-    ["dashboard", "entry", "coursework", "progress-reports"].includes(section) &&
+    ["dashboard", "subject-allocations", "entry", "coursework", "progress-reports"].includes(section) &&
     !hasTeacherSubjectScope
   )
     return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} students={filteredStudents} teacherName={profile?.full_name} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onBack={clearSubjectGroup} />;

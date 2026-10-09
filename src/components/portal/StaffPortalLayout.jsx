@@ -38,7 +38,7 @@ export default function StaffPortalLayout() {
   const sectionConfig = {
     admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'activity'] },
-    teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'coursework', 'settings', 'progress-reports'] },
+    teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'subject-allocations', 'roster', 'entry', 'coursework', 'settings', 'progress-reports'] },
     accountant: { defaultSection: 'fees',      allowed: ['fees', 'expenses', 'inventory'] },
   }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
   const section = requestedSection && sectionConfig.allowed.includes(requestedSection)
@@ -72,7 +72,7 @@ export default function StaffPortalLayout() {
   const changeSection = nextSection => {
     if (role !== 'teacher') return navigateToSection(nextSection)
 
-    const subjectSections = ['entry', 'coursework', 'progress-reports']
+    const subjectSections = ['subject-allocations', 'entry', 'coursework', 'progress-reports']
     const nextWorkspace = subjectSections.includes(nextSection)
       ? 'subjects'
       : nextSection === 'roster' ? 'classes' : teacherWorkspace
@@ -87,10 +87,10 @@ export default function StaffPortalLayout() {
       preserveSubjectScope ? selectedSubjectClassStream : '',
     )
   }
-  const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'dashboard' : 'roster', workspace, '', '', '')
+  const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'subject-allocations' : 'roster', workspace, '', '', '')
   const changeSubjectAllocation = (allocationId, classStream = '') => navigateToSection('dashboard', 'subjects', allocationId, selectedSubject, selectedSubjectLevel, classStream)
   const changeSubjectGroup = (subject, level, allocationId = '') => navigateToSection(section, 'subjects', allocationId, subject, level, '')
-  const clearSubjectGroup = () => navigateToSection('dashboard', 'subjects', '', '', '', '')
+  const clearSubjectGroup = () => navigateToSection('subject-allocations', 'subjects', '', '', '', '')
   const goBack = () => changeSection(sectionConfig.defaultSection)
   useEffect(() => {
     if (!user || !profile) return
