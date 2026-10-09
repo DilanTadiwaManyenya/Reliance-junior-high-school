@@ -1132,6 +1132,12 @@ export default function StaffDashboard() {
   const isTeacher = profile?.role === "teacher";
   const teacherAssignments = profile?.teacher_class_assignments || [];
   const teacherSubjectAssignments = profile?.teacher_class_subject_assignments || [];
+  const hasTeacherSubjectScope = Boolean(
+    teacherWorkspace === "subjects" &&
+    selectedSubject &&
+    selectedSubjectLevel &&
+    selectedSubjectAllocationId,
+  );
   const adminClassLevels = [
     ...new Set(schoolClasses.map((row) => row.class_level)),
   ];
@@ -1190,7 +1196,11 @@ export default function StaffDashboard() {
       .includes(query.toLowerCase()),
   );
 
-  if (isTeacher && teacherWorkspace === "subjects" && section === "dashboard")
+  if (
+    isTeacher &&
+    ["dashboard", "entry", "progress-reports"].includes(section) &&
+    !hasTeacherSubjectScope
+  )
     return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} students={filteredStudents} teacherName={profile?.full_name} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onBack={clearSubjectGroup} />;
 
   const shopRole = profile?.active_role ?? profile?.role;
