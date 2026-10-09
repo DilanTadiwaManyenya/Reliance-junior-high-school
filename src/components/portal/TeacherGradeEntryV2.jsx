@@ -6,41 +6,166 @@ import { useSection } from './StaffPortalLayout'
 
 const schoolTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1))
 const blank = () => ({ subject: '', percentage: '', exam_mark: '', term: schoolTerm(), year: new Date().getFullYear(), comment: '' })
-const unique = values => [...new Set(values)]
 
 export default function TeacherGradeEntryV2() {
   const { supabase, user, profile } = useAuth()
   const { selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId } = useSection()
-  const [students, setStudents] = useState([]); const [studentId, setStudentId] = useState('')
-  const [form, setForm] = useState(() => ({ ...blank(), subject: selectedSubject || '' })); const [saved, setSaved] = useState([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('')
-  useEffect(() => { let active = true; supabase.from('students').select('id, full_name, admission_number, class_level, class_stream').order('full_name').then(({ data, error: requestError }) => { if (!active) return; setStudents(data || []); setError(requestError ? 'Unable to load your learners.' : ''); setLoading(false) }); return () => { active = false } }, [supabase])
+  const [students, setStudents] = useState([])
+  const [studentId, setStudentId] = useState('')
+  const [form, setForm] = useState(() => ({ ...blank(), subject: selectedSubject || '' }))
+  const [recordId, setRecordId] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [loadingRecord, setLoadingRecord] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  useEffect(() => {
+    let active = true
+    supabase.from('students').select('id, full_name, admission_number, class_level, class_stream').order('full_name').then(({ data, error: requestError }) => {
+      if (!active) return
+      setStudents(data || [])
+      setError(requestError ? 'Unable to load your learners.' : '')
+      setLoading(false)
+    })
+    return () => { active = false }
+  }, [supabase])
+
   const subjectAssignments = useMemo(() => profile?.teacher_class_subject_assignments || [], [profile?.teacher_class_subject_assignments])
   const hasSubjectScope = Boolean(selectedSubject && selectedSubjectLevel && selectedSubjectAllocationId)
-  const activeSubjectAssignments = useMemo(() => (selectedSubject && selectedSubjectLevel
-    ? subjectAssignments.filter(assignment => assignment.subject === selectedSubject && assignment.class_level === selectedSubjectLevel)
-    : selectedSubjectAllocationId ? subjectAssignments.filter(assignment => assignment.id === selectedSubjectAllocationId) : []), [subjectAssignments, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId])
-  const visible = useMemo(() => students.filter(student => activeSubjectAssignments.some(assignment => assignment.class_level === student.class_level && (!assignment.class_stream || assignment.class_stream === (student.class_stream || '')))), [students, activeSubjectAssignments])
+  const activeSubjectAssignments = useMemo(() => (
+    selectedSubject && selectedSubjectLevel
+      ? subjectAssignments.filter(assignment => assignment.subject === selectedSubject && assignment.class_level === selectedSubjectLevel)
+      : selectedSubjectAllocationId
+        ? subjectAssignments.filter(assignment => assignment.id === selectedSubjectAllocationId)
+        : []
+  ), [subjectAssignments, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId])
+  const visible = useMemo(() => students.filter(student => activeSubjectAssignments.some(assignment => (
+    assignment.class_level === student.class_level
+      && (!assignment.class_stream || assignment.class_stream === (student.class_stream || ''))
+  ))), [students, activeSubjectAssignments])
   const learner = visible.find(row => row.id === studentId)
-  const subjects = useMemo(() => learner
-    ? unique(activeSubjectAssignments.filter(assignment => assignment.class_level === learner.class_level && (!assignment.class_stream || assignment.class_stream === (learner.class_stream || ''))).map(assignment => assignment.subject))
-    : unique(activeSubjectAssignments.map(assignment => assignment.subject)), [learner, activeSubjectAssignments])
   const mark = form.exam_mark === '' ? form.percentage : form.exam_mark
   const outcome = learner ? calculateGrade(mark, learner.class_level) : null
   const change = field => event => setForm(value => ({ ...value, [field]: event.target.value }))
-  useEffect(() => { let active = true; if (!learner) return () => { active = false }; supabase.from('academic_records').select('id, subject, score, grade').eq('student_id', learner.id).eq('term', form.term).eq('year', Number(form.year)).then(({ data, error: requestError }) => { if (!active) return; if (requestError) setError(requestError.message); else setSaved(data || []) }); return () => { active = false } }, [form.term, form.year, learner, supabase])
-  const save = async event => { event.preventDefault(); setError(''); setNotice(''); if (!learner || !form.subject || !outcome) return setError('Choose a learner and subject, then enter a valid mark.')
-    setSaving(true); const payload = { student_id: learner.id, subject: form.subject, score: Number(mark), term_mark: form.percentage === '' ? null : Number(form.percentage), exam_mark: form.exam_mark === '' ? null : Number(form.exam_mark), grade: outcome.grade, term: form.term, year: Number(form.year), comment: form.comment || null, teacher_initials: String(profile?.full_name || 'T').split(/\s+/).map(name => name[0]).join('').slice(0, 4), recorded_by: user.id }
-    const { data: existing } = await supabase.from('academic_records').select('id').eq('student_id', learner.id).eq('subject', form.subject).eq('term', form.term).eq('year', Number(form.year)).maybeSingle()
-    const { error: requestError } = await (existing ? supabase.from('academic_records').update(payload).eq('id', existing.id) : supabase.from('academic_records').insert(payload)); setSaving(false)
-    if (requestError) return setError(requestError.message); setSaved(rows => [...rows.filter(row => row.subject !== form.subject), { ...payload, id: existing?.id || form.subject }]); setNotice('Grade saved successfully.'); setForm(value => ({ ...blank(), term: value.term, year: value.year, subject: selectedSubject || '' }))
+
+  useEffect(() => {
+    let active = true
+    const reset = () => {
+      setRecordId('')
+      setForm(value => ({ ...blank(), term: value.term, year: value.year, subject: selectedSubject || '' }))
+    }
+    if (!learner || !hasSubjectScope) {
+      reset()
+      return () => { active = false }
+    }
+
+    const loadRecord = async () => {
+      setLoadingRecord(true)
+      setError('')
+      setNotice('')
+      const { data, error: requestError } = await supabase
+        .from('academic_records')
+        .select('id, term_mark, exam_mark, percentage, score, comment')
+        .eq('student_id', learner.id)
+        .eq('subject', selectedSubject)
+        .eq('term', form.term)
+        .eq('year', Number(form.year))
+        .maybeSingle()
+      if (!active) return
+      if (requestError) {
+        setError(requestError.message)
+        setLoadingRecord(false)
+        return
+      }
+      setRecordId(data?.id || '')
+      setForm(value => ({
+        ...blank(),
+        term: value.term,
+        year: value.year,
+        subject: selectedSubject,
+        percentage: data?.term_mark ?? data?.percentage ?? (data?.exam_mark == null ? data?.score ?? '' : ''),
+        exam_mark: data?.exam_mark ?? '',
+        comment: data?.comment ?? '',
+      }))
+      setLoadingRecord(false)
+    }
+    loadRecord()
+    return () => { active = false }
+  }, [form.term, form.year, hasSubjectScope, learner, selectedSubject, supabase])
+
+  const save = async event => {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    if (!learner || !hasSubjectScope || !selectedSubject || !outcome) {
+      return setError('Select a learner and enter a valid mark before saving.')
+    }
+    setSaving(true)
+    const payload = {
+      student_id: learner.id,
+      subject: selectedSubject,
+      score: Number(mark),
+      term_mark: form.percentage === '' ? null : Number(form.percentage),
+      exam_mark: form.exam_mark === '' ? null : Number(form.exam_mark),
+      grade: outcome.grade,
+      term: form.term,
+      year: Number(form.year),
+      comment: form.comment || null,
+      recorded_by: user.id,
+    }
+    const request = recordId
+      ? supabase.from('academic_records').update(payload).eq('id', recordId).select('id').single()
+      : supabase.from('academic_records').insert(payload).select('id').single()
+    const { data, error: requestError } = await request
+    setSaving(false)
+    if (requestError) return setError(requestError.message || 'The mark could not be saved. Please try again.')
+    setRecordId(data?.id || recordId)
+    setNotice(recordId ? `${selectedSubject} mark updated. You can return and edit it again at any time.` : `${selectedSubject} mark saved. You can return and edit it at any time.`)
   }
-  const completed = new Map(saved.map(row => [row.subject, row])); const complete = subjects.filter(subject => completed.has(subject)).length; const progress = subjects.length ? Math.round(complete / subjects.length * 100) : 0
+
   if (loading) return <section className="grade-entry-v2"><p>Loading assigned subject learners…</p></section>
-  return <section className="grade-entry grade-entry-v2"><header className="grade-entry-heading"><p className="eyebrow">Academic records</p><h1>Enter learner performance</h1><p>Record results quickly, with the whole term visible at a glance.</p></header>{error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}
-    {!hasSubjectScope && <PortalNotice tone="error">Choose a subject and form from Subject overview before entering marks.</PortalNotice>}
-    <form className="grade-workspace" onSubmit={save}><section className="grade-filterbar" aria-label="Grade filters"><p className="grade-scope"><strong>{selectedSubject || 'No subject selected'}</strong><span>{selectedSubjectLevel ? `${selectedSubjectLevel} · all learners in your assigned streams` : 'Return to Subject overview to choose an allocation.'}</span></p><label>Learner<select disabled={!hasSubjectScope} value={studentId} onChange={event => { setStudentId(event.target.value); setSaved([]); setForm(value => ({ ...blank(), term: value.term, year: value.year, subject: selectedSubject || '' })) }}><option value="">Select a learner</option>{visible.map(row => <option key={row.id} value={row.id}>{row.full_name} — {row.admission_number} · {row.class_stream || 'No stream'}</option>)}</select></label><label>Term<select value={form.term} onChange={change('term')}><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label><label>Year<input type="number" min="2020" value={form.year} onChange={change('year')} /></label></section>
+
+  return <section className="grade-entry grade-entry-v2">
+    <header className="grade-entry-heading">
+      <p className="eyebrow">Private teacher markbook</p>
+      <h1>Enter {selectedSubject || 'subject'} marks</h1>
+      <p>Only your allocated subject is available here. Saved marks remain editable.</p>
+    </header>
+    {error && <PortalNotice tone="error">{error}</PortalNotice>}
+    {notice && <PortalNotice>{notice}</PortalNotice>}
+    {!hasSubjectScope && <PortalNotice tone="error">Choose a subject and form from Subject allocations before entering marks.</PortalNotice>}
+
+    <form className="grade-workspace" onSubmit={save}>
+      <section className="grade-filterbar" aria-label="Markbook filters">
+        <p className="grade-scope"><strong>{selectedSubject || 'No subject selected'}</strong><span>{selectedSubjectLevel ? `${selectedSubjectLevel} · all learners in your assigned streams` : 'Return to Subject allocations to choose an assignment.'}</span></p>
+        <label>Learner<select disabled={!hasSubjectScope} value={studentId} onChange={event => setStudentId(event.target.value)}><option value="">Select a learner</option>{visible.map(row => <option key={row.id} value={row.id}>{row.full_name} — {row.admission_number} · {row.class_stream || 'No stream'}</option>)}</select></label>
+        <label>Term<select value={form.term} onChange={change('term')}><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
+        <label>Year<input type="number" min="2020" value={form.year} onChange={change('year')} /></label>
+      </section>
+
       {learner && <div className="learner-summary"><strong>{learner.full_name}</strong><span>{learner.admission_number}</span><span>{learner.class_level} · {learner.class_stream}</span></div>}
-      <div className="grade-main-grid"><section className="grade-form-card"><header className="grade-form-card-heading"><div><h2>Grade details</h2><p>Exam mark overrides the term mark when provided.</p></div>{outcome && <b>Grade {outcome.grade}</b>}</header><div className="grade-fields-v2"><label>Allocated subject<input readOnly value={selectedSubject || ''} placeholder="Choose a subject and form" /></label><label>Term mark (%)<input required type="number" min="0" max="100" placeholder="e.g. 74" value={form.percentage} onChange={change('percentage')} /></label><label>Grade / unit<input readOnly placeholder="Calculated" value={outcome?.grade || ''} /></label><label>Possible mark<input readOnly value="100" /></label><label>Exam mark (%) <span className="grade-info" title="The exam mark is used for the final grade when entered.">i</span><input type="number" min="0" max="100" placeholder="Optional" value={form.exam_mark} onChange={change('exam_mark')} /></label><label>Points<input readOnly placeholder="Calculated" value={outcome?.points || ''} /></label><label className="wide">Teacher’s comment<textarea placeholder="Add constructive feedback, strengths, or next steps…" value={form.comment} onChange={change('comment')} /></label></div><footer className="grade-form-actions"><p>{outcome?.description || 'Enter a mark to preview the calculated grade.'}</p><button className="btn primary" disabled={saving || !learner || !hasSubjectScope}>{saving ? 'Saving grade…' : 'Save grade'}</button></footer></section>
-        <aside className="subject-progress"><header><span>Term {form.term} checklist</span><strong>{complete}/{subjects.length} Subjects Recorded</strong><div className="subject-progress-bar"><i style={{ width: `${progress}%` }} /></div></header><div className="subject-progress-list">{subjects.map(subject => { const row = completed.get(subject); return <div key={subject}><span>{subject}</span><b className={row ? 'complete' : ''}>{row ? `Complete · ${row.grade}` : 'Pending'}</b></div> })}</div></aside></div>
-    </form></section>
+
+      <div className="grade-main-grid">
+        <section className="grade-form-card">
+          <header className="grade-form-card-heading"><div><h2>{recordId ? 'Edit saved mark' : 'New mark'}</h2><p>Exam mark overrides the term mark when provided.</p></div>{outcome && <b>Grade {outcome.grade}</b>}</header>
+          <div className="grade-fields-v2">
+            <label>Allocated subject<input readOnly value={selectedSubject || ''} placeholder="Choose a subject and form" /></label>
+            <label>Term mark (%)<input required type="number" min="0" max="100" placeholder="e.g. 74" value={form.percentage} onChange={change('percentage')} disabled={loadingRecord} /></label>
+            <label>Grade / unit<input readOnly placeholder="Calculated" value={outcome?.grade || ''} /></label>
+            <label>Possible mark<input readOnly value="100" /></label>
+            <label>Exam mark (%) <span className="grade-info" title="The exam mark is used for the final grade when entered.">i</span><input type="number" min="0" max="100" placeholder="Optional" value={form.exam_mark} onChange={change('exam_mark')} disabled={loadingRecord} /></label>
+            <label>Points<input readOnly placeholder="Calculated" value={outcome?.points || ''} /></label>
+            <label className="wide">Teacher’s comment<textarea placeholder="Add constructive feedback, strengths, or next steps…" value={form.comment} onChange={change('comment')} disabled={loadingRecord} /></label>
+          </div>
+          <footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved mark…' : outcome?.description || 'Enter a mark to preview the calculated grade.'}</p><button className="btn primary" disabled={saving || loadingRecord || !learner || !hasSubjectScope}>{saving ? 'Saving mark…' : recordId ? `Update ${selectedSubject || 'subject'} mark` : `Save ${selectedSubject || 'subject'} mark`}</button></footer>
+        </section>
+
+        <aside className="subject-progress" aria-live="polite">
+          <header><span>Current learner status</span><strong>{selectedSubject || 'Allocated subject'}</strong></header>
+          {!learner ? <p>Select a learner to enter or edit their mark.</p> : loadingRecord ? <p>Loading this learner’s saved mark…</p> : <div className="subject-progress-list"><div><span>{learner.full_name}</span><b className={recordId ? 'complete' : ''}>{recordId ? 'Saved · editable' : 'No mark saved yet'}</b></div><small>Term {form.term} · {form.year}</small></div>}
+        </aside>
+      </div>
+    </form>
+  </section>
 }
