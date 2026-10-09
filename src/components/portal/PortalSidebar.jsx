@@ -17,7 +17,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: profile?.role !== 'teacher' || !teacherInSubjectWorkspace },
         { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || teacherInSubjectWorkspace },
         { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: teacherInSubjectWorkspace },
-        { id: 'progress-reports', label: profile?.role === 'teacher' ? 'Academic progress' : 'Progress reports', iconKey: 'roster', show: profile?.role === 'admin' || teacherInSubjectWorkspace },
+        { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: profile?.role === 'admin' },
         { id: 'settings', label: 'Account settings', iconKey: 'staff', show: true }
       ].filter(i => i.show)
     },

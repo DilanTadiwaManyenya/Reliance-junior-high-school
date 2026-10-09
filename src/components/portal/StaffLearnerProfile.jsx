@@ -28,16 +28,6 @@ const term = (value) =>
 const termNumber = (value) => String(value ?? "").replace(/^term\s*/i, "");
 const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
 
-function TeacherAcademicProgress({ academics, student }) {
-  const current = currentTerm();
-  const currentYear = String(new Date().getFullYear());
-  const currentRecords = academics.filter((row) => termNumber(row.term) === current && String(row.year ?? (row.created_at ? new Date(row.created_at).getFullYear() : currentYear)) === currentYear);
-  const marks = currentRecords.map((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score)).filter(Number.isFinite);
-  const average = marks.length ? (marks.reduce((total, mark) => total + mark, 0) / marks.length).toFixed(1) : null;
-  const passed = marks.filter((mark) => mark >= 50).length;
-  return <section className="learner-academic-progress"><header className="dash-page-header"><div><p className="eyebrow">Teacher view</p><h2 className="dash-page-title">Academic progress</h2><p className="dash-page-sub">{student.full_name} · marks recorded for your allocated subject only.</p></div></header><section className="learner-profile-metrics"><Card><span>Current term average</span><strong>{average ? `${average}%` : "—"}</strong><small>Term {current} · {currentYear}</small></Card><Card><span>Subject progress</span><strong>{passed}/{marks.length}</strong><small>Recorded subject{marks.length === 1 ? "" : "s"} passed</small></Card></section><Card><div className="portal-card-title"><h2>Recorded marks</h2><span className="muted">No report card or printing is available in teacher view.</span></div>{currentRecords.length ? <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Subject</th><th>Term mark</th><th>Exam mark</th><th>Grade</th><th>Comment</th></tr></thead><tbody>{currentRecords.map((row) => <tr key={row.id}><td><strong>{row.subject}</strong></td><td>{row.term_mark ?? row.percentage ?? row.score ?? "—"}</td><td>{row.exam_mark ?? "—"}</td><td>{row.grade || "—"}</td><td>{row.comment || "—"}</td></tr>)}</tbody></table></div> : <p className="muted">No marks have been recorded for this learner in the current term.</p>}</Card></section>;
-}
-
 export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false, initialTab = "Summary" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [state, setState] = useState({
@@ -45,6 +35,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     error: "",
     academics: [],
     attendance: [],
+    coursework: [],
     sports: [],
     behavior: [],
     awards: [],
@@ -65,11 +56,17 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
-        teacherView ? unavailableToTeacher : supabase
+        supabase
           .from("attendance")
           .select("*")
           .eq("student_id", student.id)
           .order("date", { ascending: false }),
+        teacherView
+          ? supabase
+              .from("coursework_marks")
+              .select("assessment_id, score, assessment:coursework_assessments(title, subject, assessment_type, assessment_date, total_marks)")
+              .eq("student_id", student.id)
+          : unavailableToTeacher,
         teacherView ? unavailableToTeacher : supabase
           .from("sports_records")
           .select("*")
@@ -110,6 +107,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       const [
         academics,
         attendance,
+        coursework,
         sports,
         behavior,
         awards,
@@ -127,6 +125,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         error:
           academics.error?.message ||
           attendance.error?.message ||
+          coursework.error?.message ||
           sports.error?.message ||
           behavior.error?.message ||
           fees.error?.message ||
@@ -137,6 +136,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           "",
         academics: academics.data || [],
         attendance: attendance.data || [],
+        coursework: coursework.data || [],
         sports: sports.data || [],
         behavior: behavior.data || [],
         awards: awards.data || [],
@@ -215,14 +215,14 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       )}
     </Card>
   );
-  const visibleTabs = teacherView ? ["Summary", "Academic progress"] : tabs;
+  const visibleTabs = teacherView ? ["Summary", "Attendance", "Course work"] : tabs;
   const summaryYear = String(new Date().getFullYear());
   const summaryTerm = currentTerm();
   const currentTermAcademics = state.academics.filter((row) => termNumber(row.term) === summaryTerm && String(row.year ?? (row.created_at ? new Date(row.created_at).getFullYear() : summaryYear)) === summaryYear);
   const currentTermMarks = currentTermAcademics.map((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score)).filter(Number.isFinite);
   const currentTermPassed = currentTermMarks.filter((mark) => mark >= 50).length;
   const currentTermAverage = currentTermMarks.length ? (currentTermMarks.reduce((total, mark) => total + mark, 0) / currentTermMarks.length).toFixed(1) : null;
-  const passedAcademics = state.academics.filter((row) => Number(row.exam_mark ?? row.term_mark ?? row.percentage ?? row.score) >= 50);
+  const currentTermFailed = currentTermMarks.filter((mark) => mark < 50).length;
 
   return (
     <div className="staff-content-area learner-profile-page">
@@ -311,17 +311,10 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                 {state.fees.length === 1 ? "" : "s"} recorded
               </small>
             </Card>}
-            {teacherView && <Card>
-              <h2>Academic progress</h2>
-              <p>
-                {currentTermMarks.length
-                  ? `${currentTermPassed} of ${currentTermMarks.length} recorded subject${currentTermMarks.length === 1 ? "" : "s"} are currently passing.`
-                  : "No marks have been recorded for your allocated subject yet."}
-              </p>
-              <button type="button" onClick={() => setActiveTab("Academic progress")}>
-                View academic progress →
-              </button>
-            </Card>}
+            {teacherView && <Card><span>Passed</span><strong>{currentTermPassed}</strong><small>Current-term marks at 50% or above</small></Card>}
+            {teacherView && <Card><span>Failed</span><strong>{currentTermFailed}</strong><small>Current-term marks below 50%</small></Card>}
+            {teacherView && <Card><span>Attendance</span><strong>{summary.rate}%</strong><small>{summary.present} present · {summary.absent} absent</small><button type="button" onClick={() => setActiveTab("Attendance")}>View attendance →</button></Card>}
+            {teacherView && <Card><span>Course work progress</span><strong>{state.coursework.length}</strong><small>{state.coursework.length === 1 ? "assessment mark recorded" : "assessment marks recorded"}</small><button type="button" onClick={() => setActiveTab("Course work")}>View course work →</button></Card>}
           </section>
           <section className="learner-profile-summary-grid">
             {!teacherView && <Card>
@@ -352,13 +345,13 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       {activeTab === "Academics" && (
         <AcademicReportCard
           student={student}
-          academics={teacherView ? passedAcademics : state.academics}
+          academics={state.academics}
           attendance={state.attendance}
           behavior={state.behavior}
           sports={state.sports}
           awards={state.awards}
           fees={state.fees}
-          subjects={teacherView ? [...new Set(passedAcademics.map((row) => row.subject).filter(Boolean))] : getSubjectsByGradeStream(
+          subjects={getSubjectsByGradeStream(
             student.class_level,
             student.class_stream,
           )}
@@ -368,10 +361,20 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           adminAccess
         />
       )}
-      {activeTab === "Academic progress" && teacherView && (
-        <TeacherAcademicProgress academics={state.academics} student={student} />
-      )}
       {activeTab === "Attendance" && <TeacherAttendanceHistory supabase={supabase} student={student} onClose={() => setActiveTab("Summary")} />}
+      {activeTab === "Course work" && teacherView && (
+        <Card className="learner-profile-list">
+          <div className="portal-card-title"><div><p className="eyebrow">Teacher view</p><h2>Course work progress</h2></div><button type="button" className="btn secondary" onClick={() => setActiveTab("Summary")}>Done</button></div>
+          {state.coursework.length ? (
+            <div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Assessment</th><th>Subject</th><th>Date</th><th>Score</th></tr></thead><tbody>{state.coursework.map((row) => {
+              const assessment = row.assessment || {};
+              const total = Number(assessment.total_marks);
+              const score = Number(row.score);
+              return <tr key={row.assessment_id}><td><strong>{assessment.title || "Course work assessment"}</strong><br /><span className="muted">{assessment.assessment_type || "Assessment"}</span></td><td>{assessment.subject || "—"}</td><td>{date(assessment.assessment_date)}</td><td>{Number.isFinite(score) ? `${score}${Number.isFinite(total) && total > 0 ? ` / ${total}` : ""}` : "—"}</td></tr>;
+            })}</tbody></table></div>
+          ) : <p className="muted">No course work mark has been recorded for this learner yet.</p>}
+        </Card>
+      )}
       {activeTab === "Sport" &&
         latest(
           state.sports,
