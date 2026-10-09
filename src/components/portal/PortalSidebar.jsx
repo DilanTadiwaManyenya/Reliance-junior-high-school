@@ -13,7 +13,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
     {
       title: 'Workspace',
       items: [
-        { id: teacherInSubjectWorkspace ? 'subject-allocations' : 'dashboard', label: teacherInSubjectWorkspace ? 'Subject allocations' : 'Class overview', iconKey: 'dashboard', show: true },
+        { id: 'dashboard', label: 'Class overview', iconKey: 'dashboard', show: !teacherInSubjectWorkspace },
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: profile?.role !== 'teacher' || !teacherInSubjectWorkspace },
         { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || teacherInSubjectWorkspace },
         { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: teacherInSubjectWorkspace },
