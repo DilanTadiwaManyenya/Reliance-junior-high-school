@@ -27,7 +27,7 @@ const LogoutIcon = () => (
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   const { profile, signOut, supabase } = useAuth()
   const navigate = useNavigate()
-  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace } = useSection()
+  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, clearSubjectGroup } = useSection()
   const { classes: schoolClasses } = useSchoolClasses(supabase)
 
   const handleLogout = async () => {
@@ -60,6 +60,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   }[profile?.role] ?? 'Staff Portal'
 
   const initials = (profile?.full_name || 'Portal User').split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase()
+  const hasTeacherSubjectScope = profile?.role === 'teacher' && teacherWorkspace === 'subjects' && Boolean(selectedSubjectAllocationId)
 
   return (
     <header className="staff-top-bar" role="banner">
@@ -122,7 +123,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             />
           </div>}
           {profile?.role === 'teacher' ? (
-            section !== 'dashboard' && <button className="top-bar-back" onClick={() => setSection('dashboard')} title="Return to your teaching overview">← Overview</button>
+            hasTeacherSubjectScope ? <button className="top-bar-back" onClick={clearSubjectGroup} title="Choose another subject and form">← Subject allocations</button>
+              : section !== 'dashboard' && <button className="top-bar-back" onClick={() => setSection('dashboard')} title="Return to your teaching overview">← Overview</button>
           ) : (
             <button className="top-bar-back" onClick={goBack} disabled={!canGoBack} title={canGoBack ? 'Return to the previous portal page' : 'You are already at the portal home'}>← Back</button>
           )}
