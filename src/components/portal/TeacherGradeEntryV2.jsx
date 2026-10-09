@@ -14,6 +14,7 @@ export default function TeacherGradeEntryV2() {
   const [studentId, setStudentId] = useState('')
   const [form, setForm] = useState(() => ({ ...blank(), subject: selectedSubject || '' }))
   const [recordId, setRecordId] = useState('')
+  const [markedStudentIds, setMarkedStudentIds] = useState(() => new Set())
   const [loading, setLoading] = useState(true)
   const [loadingRecord, setLoadingRecord] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -44,6 +45,8 @@ export default function TeacherGradeEntryV2() {
     assignment.class_level === student.class_level
       && (!assignment.class_stream || assignment.class_stream === (student.class_stream || ''))
   ))), [students, activeSubjectAssignments])
+  const visibleStudentIds = useMemo(() => visible.map(student => student.id), [visible])
+  const visibleStudentKey = visibleStudentIds.join(',')
   const learner = visible.find(row => row.id === studentId)
   const mark = form.exam_mark === '' ? form.percentage : form.exam_mark
   const outcome = learner ? calculateGrade(mark, learner.class_level) : null
@@ -94,6 +97,28 @@ export default function TeacherGradeEntryV2() {
     return () => { active = false }
   }, [form.term, form.year, hasSubjectScope, learner, selectedSubject, supabase])
 
+  useEffect(() => {
+    let active = true
+    if (!hasSubjectScope || !selectedSubject || !visibleStudentIds.length) {
+      setMarkedStudentIds(new Set())
+      return () => { active = false }
+    }
+    const loadProgress = async () => {
+      const { data, error: requestError } = await supabase
+        .from('academic_records')
+        .select('student_id')
+        .eq('subject', selectedSubject)
+        .eq('term', form.term)
+        .eq('year', Number(form.year))
+        .in('student_id', visibleStudentIds)
+      if (!active) return
+      if (requestError) return setError(requestError.message)
+      setMarkedStudentIds(new Set((data || []).map(row => row.student_id)))
+    }
+    loadProgress()
+    return () => { active = false }
+  }, [form.term, form.year, hasSubjectScope, selectedSubject, supabase, visibleStudentKey])
+
   const save = async event => {
     event.preventDefault()
     setError('')
@@ -121,10 +146,14 @@ export default function TeacherGradeEntryV2() {
     setSaving(false)
     if (requestError) return setError(requestError.message || 'The mark could not be saved. Please try again.')
     setRecordId(data?.id || recordId)
+    setMarkedStudentIds(current => new Set([...current, learner.id]))
     setNotice(recordId ? `${selectedSubject} mark updated. You can return and edit it again at any time.` : `${selectedSubject} mark saved. You can return and edit it at any time.`)
   }
 
   if (loading) return <section className="grade-entry-v2"><p>Loading assigned subject learners…</p></section>
+
+  const markedCount = visibleStudentIds.filter(id => markedStudentIds.has(id)).length
+  const markProgress = visibleStudentIds.length ? Math.round((markedCount / visibleStudentIds.length) * 100) : 0
 
   return <section className="grade-entry grade-entry-v2">
     <header className="grade-entry-heading">
@@ -162,7 +191,7 @@ export default function TeacherGradeEntryV2() {
         </section>
 
         <aside className="subject-progress" aria-live="polite">
-          <header><span>Current learner status</span><strong>{selectedSubject || 'Allocated subject'}</strong></header>
+          <header><span>{selectedSubject || 'Subject'} mark progress</span><strong>{markedCount}/{visibleStudentIds.length} learners marked</strong><div className="subject-progress-bar"><i style={{ width: `${markProgress}%` }} /></div></header>
           {!learner ? <p>Select a learner to enter or edit their mark.</p> : loadingRecord ? <p>Loading this learner’s saved mark…</p> : <div className="subject-progress-list"><div><span>{learner.full_name}</span><b className={recordId ? 'complete' : ''}>{recordId ? 'Saved · editable' : 'No mark saved yet'}</b></div><small>Term {form.term} · {form.year}</small></div>}
         </aside>
       </div>
