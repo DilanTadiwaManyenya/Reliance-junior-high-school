@@ -227,6 +227,7 @@ function DashboardHome({
   setSection,
   role,
   supabase,
+  teacherScopeLabel = "",
 }) {
   const isTeacher = role === "teacher";
   const active = students.filter(
@@ -243,7 +244,9 @@ function DashboardHome({
   });
   const title = isTeacher ? "Teaching dashboard" : "School dashboard";
   const subtitle = isTeacher
-    ? "Your learner records and marking workspace"
+    ? teacherScopeLabel
+      ? `${teacherScopeLabel} · learners in your assigned subject classes`
+      : "Your learner records and marking workspace"
     : "A clear overview of learners and school operations";
   const actionLabel = isTeacher ? "Enter learner grades" : "Manage learners";
   const listTitle = isTeacher ? "Your learners" : "Recent learners";
@@ -473,7 +476,7 @@ function DashboardHome({
             <div>
               <h2 className="dash-card-title">Today's Attendance</h2>
               <p className="dash-card-subtitle">
-                Live breakdown for {isTeacher ? "your classes" : "all classes"}.
+                Live breakdown for {isTeacher ? "your assigned subject classes" : "all classes"}.
               </p>
             </div>
           </div>
@@ -1138,6 +1141,9 @@ export default function StaffDashboard() {
     selectedSubjectLevel &&
     selectedSubjectAllocationId,
   );
+  const teacherScopeLabel = hasTeacherSubjectScope
+    ? `${selectedSubject} · ${selectedSubjectLevel}`
+    : "";
   const adminClassLevels = [
     ...new Set(schoolClasses.map((row) => row.class_level)),
   ];
@@ -1330,7 +1336,7 @@ export default function StaffDashboard() {
   if (section === "grade-bands" && isAdmin)
     return <div className="staff-content-area"><GradeBands /></div>;
   if (section === "progress-reports" && (isAdmin || isTeacher))
-    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} onOpenReport={student => { setProfileInitialTab("Academics"); setProfileStudent(student); }} /></div>;
+    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : ""} onOpenReport={student => { setProfileInitialTab("Academics"); setProfileStudent(student); }} /></div>;
   if (section === "coursework" && isTeacher)
     return <div className="staff-content-area"><CourseWork /></div>;
   if (section === "classes" && isAdmin)
@@ -1361,6 +1367,7 @@ export default function StaffDashboard() {
           setSection={setSection}
           role={profile?.role}
           supabase={supabase}
+          teacherScopeLabel={teacherScopeLabel}
         />
       )}
 
