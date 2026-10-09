@@ -5,7 +5,7 @@ import PortalNotice from "./PortalNotice";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
-const blankClass = { class_level: "", class_stream: "", campus: "junior", capacity: "35" };
+const blankClass = { class_level: "", class_stream: "", campus: "junior", capacity: "50" };
 const blankLearner = {
   full_name: "",
   admission_number: "",
@@ -29,8 +29,10 @@ export default function ClassManager({ supabase, onChanged }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [setupRequired, setSetupRequired] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const isMissingTable = (value) => ["PGRST205", "42P01"].includes(value?.code);
   const selectedClass = classes.find((row) => row.id === selectedId);
+  const displayedClasses = showInactive ? classes : classes.filter((row) => row.active);
   const classStudents = useMemo(
     () =>
       selectedClass
@@ -204,7 +206,7 @@ export default function ClassManager({ supabase, onChanged }) {
       class_level: row.class_level,
       class_stream: "",
       campus: row.campus,
-      capacity: row.capacity == null ? "35" : String(row.capacity),
+      capacity: row.capacity == null ? "50" : String(row.capacity),
     });
     setNotice(`Create the next ${row.class_level} stream. Choose its stream name, then save it.`);
   };
@@ -334,8 +336,8 @@ export default function ClassManager({ supabase, onChanged }) {
           </p>
         </div>
         <div className="class-manager-summary">
-          <strong>{classes.length}</strong>
-          <span>classes</span>
+          <strong>{displayedClasses.length}</strong>
+          <span>{showInactive ? "classes" : "active classes"}</span>
         </div>
       </div>
       {error && <PortalNotice tone="error">{error}</PortalNotice>}
@@ -406,7 +408,7 @@ export default function ClassManager({ supabase, onChanged }) {
                 type="number"
                 min="1"
                 value={form.capacity}
-                placeholder="35"
+                placeholder="50"
                 onChange={(e) => setForm((value) => ({ ...value, capacity: e.target.value }))}
               />
               <small>When enrolment reaches this number, the system recommends another stream.</small>
@@ -444,7 +446,7 @@ export default function ClassManager({ supabase, onChanged }) {
               <h2>Classes</h2>
               <p>Select a class to view learners or make changes.</p>
             </div>
-            <span className="class-manager-count">{classes.length} total</span>
+            <div className="portal-action-row"><span className="class-manager-count">{displayedClasses.length} {showInactive ? 'total' : 'active'}</span><Button type="button" variant="secondary" onClick={() => setShowInactive((value) => !value)}>{showInactive ? 'Hide inactive' : 'Show inactive'}</Button></div>
           </div>
           <div className="portal-table-wrap">
             <table className="portal-table class-manager-table">
@@ -460,8 +462,8 @@ export default function ClassManager({ supabase, onChanged }) {
                 </tr>
               </thead>
               <tbody>
-                {classes.length ? (
-                  classes.map((row) => (
+                {displayedClasses.length ? (
+                  displayedClasses.map((row) => (
                     <tr
                       key={row.id}
                       className={selectedId === row.id ? "is-selected" : ""}
