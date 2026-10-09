@@ -17,7 +17,7 @@ export function useSchoolClasses(supabase, { activeOnly = true } = {}) {
     setLoading(true)
     let query = supabase
       .from('school_classes')
-      .select('id, class_level, class_stream, campus, active')
+      .select('id, class_level, class_stream, campus, active, capacity')
       .order('campus')
       .order('class_level')
       .order('class_stream')

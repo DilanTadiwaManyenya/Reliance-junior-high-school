@@ -2861,6 +2861,16 @@
   background: #fcebea;
   color: #a6302f;
 }
+
+.class-status.is-near {
+  color: #9a6700;
+  background: #fff5d6;
+}
+
+.class-status.is-full {
+  color: #a6302f;
+  background: #ffe4e6;
+}
 .class-manager-actions {
   gap: 6px;
   flex-wrap: nowrap;

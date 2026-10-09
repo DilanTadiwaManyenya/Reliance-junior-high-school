@@ -5,7 +5,7 @@ import PortalNotice from "./PortalNotice";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
-const blankClass = { class_level: "", class_stream: "", campus: "junior" };
+const blankClass = { class_level: "", class_stream: "", campus: "junior", capacity: "35" };
 const blankLearner = {
   full_name: "",
   admission_number: "",
@@ -44,6 +44,19 @@ export default function ClassManager({ supabase, onChanged }) {
   const activeClassStudents = classStudents.filter(
     (row) => row.status === "active",
   ).length;
+  const activeLearnersForClass = (classRow) => students.filter(
+    (student) => student.status === "active"
+      && student.class_level === classRow.class_level
+      && (student.class_stream || "") === (classRow.class_stream || ""),
+  ).length;
+  const capacityStatus = (classRow) => {
+    const enrolled = activeLearnersForClass(classRow);
+    const capacity = Number(classRow.capacity || 0);
+    if (!capacity) return { enrolled, label: `${enrolled} enrolled`, tone: "is-inactive" };
+    if (enrolled >= capacity) return { enrolled, label: `${enrolled}/${capacity} · New stream recommended`, tone: "is-full" };
+    if (enrolled >= capacity * 0.9) return { enrolled, label: `${enrolled}/${capacity} · Nearly full`, tone: "is-near" };
+    return { enrolled, label: `${enrolled}/${capacity} enrolled`, tone: "is-active" };
+  };
   const teacherForClass = (classRow) => {
     // Junior teachers are allocated to a grade, not a particular stream. A
     // Grade 5 teacher therefore covers Grade 5 Blue (and any future stream).
@@ -126,6 +139,7 @@ export default function ClassManager({ supabase, onChanged }) {
       ...form,
       class_level: form.class_level.trim(),
       class_stream: form.campus === "junior" ? null : form.class_stream.trim() || null,
+      capacity: form.capacity === "" ? null : Number(form.capacity),
       updated_at: new Date().toISOString(),
     };
     const previous = classes.find((item) => item.id === editingId);
@@ -173,11 +187,23 @@ export default function ClassManager({ supabase, onChanged }) {
       class_level: row.class_level,
       class_stream: row.class_stream || "",
       campus: row.campus,
+      capacity: row.capacity == null ? "" : String(row.capacity),
     });
   };
   const cancelEdit = () => {
     setEditingId(null);
     setForm(blankClass);
+  };
+  const startRecommendedStream = (row) => {
+    setEditingId(null);
+    setSelectedId("");
+    setForm({
+      class_level: row.class_level,
+      class_stream: "",
+      campus: row.campus,
+      capacity: row.capacity == null ? "35" : String(row.capacity),
+    });
+    setNotice(`Create the next ${row.class_level} stream. Choose its stream name, then save it.`);
   };
   const removeClass = async (row) => {
     if (
@@ -371,6 +397,17 @@ export default function ClassManager({ supabase, onChanged }) {
                 <option value="senior">Senior campus</option>
               </select>
             </label>
+            <label>
+              Capacity
+              <input
+                type="number"
+                min="1"
+                value={form.capacity}
+                placeholder="35"
+                onChange={(e) => setForm((value) => ({ ...value, capacity: e.target.value }))}
+              />
+              <small>When enrolment reaches this number, the system recommends another stream.</small>
+            </label>
             <div className="portal-action-row class-manager-form-actions">
               <Button type="submit">
                 {editingId ? "Save changes" : "Add class"}
@@ -396,10 +433,11 @@ export default function ClassManager({ supabase, onChanged }) {
               <thead>
                 <tr>
                   <th>Class</th>
-                      <th>Campus</th>
-                      <th>Teacher</th>
-                      <th>Subject coverage</th>
-                      <th>Status</th>
+                  <th>Enrolment</th>
+                  <th>Campus</th>
+                  <th>Teacher</th>
+                  <th>Subject coverage</th>
+                  <th>Status</th>
                   <th className="class-manager-actions-head">Manage</th>
                 </tr>
               </thead>
@@ -420,9 +458,8 @@ export default function ClassManager({ supabase, onChanged }) {
                       </td>
                       <td>
                         {(() => {
-                          const coverage = subjectCoverageForClass(row);
-                          const covered = coverage.filter((item) => item.teacher).length;
-                          return coverage.length ? <><strong>{covered}/{coverage.length}</strong><small>{coverage.length - covered ? `${coverage.length - covered} unassigned` : "Fully assigned"}</small></> : <span className="class-status is-inactive">No subject plan</span>;
+                          const capacity = capacityStatus(row);
+                          return <span className={`class-status ${capacity.tone}`}>{capacity.label}</span>;
                         })()}
                       </td>
                       <td>
@@ -434,6 +471,13 @@ export default function ClassManager({ supabase, onChanged }) {
                         ) : (
                           <span className="class-status is-inactive">Unassigned</span>
                         )}
+                      </td>
+                      <td>
+                        {(() => {
+                          const coverage = subjectCoverageForClass(row);
+                          const covered = coverage.filter((item) => item.teacher).length;
+                          return coverage.length ? <><strong>{covered}/{coverage.length}</strong><small>{coverage.length - covered ? `${coverage.length - covered} unassigned` : "Fully assigned"}</small></> : <span className="class-status is-inactive">No subject plan</span>;
+                        })()}
                       </td>
                       <td>
                         <span
@@ -461,6 +505,15 @@ export default function ClassManager({ supabase, onChanged }) {
                           >
                             Edit
                           </Button>
+                          {Number(row.capacity || 0) > 0 && activeLearnersForClass(row) >= Number(row.capacity) && (
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              onClick={() => startRecommendedStream(row)}
+                            >
+                              Add new stream
+                            </Button>
+                          )}
                           <Button
                             className={
                               row.active ? "class-manager-warning" : ""
@@ -485,7 +538,7 @@ export default function ClassManager({ supabase, onChanged }) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="muted class-manager-empty">
+                    <td colSpan="7" className="muted class-manager-empty">
                       No classes have been added yet.
                     </td>
                   </tr>
