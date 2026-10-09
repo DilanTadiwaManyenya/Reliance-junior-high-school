@@ -25,6 +25,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const [learner, setLearner] = useState(blankLearner);
   const [selectedId, setSelectedId] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [correctionTargetId, setCorrectionTargetId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [setupRequired, setSetupRequired] = useState(false);
@@ -143,6 +144,11 @@ export default function ClassManager({ supabase, onChanged }) {
       updated_at: new Date().toISOString(),
     };
     const previous = classes.find((item) => item.id === editingId);
+    if (
+      previous &&
+      (previous.class_level !== row.class_level ||
+        (previous.class_stream || "") !== (row.class_stream || ""))
+    ) return setError("Class names and streams are corrected with the safe correction tool below. Cancel this edit, then choose the existing target class.");
     const { error: saveError } = await (editingId
       ? supabase.from("school_classes").update(row).eq("id", editingId)
       : supabase.from("school_classes").insert(row));
@@ -150,28 +156,6 @@ export default function ClassManager({ supabase, onChanged }) {
       return isMissingTable(saveError)
         ? setSetupRequired(true)
         : setError(saveError.message);
-    if (
-      previous &&
-      (previous.class_level !== row.class_level ||
-        (previous.class_stream || "") !== (row.class_stream || ""))
-    ) {
-      let learnerUpdate = supabase
-        .from("students")
-        .update({
-          class_level: row.class_level,
-          class_stream: row.class_stream,
-          campus: row.campus,
-        })
-        .eq("class_level", previous.class_level);
-      learnerUpdate = previous.class_stream
-        ? learnerUpdate.eq("class_stream", previous.class_stream)
-        : learnerUpdate.is("class_stream", null);
-      const { error: learnerError } = await learnerUpdate;
-      if (learnerError)
-        return setError(
-          `Class was updated, but learner reassignment needs attention: ${learnerError.message}`,
-        );
-    }
     setNotice(
       editingId ? "Class and enrolled learners updated." : "Class added.",
     );
@@ -183,6 +167,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const editClass = (row) => {
     setSelectedId(row.id);
     setEditingId(row.id);
+    setCorrectionTargetId("");
     setForm({
       class_level: row.class_level,
       class_stream: row.class_stream || "",
@@ -192,7 +177,25 @@ export default function ClassManager({ supabase, onChanged }) {
   };
   const cancelEdit = () => {
     setEditingId(null);
+    setCorrectionTargetId("");
     setForm(blankClass);
+  };
+  const correctClass = async () => {
+    if (!editingId || !correctionTargetId) return setError("Choose the correct target class first.");
+    const source = classes.find((item) => item.id === editingId);
+    const target = classes.find((item) => item.id === correctionTargetId);
+    if (!source || !target) return setError("The source or target class is no longer available.");
+    if (!window.confirm(`Correct ${classLabel(source)} to ${classLabel(target)}? Learners, teacher allocations, subject allocations, and coursework will move together. The old stream will be kept as inactive with an audit record.`)) return;
+    setError("");
+    const { data, error: correctionError } = await supabase.rpc("correct_school_class", {
+      p_source_class_id: source.id,
+      p_target_class_id: target.id,
+    });
+    if (correctionError) return setError(correctionError.message);
+    setNotice(`${classLabel(source)} was corrected to ${classLabel(target)}. Moved ${data?.learners_moved ?? 0} learners, ${data?.class_assignments_moved ?? 0} class allocations, ${data?.subject_assignments_moved ?? 0} subject allocations, and ${data?.coursework_assessments_moved ?? 0} coursework assessments.`);
+    cancelEdit();
+    await load();
+    onChanged?.();
   };
   const startRecommendedStream = (row) => {
     setEditingId(null);
@@ -408,6 +411,21 @@ export default function ClassManager({ supabase, onChanged }) {
               />
               <small>When enrolment reaches this number, the system recommends another stream.</small>
             </label>
+            {editingId && (
+              <fieldset style={{ gridColumn: "1 / -1" }}>
+                <legend>Correct this class or stream</legend>
+                <p className="muted">Use this when a class already has learners or teaching records and its name or stream is wrong. The old class is retained as inactive with a correction audit record.</p>
+                <div className="portal-action-row">
+                  <select value={correctionTargetId} onChange={(event) => setCorrectionTargetId(event.target.value)}>
+                    <option value="">Choose the correct active class</option>
+                    {classes.filter((item) => item.id !== editingId && item.active && item.campus === form.campus).map((item) => (
+                      <option key={item.id} value={item.id}>{classLabel(item)}</option>
+                    ))}
+                  </select>
+                  <Button type="button" variant="secondary" disabled={!correctionTargetId} onClick={correctClass}>Correct and move records</Button>
+                </div>
+              </fieldset>
+            )}
             <div className="portal-action-row class-manager-form-actions">
               <Button type="submit">
                 {editingId ? "Save changes" : "Add class"}
