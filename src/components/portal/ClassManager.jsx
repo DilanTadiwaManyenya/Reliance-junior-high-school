@@ -33,6 +33,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const [notice, setNotice] = useState("");
   const [setupRequired, setSetupRequired] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [newStream, setNewStream] = useState({ name: "", capacity: "50" });
   const isMissingTable = (value) => ["PGRST205", "42P01"].includes(value?.code);
   const selectedClass = classes.find((row) => row.id === selectedId);
   const displayedClasses = showInactive ? classes : classes.filter((row) => row.active);
@@ -226,6 +227,26 @@ export default function ClassManager({ supabase, onChanged }) {
     await load();
     onChanged?.();
   };
+  const addStreamToLevel = async (event) => {
+    event.preventDefault();
+    const stream = newStream.name.trim();
+    const capacity = Number(newStream.capacity);
+    if (!stream) return setError("Enter a stream name.");
+    if (!Number.isInteger(capacity) || capacity < 1) return setError("Capacity must be a whole number of at least 1.");
+    if (classPageRows.some((row) => (row.class_stream || "").toLowerCase() === stream.toLowerCase())) return setError(`${selectedLevel} ${stream} already exists.`);
+    const { error: saveError } = await supabase.from("school_classes").insert({
+      class_level: selectedLevel,
+      class_stream: stream,
+      campus: selectedCampus,
+      capacity,
+      active: true,
+    });
+    if (saveError) return setError(saveError.message);
+    setNewStream({ name: "", capacity: String(capacity) });
+    setNotice(`${selectedLevel} ${stream} was created. Assign staff before enrolling learners.`);
+    await load();
+    onChanged?.();
+  };
   const cancelEdit = () => {
     setEditingId(null);
     setCorrectionTargetId("");
@@ -389,7 +410,7 @@ export default function ClassManager({ supabase, onChanged }) {
       {notice && <PortalNotice tone="success">{notice}</PortalNotice>}
       {!selectedStream && <>
         <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · class workspace" : "Senior School · select a stream"}</p><h1 className="dash-page-title">{heading}</h1><p className="dash-page-sub">{isJunior ? "This grade does not use streams. Its learners and class actions live together." : "Choose a stream before managing learners, teachers, and subject coverage."}</p></div><span>{classPageRows.length} {isJunior ? "grade" : "stream"}{classPageRows.length === 1 ? "" : "s"}</span></header>
-        {isJunior ? <section className="class-page-card"><div><p className="eyebrow">Whole grade</p><h2>{selectedLevel}</h2><p>{activeLearnersForClass(classPageRows[0] || {})} active learners · capacity {classPageRows[0]?.capacity || "—"}</p></div><button type="button" className="btn primary" onClick={() => classPageRows[0] && openStreamPage(classPageRows[0])}>Open grade workspace →</button></section> : <section className="class-stream-grid">{classPageRows.map((row) => { const capacity = capacityStatus(row); return <button type="button" className="class-stream-card" key={row.id} onClick={() => openStreamPage(row)}><span>Stream</span><strong>{row.class_stream || "Whole form"}</strong><small>{capacity.label}</small><b>Open workspace →</b></button> })}</section>}
+        {isJunior ? <section className="class-page-card"><div><p className="eyebrow">Whole grade</p><h2>{selectedLevel}</h2><p>{activeLearnersForClass(classPageRows[0] || {})} active learners · capacity {classPageRows[0]?.capacity || "—"}</p></div><button type="button" className="btn primary" onClick={() => classPageRows[0] && openStreamPage(classPageRows[0])}>Open grade workspace →</button></section> : <><section className="class-stream-grid">{classPageRows.map((row) => { const capacity = capacityStatus(row); return <button type="button" className="class-stream-card" key={row.id} onClick={() => openStreamPage(row)}><span>Stream</span><strong>{row.class_stream || "Whole form"}</strong><small>{capacity.label}</small><b>Open workspace →</b></button> })}</section><section className="class-page-card class-add-stream"><div><p className="eyebrow">Add a stream</p><h2>Create another {selectedLevel} stream</h2><p>Use this when a stream reaches its enrolment capacity or the school needs a new stream.</p></div><form onSubmit={addStreamToLevel}><label>Stream name<input required placeholder="e.g. Yellow" value={newStream.name} onChange={(event) => setNewStream({ ...newStream, name: event.target.value })} /></label><label>Capacity<input required type="number" min="1" value={newStream.capacity} onChange={(event) => setNewStream({ ...newStream, capacity: event.target.value })} /></label><Button type="submit">Create stream</Button></form></section></>}
       </>}
       {selectedStream && selectedView === "settings" && <section className="class-workspace class-settings-page">
         <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · grade settings" : "Senior School · stream settings"}</p><h1 className="dash-page-title">Manage {classLabel(selectedStream)}</h1><p className="dash-page-sub">Status and removal are handled here, separately from the learner register.</p></div><Button type="button" variant="secondary" onClick={() => openStreamPage(selectedStream)}>← Back to workspace</Button></header>
