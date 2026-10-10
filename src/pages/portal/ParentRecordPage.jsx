@@ -16,6 +16,12 @@ export default function ParentRecordPage() {
   const { studentId, view } = useParams()
   const { supabase, user } = useAuth()
   const [state, setState] = useState({ loading: true, error: '', student: null, records: [], attendance: [], behavior: [], sports: [], awards: [], fees: [], termSettings: [], reportFees: [], subjectTeachers: [] })
+  const [academicRevision, setAcademicRevision] = useState(0)
+  useEffect(() => {
+    if (view !== 'academics') return undefined
+    const channel = supabase.channel(`parent-academic-${studentId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'academic_records', filter: `student_id=eq.${studentId}` }, () => setAcademicRevision(value => value + 1)).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [studentId, supabase, view])
   useEffect(() => {
     let active = true
     const load = async () => {
@@ -37,7 +43,7 @@ export default function ParentRecordPage() {
       if (active) setState({ loading: false, error: recordError?.message || feeResult.error?.message || attendanceResult.error?.message || behaviorResult.error?.message || sportsResult.error?.message || (!optionalAwardsError(awardsResult.error) && awardsResult.error?.message) || termSettingsResult.error?.message || reportFeesResult.error?.message || subjectTeachersResult.error?.message || '', student: link.student, records: recordError ? [] : recordResult.data ?? [], attendance: attendanceResult.data ?? [], behavior: behaviorResult.data ?? [], sports: sportsResult.data ?? [], awards: awardsResult.data ?? [], fees: feeResult.data ?? [], termSettings: termSettingsResult.data ?? [], reportFees: reportFeesResult.data ?? [], subjectTeachers: subjectTeachersResult.data ?? [] })
     }
     load(); return () => { active = false }
-  }, [studentId, supabase, user, view])
+  }, [academicRevision, studentId, supabase, user, view])
   if (state.loading) return <section className="section white"><div className="container portal-content">Loading learner record…</div></section>
   if (!state.student) return <section className="section white"><div className="container portal-content"><PortalNotice tone="error">{state.error}</PortalNotice></div></section>
   return <section className="section white"><div className="container portal-content parent-record-page"><Link className="parent-page-back" to="/portal/dashboard">← Back to dashboard</Link><p className="eyebrow">{state.student.full_name} · {label[view] ?? 'Learner record'}</p><h1>{label[view] ?? 'Learner record'}</h1>{state.student.status !== 'active' && <PortalNotice tone="error"><strong>This learner is no longer enrolled.</strong> This page contains their retained school history.</PortalNotice>}{state.error && <PortalNotice tone="error">{state.error}</PortalNotice>}

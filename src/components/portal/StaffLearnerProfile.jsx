@@ -45,6 +45,16 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     reportFees: [],
     subjectTeachers: [],
   });
+  const [academicRevision, setAcademicRevision] = useState(0);
+
+  useEffect(() => {
+    if (teacherView) return undefined;
+    const channel = supabase
+      .channel(`staff-academic-${student.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "academic_records", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [student.id, supabase, teacherView]);
 
   useEffect(() => {
     let mounted = true;
@@ -149,7 +159,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     return () => {
       mounted = false;
     };
-  }, [supabase, student.id, teacherView]);
+  }, [academicRevision, supabase, student.id, teacherView]);
 
   useEffect(() => setActiveTab(initialTab), [initialTab, student.id]);
 
