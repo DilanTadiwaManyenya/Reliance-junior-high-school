@@ -2,10 +2,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
 const roles = new Set(['admin', 'principal', 'teacher', 'accountant'])
+const workingTitles = new Set(['Mr', 'Ms'])
 const normalizePhone = (value: unknown) => {
   const digits = String(value ?? '').replace(/\D/g, '')
   if (digits.startsWith('0')) return `+263${digits.slice(1)}`
   return digits.startsWith('263') ? `+${digits}` : `+${digits}`
+}
+const workingName = (legalFullName: string, workingTitle: string) => {
+  const names = legalFullName.trim().split(/\s+/).filter(Boolean)
+  return `${workingTitle} ${names.at(-1) ?? ''}`.trim()
 }
 const reply = (body: object, status = 200) => new Response(JSON.stringify(body), { status, headers })
 
@@ -23,7 +28,9 @@ Deno.serve(async request => {
     if (callerError || caller?.role !== 'admin' || caller?.active_role !== 'admin') throw new Error('Switch to the Admin role before creating staff accounts.')
 
     const input = await request.json()
-    const fullName = String(input.fullName ?? input.name ?? '').trim()
+    const legalFullName = String(input.legalFullName ?? '').trim()
+    const workingTitle = String(input.workingTitle ?? '').trim()
+    const fullName = workingName(legalFullName, workingTitle)
     const phone = normalizePhone(input.phone ?? input.phone_number)
     const password = String(input.password ?? '')
     const role = String(input.role ?? '')
@@ -34,7 +41,8 @@ Deno.serve(async request => {
     const classAssignments = Array.isArray(input.classAssignments) && input.classAssignments.length ? input.classAssignments.map(String).filter(Boolean) : (classLevel ? [classLevel] : [])
     const subjectAssignments = Array.isArray(input.subjectAssignments) ? [...new Set(input.subjectAssignments.map(String).map(value => value.trim()).filter(Boolean))] : []
 
-    if (!fullName) throw new Error('Enter the staff member’s full name.')
+    if (legalFullName.split(/\s+/).filter(Boolean).length < 2) throw new Error('Enter the staff member’s full legal name.')
+    if (!workingTitles.has(workingTitle)) throw new Error('Choose Mr or Ms for the working name.')
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error('Enter a valid international phone number.')
     if (password.length < 8) throw new Error('The password must be at least 8 characters.')
     if (!roles.has(role)) throw new Error('Choose a valid staff role.')
@@ -53,7 +61,7 @@ Deno.serve(async request => {
     if (createError || !created.user) throw createError ?? new Error('Supabase could not create the login account.')
     createdUserId = created.user.id
 
-    const profile = await admin.from('profiles').update({ full_name: fullName, phone, role, class_level: role === 'teacher' ? classLevel : null, class_stream: role === 'teacher' ? classStream : null, campus, must_change_password: true }).eq('id', createdUserId)
+    const profile = await admin.from('profiles').update({ full_name: fullName, legal_full_name: legalFullName, working_title: workingTitle, phone, role, class_level: role === 'teacher' ? classLevel : null, class_stream: role === 'teacher' ? classStream : null, campus, must_change_password: true }).eq('id', createdUserId)
     if (profile.error) throw profile.error
     const account = await admin.from('staff_accounts').upsert({ user_id: createdUserId, role, phone_number: phone, name: fullName, class_assigned: classAssigned, campus, created_by: user.id }, { onConflict: 'user_id' })
     if (account.error) throw account.error

@@ -29,6 +29,13 @@ import ProgressReports from "../../components/portal/ProgressReports";
 import CourseWork from "../../components/portal/CourseWork";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
+const workingNameFor = (legalFullName, workingTitle) => {
+  const names = String(legalFullName || "").trim().split(/\s+/).filter(Boolean);
+  return names.length ? `${workingTitle === "Ms" ? "Ms" : "Mr"} ${names[names.length - 1]}` : "";
+};
+
+const inferredWorkingTitle = (name) => /^ms\.?\s/i.test(String(name || "")) ? "Ms" : "Mr";
+
 function StaffSubjectAssignments({ staff }) {
   if (staff.role !== "teacher") return "—";
 
@@ -624,6 +631,8 @@ export default function StaffDashboard() {
   const [staff, setStaff] = useState([]);
   const [staffForm, setStaffForm] = useState({
     fullName: "",
+    legalFullName: "",
+    workingTitle: "Mr",
     phone: "",
     password: "",
     role: "teacher",
@@ -650,6 +659,8 @@ export default function StaffDashboard() {
     open: false,
     staff: null,
     fullName: "",
+    legalFullName: "",
+    workingTitle: "Mr",
     campus: "junior",
     classAssignments: [],
     classStream: "",
@@ -734,7 +745,7 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream), teacher_class_subject_assignments (id, class_level, class_stream, subject, campus)",
+        "id, full_name, legal_full_name, working_title, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream), teacher_class_subject_assignments (id, class_level, class_stream, subject, campus)",
       )
       .order("full_name");
     if (requestError) showError(requestError.message);
@@ -918,19 +929,21 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await invokeEdgeFunction(
       supabase,
       "create-staff-account",
-      staffForm,
+      { ...staffForm, fullName: workingNameFor(staffForm.legalFullName, staffForm.workingTitle) },
     );
     if (requestError || data?.error)
       return showError(data?.error || requestError.message);
     logActivity(supabase, user, profile, {
       actionType: "create",
-      description: `Created ${staffForm.campus} ${staffForm.role} account for ${staffForm.fullName}`,
+      description: `Created ${staffForm.campus} ${staffForm.role} account for ${workingNameFor(staffForm.legalFullName, staffForm.workingTitle)}`,
       targetTable: "profiles",
       targetId: data?.user_id,
     });
     setNotice(data?.message || "Staff account created successfully.");
     setStaffForm({
       fullName: "",
+      legalFullName: "",
+      workingTitle: "Mr",
       phone: "",
       password: "",
       role: "teacher",
@@ -982,6 +995,8 @@ export default function StaffDashboard() {
       open: true,
       staff: row,
       fullName: row.full_name || "",
+      legalFullName: row.legal_full_name || "",
+      workingTitle: row.working_title || inferredWorkingTitle(row.full_name),
       campus: row.campus === "senior" ? "senior" : "junior",
       classAssignments: assignments.map((assignment) => assignment.class_level),
       classStream: assignments.find((assignment) => assignment.class_stream)?.class_stream || "",
@@ -995,7 +1010,7 @@ export default function StaffDashboard() {
   };
 
   const closeStaffEditor = () =>
-    setStaffEditor({ open: false, staff: null, fullName: "", campus: "junior", classAssignments: [], classStream: "", allocationTab: "classes", subjectAssignments: [], subjectName: "", subjectLevel: "", subjectStream: "", saving: false });
+    setStaffEditor({ open: false, staff: null, fullName: "", legalFullName: "", workingTitle: "Mr", campus: "junior", classAssignments: [], classStream: "", allocationTab: "classes", subjectAssignments: [], subjectName: "", subjectLevel: "", subjectStream: "", saving: false });
 
   const addSubjectAllocation = () => {
     const subject = staffEditor.subjectName.trim();
@@ -1029,7 +1044,9 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await invokeEdgeFunction(supabase, "manage-staff-account", {
       action: "update",
       user_id: staffEditor.staff.id,
-      full_name: staffEditor.fullName,
+      full_name: staffEditor.legalFullName ? workingNameFor(staffEditor.legalFullName, staffEditor.workingTitle) : staffEditor.fullName,
+      legal_full_name: staffEditor.legalFullName,
+      working_title: staffEditor.workingTitle,
       campus: staffEditor.campus,
       class_assignments: staffEditor.classAssignments,
       class_stream: staffEditor.campus === "senior" ? staffEditor.classStream : "",
@@ -1044,7 +1061,7 @@ export default function StaffDashboard() {
       return showError(data?.error || requestError?.message || "Unable to update staff account.");
     logActivity(supabase, user, profile, {
       actionType: "update",
-      description: `Updated staff account for ${staffEditor.fullName}`,
+      description: `Updated staff account for ${staffEditor.legalFullName ? workingNameFor(staffEditor.legalFullName, staffEditor.workingTitle) : staffEditor.fullName}`,
       targetTable: "profiles",
       targetId: staffEditor.staff.id,
     });
@@ -1972,18 +1989,28 @@ export default function StaffDashboard() {
               >
                 <form className="form portal-form" onSubmit={createStaff}>
                   <label>
-                    Full name
+                    Full legal name
                     <input
                       required
-                      value={staffForm.fullName}
+                      value={staffForm.legalFullName}
                       onChange={(e) =>
                         setStaffForm((x) => ({
                           ...x,
-                          fullName: e.target.value,
+                          legalFullName: e.target.value,
                         }))
                       }
                     />
                   </label>
+                  <label>
+                    Working title
+                    <select value={staffForm.workingTitle} onChange={(e) => setStaffForm((x) => ({ ...x, workingTitle: e.target.value }))}>
+                      <option value="Mr">Mr</option>
+                      <option value="Ms">Ms</option>
+                    </select>
+                  </label>
+                  <p className="muted" style={{ gridColumn: "1 / -1", marginTop: 0 }}>
+                    Portal working name: <strong>{workingNameFor(staffForm.legalFullName, staffForm.workingTitle) || "Enter the legal name to preview"}</strong>. The legal name is kept for verified records and future signature initials.
+                  </p>
                   <label>
                     Phone
                     <input
@@ -2127,13 +2154,24 @@ export default function StaffDashboard() {
               >
                 <form className="form portal-form" onSubmit={saveStaffEditor}>
                   <label>
-                    Full name
+                    Full legal name
                     <input
-                      required
-                      value={staffEditor.fullName}
-                      onChange={(e) => setStaffEditor((value) => ({ ...value, fullName: e.target.value }))}
+                      value={staffEditor.legalFullName}
+                      onChange={(e) => setStaffEditor((value) => ({ ...value, legalFullName: e.target.value }))}
                     />
                   </label>
+                  <label>
+                    Working title
+                    <select value={staffEditor.workingTitle} onChange={(e) => setStaffEditor((value) => ({ ...value, workingTitle: e.target.value }))}>
+                      <option value="Mr">Mr</option>
+                      <option value="Ms">Ms</option>
+                    </select>
+                  </label>
+                  <p className="muted" style={{ gridColumn: "1 / -1", marginTop: 0 }}>
+                    {staffEditor.legalFullName
+                      ? <>Portal working name: <strong>{workingNameFor(staffEditor.legalFullName, staffEditor.workingTitle)}</strong>.</>
+                      : <>This existing account keeps its current working name <strong>{staffEditor.fullName || "—"}</strong> until its verified legal full name is entered. No name has been guessed.</>}
+                  </p>
                   <label>
                     Campus
                     <select

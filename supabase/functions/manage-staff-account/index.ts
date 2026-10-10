@@ -10,6 +10,12 @@ const headers = {
 const reply = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), { status, headers })
 
+const workingTitles = new Set(['Mr', 'Ms'])
+const workingName = (legalFullName: string, workingTitle: string) => {
+  const names = legalFullName.trim().split(/\s+/).filter(Boolean)
+  return `${workingTitle} ${names.at(-1) ?? ''}`.trim()
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers })
   if (request.method !== 'POST') return reply({ success: false, error: 'Use POST.' }, 405)
@@ -64,7 +70,9 @@ Deno.serve(async (request) => {
     }
 
     if (action !== 'update') throw new Error('Choose a valid staff management action.')
-    const fullName = String(input.full_name ?? '').trim()
+    const legalFullName = String(input.legal_full_name ?? '').trim()
+    const workingTitle = String(input.working_title ?? '').trim()
+    const fullName = legalFullName ? workingName(legalFullName, workingTitle) : String(input.full_name ?? '').trim()
     const campus = String(input.campus ?? '').trim()
     const classAssignments = Array.isArray(input.class_assignments)
       ? [...new Set(input.class_assignments.map(String).map((value: string) => value.trim()).filter(Boolean))]
@@ -78,6 +86,8 @@ Deno.serve(async (request) => {
       }))
       : []
     if (!fullName) throw new Error('Enter the staff member’s full name.')
+    if (legalFullName && legalFullName.split(/\s+/).filter(Boolean).length < 2) throw new Error('Enter the staff member’s full legal name.')
+    if (legalFullName && !workingTitles.has(workingTitle)) throw new Error('Choose Mr or Ms for the working name.')
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
     if (!isMainAdmin && campus !== caller.campus) throw new Error('Campus Admins cannot move staff to another campus.')
     if (target.role === 'teacher' && !classAssignments.length) throw new Error('Assign at least one class to a teacher.')
@@ -104,6 +114,8 @@ Deno.serve(async (request) => {
       .from('profiles')
       .update({
         full_name: fullName,
+        legal_full_name: legalFullName || null,
+        working_title: legalFullName ? workingTitle : null,
         campus,
         class_level: target.role === 'teacher' ? primaryClass : null,
         class_stream: target.role === 'teacher' ? (classStream || null) : null,
