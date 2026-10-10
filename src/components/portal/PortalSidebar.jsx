@@ -24,7 +24,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
     {
       title: 'Academic services',
       items: [
-        { id: 'bulk-import', label: 'Bulk learner import', iconKey: 'roster', show: profile?.role === 'admin' },
+        { id: 'bulk-import', label: 'Bulk learner export', iconKey: 'roster', show: profile?.role === 'admin' },
         { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: profile?.role === 'admin' },
         { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: profile?.role === 'admin' },
         { id: 'classes', label: 'Classes', iconKey: 'staff', show: profile?.role === 'admin' },

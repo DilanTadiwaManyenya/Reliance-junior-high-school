@@ -948,6 +948,23 @@
 .bulk-import .portal-notice button { margin-left: 9px; border: 0; background: transparent; color: #172b59; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 @media (max-width: 680px) { .bulk-import-steps { grid-template-columns: 1fr; gap: 10px; } .bulk-import-steps span:not(:last-child)::after { top: 30px; left: 14px; width: 2px; height: 24px; } .bulk-import .card { padding: 18px; } }
 
+/* Bulk learner export */
+.bulk-export { display: grid; gap: 20px; max-width: 1500px; }
+.bulk-export-intro, .bulk-export-controls, .bulk-export-preview { border: 1px solid #dde5ef; border-radius: 16px; background: #fff; box-shadow: 0 10px 26px rgba(23,43,89,.06); }
+.bulk-export-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 24px 26px; }
+.bulk-export-intro h2, .bulk-export-preview h2 { margin: 3px 0 6px; color: #172b59; font-family: var(--font-ui); }
+.bulk-export-intro p, .bulk-export-preview p { margin: 0; color: #5f7190; }
+.bulk-export-count { display: grid; min-width: 140px; padding: 13px 16px; border-radius: 12px; background: #f2f6ff; color: #172b59; text-align: center; }
+.bulk-export-count b { font-size: 1.55rem; line-height: 1; }.bulk-export-count span { margin-top: 5px; font-size: .75rem; font-weight: 750; }
+.bulk-export-controls { display: grid; gap: 20px; padding: 24px 26px; }.bulk-export-controls fieldset { margin: 0; padding: 0; border: 0; }.bulk-export-controls legend { margin-bottom: 12px; color: #354968; font-size: .84rem; font-weight: 800; }
+.bulk-export-scope-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }.bulk-export-scope { display: flex; gap: 10px; min-height: 76px; box-sizing: border-box; padding: 14px; border: 1px solid #d7e1ee; border-radius: 12px; cursor: pointer; }.bulk-export-scope.selected { border-color: #b12b37; box-shadow: inset 0 0 0 1px #b12b37; background: #fff8f8; }.bulk-export-scope input { margin-top: 3px; accent-color: #b12b37; }.bulk-export-scope span { display: grid; gap: 4px; }.bulk-export-scope b { color: #172b59; font-size: .84rem; }.bulk-export-scope small, .bulk-export-actions small { color: #64748b; font-size: .75rem; line-height: 1.35; }
+.bulk-export-fields { display: flex; flex-wrap: wrap; gap: 14px; }.bulk-export-fields label { display: grid; min-width: 220px; gap: 7px; color: #354968; font-size: .8rem; font-weight: 800; }.bulk-export-fields select { min-height: 42px; border: 1px solid #cbd8e8; border-radius: 9px; padding: 0 11px; color: #172b59; font: inherit; background: #fff; }
+.bulk-export-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 18px; border-top: 1px solid #e5ebf3; }.bulk-export-actions div { display: grid; gap: 4px; }.bulk-export-actions b { color: #172b59; }
+.bulk-export-preview { overflow: hidden; }.bulk-export-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 26px; border-bottom: 1px solid #e5ebf3; }.bulk-export-table { margin: 0; border: 0; border-radius: 0; }.bulk-export-table .portal-table { min-width: 1250px; }.bulk-export-table td { vertical-align: top; }.bulk-export-empty { padding: 28px; }
+@media (max-width: 920px) { .bulk-export-scope-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { .bulk-export-intro, .bulk-export-actions, .bulk-export-preview-head { align-items: stretch; flex-direction: column; }.bulk-export-scope-grid { grid-template-columns: 1fr; }.bulk-export-fields label { min-width: 100%; }.bulk-export-intro, .bulk-export-controls, .bulk-export-preview-head { padding: 18px; }.bulk-export-actions .btn, .bulk-export-preview-head .btn { width: 100%; } }
+@media print { body * { visibility: hidden; } .bulk-export-preview, .bulk-export-preview * { visibility: visible; } .bulk-export-preview { position: absolute; inset: 0; width: 100%; border: 0; box-shadow: none; } .bulk-export-preview-head { padding: 0 0 12px; } .print-hide { display: none !important; } .bulk-export-table { overflow: visible; } .bulk-export-table .portal-table { min-width: 0; width: 100%; font-size: 8px; } .bulk-export-table .portal-table th, .bulk-export-table .portal-table td { padding: 5px 4px; white-space: normal; } @page { size: landscape; margin: 10mm; } }
+
 /* Activity log — focused audit workspace */
 .activity-log-page { gap: 20px; }
 .activity-log-heading { align-items: flex-end; }

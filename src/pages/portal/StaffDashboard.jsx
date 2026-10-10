@@ -22,7 +22,7 @@ import TeacherAttendanceHistory from "../../components/portal/TeacherAttendanceH
 import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
 import { logActivity } from "../../lib/logActivity";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
-import BulkStudentImport from "../../components/portal/BulkStudentImport";
+import BulkLearnerExport from "../../components/portal/BulkLearnerExport";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
 import GradeBands from "../../components/portal/GradeBands";
 import ProgressReports from "../../components/portal/ProgressReports";
@@ -1329,11 +1329,11 @@ export default function StaffDashboard() {
         <div className="dash-section">
           <div className="dash-page-header">
             <div>
-              <h1 className="dash-page-title">Bulk learner import</h1>
-              <p className="dash-page-sub">Upload a validated CSV to add learners and their current-term fee records.</p>
+              <h1 className="dash-page-title">Bulk learner export</h1>
+              <p className="dash-page-sub">Prepare a printable learner register for a class, stream, campus, or the whole school.</p>
             </div>
           </div>
-          <BulkStudentImport supabase={supabase} onSaved={loadStudents} />
+          <BulkLearnerExport supabase={supabase} />
         </div>
       </div>
     );
