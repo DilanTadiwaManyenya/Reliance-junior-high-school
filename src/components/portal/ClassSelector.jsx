@@ -57,9 +57,9 @@ export default function ClassSelector({
     let options = allClasses.map(c => {
       let level
       let stream
-      if (typeof c === 'object' && c !== null && c.class_level) {
-        level = c.class_level
-        stream = c.class_stream || null
+      if (typeof c === 'object' && c !== null && (c.class_level || c.level)) {
+        level = c.class_level || c.level
+        stream = c.class_stream || c.stream || null
       } else if (typeof c === 'string') {
         const parsed = parseClassKey(c)
         level = parsed.level
@@ -87,7 +87,7 @@ export default function ClassSelector({
       })
     }
 
-    return options
+    return [...new Map(options.map(option => [option.key, option])).values()]
   }, [isTeacher, allClasses, campusFilter])
 
   // Auto-initialize active selection if not set or invalid
