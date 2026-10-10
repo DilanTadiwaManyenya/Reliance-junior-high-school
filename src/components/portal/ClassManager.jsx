@@ -40,6 +40,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const selectedLevel = query.get("classLevel") || "";
   const selectedCampus = query.get("campus") || "";
   const selectedStreamId = query.get("stream") || "";
+  const selectedView = query.get("view") || "register";
   const classPageRows = displayedClasses.filter((row) => row.class_level === selectedLevel && row.campus === selectedCampus);
   const selectedStream = classPageRows.find((row) => row.id === selectedStreamId) || null;
   const workspaceStudents = selectedStream
@@ -209,6 +210,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const openClassPage = (row) => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(row.campus)}&classLevel=${encodeURIComponent(row.class_level)}` });
   const backToClasses = () => navigate({ pathname: location.pathname, search: "?section=classes" });
   const openStreamPage = (row) => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(row.campus)}&classLevel=${encodeURIComponent(row.class_level)}&stream=${encodeURIComponent(row.id)}` });
+  const openStreamSettings = () => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(selectedCampus)}&classLevel=${encodeURIComponent(selectedLevel)}&stream=${encodeURIComponent(selectedStreamId)}&view=settings` });
   const backToClassPage = () => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(selectedCampus)}&classLevel=${encodeURIComponent(selectedLevel)}` });
   const updateWorkspaceCapacity = async (event) => {
     event.preventDefault();
@@ -273,6 +275,7 @@ export default function ClassManager({ supabase, onChanged }) {
     setNotice("Class removed. Learner records were not deleted.");
     await load();
     onChanged?.();
+    if (selectedStream?.id === row.id) backToClassPage();
   };
   const toggleClass = async (row) => {
     const { error: saveError } = await supabase
@@ -284,6 +287,7 @@ export default function ClassManager({ supabase, onChanged }) {
       setNotice(`Class ${row.active ? "deactivated" : "activated"}.`);
       await load();
       onChanged?.();
+      if (selectedStream?.id === row.id) backToClassPage();
     }
   };
   const addLearner = async (event) => {
@@ -387,8 +391,13 @@ export default function ClassManager({ supabase, onChanged }) {
         <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · class workspace" : "Senior School · select a stream"}</p><h1 className="dash-page-title">{heading}</h1><p className="dash-page-sub">{isJunior ? "This grade does not use streams. Its learners and class actions live together." : "Choose a stream before managing learners, teachers, and subject coverage."}</p></div><span>{classPageRows.length} {isJunior ? "grade" : "stream"}{classPageRows.length === 1 ? "" : "s"}</span></header>
         {isJunior ? <section className="class-page-card"><div><p className="eyebrow">Whole grade</p><h2>{selectedLevel}</h2><p>{activeLearnersForClass(classPageRows[0] || {})} active learners · capacity {classPageRows[0]?.capacity || "—"}</p></div><button type="button" className="btn primary" onClick={() => classPageRows[0] && openStreamPage(classPageRows[0])}>Open grade workspace →</button></section> : <section className="class-stream-grid">{classPageRows.map((row) => { const capacity = capacityStatus(row); return <button type="button" className="class-stream-card" key={row.id} onClick={() => openStreamPage(row)}><span>Stream</span><strong>{row.class_stream || "Whole form"}</strong><small>{capacity.label}</small><b>Open workspace →</b></button> })}</section>}
       </>}
-      {selectedStream && <section className="class-workspace">
-        <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · whole grade" : "Senior School · stream workspace"}</p><h1 className="dash-page-title">{classLabel(selectedStream)}</h1><p className="dash-page-sub">Manage this {isJunior ? "grade" : "stream"} without leaving its dedicated workspace.</p></div><span>{workspaceCapacity.label}</span></header>
+      {selectedStream && selectedView === "settings" && <section className="class-workspace class-settings-page">
+        <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · grade settings" : "Senior School · stream settings"}</p><h1 className="dash-page-title">Manage {classLabel(selectedStream)}</h1><p className="dash-page-sub">Status and removal are handled here, separately from the learner register.</p></div><Button type="button" variant="secondary" onClick={() => openStreamPage(selectedStream)}>← Back to workspace</Button></header>
+        <section className="class-workspace-panel"><h2>Current status</h2><p>{selectedStream.active ? "This class is active and available for enrolment." : "This class is inactive and unavailable for new enrolment."}</p><Button type="button" variant="secondary" className={selectedStream.active ? "class-manager-warning" : ""} onClick={() => toggleClass(selectedStream)}>{selectedStream.active ? "Deactivate class" : "Activate class"}</Button></section>
+        <section className="class-workspace-panel class-settings-danger"><h2>Remove this {isJunior ? "grade" : "stream"}</h2><p>Only remove a class that was created in error. Learner history stays in the system, but the class will no longer be available for enrolment.</p><Button type="button" variant="secondary" className="class-manager-danger" onClick={() => removeClass(selectedStream)}>Remove {classLabel(selectedStream)}</Button></section>
+      </section>}
+      {selectedStream && selectedView !== "settings" && <section className="class-workspace">
+        <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · whole grade" : "Senior School · stream workspace"}</p><h1 className="dash-page-title">{classLabel(selectedStream)}</h1><p className="dash-page-sub">Manage this {isJunior ? "grade" : "stream"} without leaving its dedicated workspace.</p></div><div className="class-workspace-hero-actions"><span>{workspaceCapacity.label}</span><Button type="button" variant="secondary" onClick={openStreamSettings}>Manage {isJunior ? "grade" : "stream"}</Button></div></header>
         <div className="class-workspace-summary">
           <article><span>Class teacher</span><strong>{workspaceTeacher?.full_name || "Not assigned"}</strong></article>
           <article><span>Subject coverage</span><strong>{workspaceCoverage.filter((item) => item.teacher).length}/{workspaceCoverage.length} assigned</strong></article>
