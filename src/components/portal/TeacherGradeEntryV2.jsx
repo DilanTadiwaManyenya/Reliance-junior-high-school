@@ -8,7 +8,7 @@ const schoolTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4
 const blank = () => ({ subject: '', percentage: '', exam_mark: '', term: schoolTerm(), year: new Date().getFullYear(), comment: '' })
 
 export default function TeacherGradeEntryV2() {
-  const { supabase, user, profile } = useAuth()
+  const { supabase, profile } = useAuth()
   const { selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId } = useSection()
   const [students, setStudents] = useState([])
   const [studentId, setStudentId] = useState('')
@@ -137,7 +137,6 @@ export default function TeacherGradeEntryV2() {
       term: form.term,
       year: Number(form.year),
       comment: form.comment || null,
-      recorded_by: user.id,
     }
     const wasSaved = Boolean(recordId)
     const { data, error: requestError } = await supabase
