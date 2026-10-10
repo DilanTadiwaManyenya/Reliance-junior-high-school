@@ -473,7 +473,7 @@ export default function ClassManager({ supabase, onChanged }) {
           <section className="class-workspace-panel"><h2>Class capacity</h2><p>Set the enrolment point at which another stream should be considered.</p><form onSubmit={updateWorkspaceCapacity}><label>Capacity<input name="capacity" type="number" min="1" defaultValue={selectedStream.capacity || 50} /></label><Button type="submit">Save capacity</Button></form></section>
           <section className="class-workspace-panel"><h2>Allocated subject teachers</h2><div className="class-coverage-list">{workspaceCoverage.map((item) => <div key={item.subject}><span>{item.subject}</span><strong>{item.teacher?.full_name || "Unassigned"}</strong></div>)}</div></section>
         </div>
-        <section className="class-workspace-panel class-workspace-register"><div className="class-workspace-panel-head"><div><p className="eyebrow">Learner administration</p><h2>Learner register</h2><p>{workspaceStudents.length} learner{workspaceStudents.length === 1 ? "" : "s"} recorded for {classLabel(selectedStream)}.</p></div><strong>{workspaceCapacity.enrolled} active</strong></div><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Admission no.</th><th>Status</th><th>Action</th></tr></thead><tbody>{workspaceStudents.length ? workspaceStudents.map((row) => <tr key={row.id}><td><strong>{row.full_name}</strong></td><td>{row.admission_number}</td><td><span className={row.status === "active" ? "status-chip is-active" : "status-chip is-inactive"}>{row.status === "active" ? "Enrolled" : "Inactive"}</span></td><td><Button type="button" variant="secondary" onClick={() => row.status === "active" ? deactivateLearner(row) : reactivateLearner(row)}>{row.status === "active" ? "Deactivate" : "Reactivate"}</Button></td></tr>) : <tr><td colSpan="4">No learners are recorded in this {isJunior ? "grade" : "stream"} yet.</td></tr>}</tbody></table></div></section>
+        <section className="class-workspace-panel class-workspace-register"><div className="class-workspace-panel-head"><div><p className="eyebrow">Learner administration</p><h2>Learner register</h2><p>{workspaceStudents.length} learner{workspaceStudents.length === 1 ? "" : "s"} recorded for {classLabel(selectedStream)}.</p></div><strong>{workspaceCapacity.enrolled} active</strong></div><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Admission no.</th><th>Status</th><th>Action</th></tr></thead><tbody>{workspaceStudents.length ? workspaceStudents.map((row) => <tr key={row.id}><td><strong>{row.full_name}</strong></td><td>{row.admission_number}</td><td><span className={row.status === "active" ? "status-chip is-active" : "status-chip is-inactive"}>{row.status === "active" ? "Enrolled" : "Inactive"}</span></td><td><Button type="button" variant="secondary" className={row.status === "active" ? "class-manager-warning" : "class-manager-positive"} onClick={() => row.status === "active" ? deactivateLearner(row) : reactivateLearner(row)}>{row.status === "active" ? "− Deactivate" : "↻ Reactivate"}</Button></td></tr>) : <tr><td colSpan="4">No learners are recorded in this {isJunior ? "grade" : "stream"} yet.</td></tr>}</tbody></table></div></section>
         <section className="class-workspace-panel class-workspace-add"><h2>Add learner to {classLabel(selectedStream)}</h2><form className="portal-form" onSubmit={addLearner}><label>Full name<input required value={learner.full_name} onChange={(event) => setLearner({ ...learner, full_name: event.target.value })} /></label><label>Admission number<input value={learner.admission_number} readOnly /></label><label>Date of birth<input type="date" value={learner.date_of_birth} onChange={(event) => setLearner({ ...learner, date_of_birth: event.target.value })} /></label><label>Enrolled year<input type="number" min="2000" max="2100" value={learner.enrolled_year} onChange={(event) => setLearner({ ...learner, enrolled_year: event.target.value })} /></label><Button type="submit">Add learner</Button></form></section>
       </section>}
     </div>;
@@ -807,16 +807,16 @@ export default function ClassManager({ supabase, onChanged }) {
                                   variant="secondary"
                                   onClick={() => deactivateLearner(row)}
                                 >
-                                  Deactivate
+                                  − Deactivate
                                 </Button>
                               ) : (
                                 <Button
-                                  className="class-manager-reactivate"
+                                  className="class-manager-positive"
                                   type="button"
                                   variant="secondary"
                                   onClick={() => reactivateLearner(row)}
                                 >
-                                  Reactivate
+                                  ↻ Reactivate
                                 </Button>
                               )}
                             </td>
