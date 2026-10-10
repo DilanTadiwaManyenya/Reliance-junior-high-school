@@ -745,7 +745,7 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, legal_full_name, working_title, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream), teacher_class_subject_assignments (id, class_level, class_stream, subject, campus)",
+        "id, full_name, legal_full_name, working_title, signature_initials, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream), teacher_class_subject_assignments (id, class_level, class_stream, subject, campus)",
       )
       .order("full_name");
     if (requestError) showError(requestError.message);
@@ -2350,6 +2350,10 @@ export default function StaffDashboard() {
                     </strong>
                     <span>Teachers</span>
                   </div>
+                  {isAdmin && <div>
+                    <strong>{staff.filter((row) => !row.legal_full_name || !row.signature_initials).length}</strong>
+                    <span>Identity checks</span>
+                  </div>}
                 </div>
               </div>
               <div className="staff-directory-controls">
@@ -2365,6 +2369,11 @@ export default function StaffDashboard() {
                   />
                 </label>
               </div>
+              {isAdmin && staff.some((row) => !row.legal_full_name || !row.signature_initials) && (
+                <p className="muted" style={{ margin: "0 0 1rem" }}>
+                  Staff marked <strong>Identity needs verification</strong> keep their current portal name, but cannot add a verified initials signature to a report until an administrator confirms their full legal name.
+                </p>
+              )}
               <div className="staff-category-tabs" role="tablist" aria-label="Staff categories">
                 {[
                   ["all", "All staff"],
@@ -2441,7 +2450,10 @@ export default function StaffDashboard() {
                                 .join("")
                                 .toUpperCase() || "?"}
                             </span>
-                            <strong>{row.full_name}</strong>
+                            <div>
+                              <strong>{row.full_name}</strong>
+                              {isAdmin && (!row.legal_full_name || !row.signature_initials) && <small className="muted">Identity needs verification</small>}
+                            </div>
                           </div>
                         </td>
                         <td className="staff-directory-phone">
