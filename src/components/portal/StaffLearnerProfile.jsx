@@ -98,10 +98,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           .select("academic_year, term, class_level, amount"),
         teacherView
           ? Promise.resolve({ data: [], error: null })
-          : supabase
-            .from("teacher_subject_assignments")
-            .select("subject, form_level")
-            .eq("form_level", student.class_level),
+          : supabase.rpc("report_subject_teachers_for_student", { requested_student_id: student.id }),
       ]);
       if (!mounted) return;
       const [
@@ -132,6 +129,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           payments.error?.message ||
           termSettings.error?.message ||
           reportFees.error?.message ||
+          subjectTeachers.error?.message ||
           (!optionalAwardsError && awards.error?.message) ||
           "",
         academics: academics.data || [],

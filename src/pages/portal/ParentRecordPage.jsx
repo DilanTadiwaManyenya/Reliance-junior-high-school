@@ -31,7 +31,7 @@ export default function ParentRecordPage() {
         view === 'academics' ? supabase.from('student_awards').select('*').eq('student_id', studentId).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
         view === 'academics' ? supabase.from('term_settings').select('*') : Promise.resolve({ data: [] }),
         view === 'academics' ? supabase.from('report_term_fee_settings').select('academic_year, term, class_level, amount') : Promise.resolve({ data: [] }),
-        view === 'academics' ? supabase.from('teacher_subject_assignments').select('subject, form_level').eq('form_level', link.student.class_level) : Promise.resolve({ data: [] }),
+        view === 'academics' ? supabase.rpc('report_subject_teachers_for_student', { requested_student_id: studentId }) : Promise.resolve({ data: [] }),
       ])
       const recordError = view === 'awards' && optionalAwardsError(recordResult.error) ? null : recordResult.error
       if (active) setState({ loading: false, error: recordError?.message || feeResult.error?.message || attendanceResult.error?.message || behaviorResult.error?.message || sportsResult.error?.message || (!optionalAwardsError(awardsResult.error) && awardsResult.error?.message) || termSettingsResult.error?.message || reportFeesResult.error?.message || subjectTeachersResult.error?.message || '', student: link.student, records: recordError ? [] : recordResult.data ?? [], attendance: attendanceResult.data ?? [], behavior: behaviorResult.data ?? [], sports: sportsResult.data ?? [], awards: awardsResult.data ?? [], fees: feeResult.data ?? [], termSettings: termSettingsResult.data ?? [], reportFees: reportFeesResult.data ?? [], subjectTeachers: subjectTeachersResult.data ?? [] })
