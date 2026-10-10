@@ -20,6 +20,12 @@ const ageOn = (dateOfBirth) => {
   return years >= 0 ? years : '—'
 }
 
+const formatDate = (value) => {
+  if (!value) return '—'
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
+}
+
 const scopeTitle = ({ scope, campus, level, stream }) => {
   if (scope === 'all') return 'All campuses'
   if (scope === 'campus') return `${campus === 'junior' ? 'Junior' : 'Senior'} campus`
@@ -89,7 +95,7 @@ export default function BulkLearnerExport({ supabase: provided }) {
     {error && <p className="portal-notice error">Unable to prepare the learner export: {error}</p>}
     {searched && !loading && !error && <section className="bulk-export-preview">
       <div className="bulk-export-preview-head"><div><p className="eyebrow">Export preview</p><h2>{currentScope}</h2><p>{learners.length} learner{learners.length === 1 ? '' : 's'} · prepared {new Date().toLocaleDateString()}</p></div><button type="button" className="btn secondary print-hide" disabled={!learners.length} onClick={() => window.print()}>Print learner register</button></div>
-      {learners.length ? <div className="portal-table-wrap bulk-export-table"><table className="portal-table"><thead><tr><th>#</th><th>Admission no.</th><th>Learner full name</th><th>Age</th><th>Sex</th><th>Class</th><th>Stream</th><th>Campus</th><th>Guardian</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead><tbody>{learners.map((learner, index) => <tr key={learner.id}><td>{index + 1}</td><td>{learner.admission_number || '—'}</td><td><strong>{learner.full_name}</strong></td><td>{ageOn(learner.date_of_birth)}</td><td>{learner.sex || '—'}</td><td>{learner.class_level || '—'}</td><td>{learner.class_stream || '—'}</td><td>{learner.campus ? `${learner.campus[0].toUpperCase()}${learner.campus.slice(1)}` : '—'}</td><td>{learner.parent_name || '—'}</td><td>{learner.parent_phone || '—'}</td><td>{learner.address || '—'}</td><td>{learner.status || '—'}</td></tr>)}</tbody></table></div> : <p className="bulk-export-empty">No learners are currently recorded for this selection.</p>}
+      {learners.length ? <div className="portal-table-wrap bulk-export-table"><table className="portal-table"><thead><tr><th>#</th><th>Admission no.</th><th>Learner full name</th><th>Date of birth</th><th>Age</th><th>Sex</th><th>Birth certificate</th><th>Class</th><th>Stream</th><th>Campus</th><th>Guardian</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead><tbody>{learners.map((learner, index) => <tr key={learner.id}><td>{index + 1}</td><td>{learner.admission_number || '—'}</td><td><strong>{learner.full_name}</strong></td><td>{formatDate(learner.date_of_birth)}</td><td>{ageOn(learner.date_of_birth)}</td><td>{learner.sex || '—'}</td><td>{learner.birth_cert_no || '—'}</td><td>{learner.class_level || '—'}</td><td>{learner.class_stream || '—'}</td><td>{learner.campus ? `${learner.campus[0].toUpperCase()}${learner.campus.slice(1)}` : '—'}</td><td>{learner.parent_name || '—'}</td><td>{learner.parent_phone || '—'}</td><td>{learner.address || '—'}</td><td>{learner.status || '—'}</td></tr>)}</tbody></table></div> : <p className="bulk-export-empty">No learners are currently recorded for this selection.</p>}
     </section>}
   </section>
 }
