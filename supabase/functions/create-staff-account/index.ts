@@ -12,6 +12,20 @@ const workingName = (legalFullName: string, workingTitle: string) => {
   const names = legalFullName.trim().split(/\s+/).filter(Boolean)
   return `${workingTitle} ${names.at(-1) ?? ''}`.trim()
 }
+const ensureSubjectSlotsAreAvailable = async (admin: ReturnType<typeof createClient>, campus: string, assignments: { subject: string, class_level: string, class_stream: string }[], excludedTeacherId?: string) => {
+  if (!assignments.length) return
+  const { data: existing, error } = await admin
+    .from('teacher_class_subject_assignments')
+    .select('teacher_id, subject, class_level, class_stream')
+    .eq('campus', campus)
+  if (error) throw error
+  const conflict = (existing ?? []).find(current => current.teacher_id !== excludedTeacherId && assignments.some(requested =>
+    current.class_level === requested.class_level
+    && current.subject.trim().toLowerCase() === requested.subject.trim().toLowerCase()
+    && (!current.class_stream || !requested.class_stream || current.class_stream === requested.class_stream),
+  ))
+  if (conflict) throw new Error(`${conflict.subject} is already allocated for ${conflict.class_level}. Reassign it from the current teacher before assigning another teacher.`)
+}
 const reply = (body: object, status = 200) => new Response(JSON.stringify(body), { status, headers })
 
 Deno.serve(async request => {
@@ -49,6 +63,7 @@ Deno.serve(async request => {
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
     if (role === 'teacher' && (!classAssignments.length || (campus === 'senior' && !classStream))) throw new Error('Teachers require a class level; Senior teachers also require a stream.')
     if (role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) throw new Error('Each selected teacher class must belong to the selected campus.')
+    if (role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ subject, class_level, class_stream: '' }))))
 
     const { data: existing, error: duplicateError } = await admin.from('profiles').select('id').eq('phone', phone).maybeSingle()
     if (duplicateError) throw duplicateError

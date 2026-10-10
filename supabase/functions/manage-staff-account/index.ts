@@ -15,6 +15,20 @@ const workingName = (legalFullName: string, workingTitle: string) => {
   const names = legalFullName.trim().split(/\s+/).filter(Boolean)
   return `${workingTitle} ${names.at(-1) ?? ''}`.trim()
 }
+const ensureSubjectSlotsAreAvailable = async (admin: ReturnType<typeof createClient>, campus: string, assignments: { subject: string, class_level: string, class_stream: string }[], excludedTeacherId?: string) => {
+  if (!assignments.length) return
+  const { data: existing, error } = await admin
+    .from('teacher_class_subject_assignments')
+    .select('teacher_id, subject, class_level, class_stream')
+    .eq('campus', campus)
+  if (error) throw error
+  const conflict = (existing ?? []).find(current => current.teacher_id !== excludedTeacherId && assignments.some(requested =>
+    current.class_level === requested.class_level
+    && current.subject.trim().toLowerCase() === requested.subject.trim().toLowerCase()
+    && (!current.class_stream || !requested.class_stream || current.class_stream === requested.class_stream),
+  ))
+  if (conflict) throw new Error(`${conflict.subject} is already allocated for ${conflict.class_level}. Reassign it from the current teacher before assigning another teacher.`)
+}
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers })
@@ -108,6 +122,7 @@ Deno.serve(async (request) => {
       if (duplicateSubjectAllocation.has(key)) throw new Error('A subject can be allocated only once to the same class.')
       duplicateSubjectAllocation.add(key)
     }
+    if (target.role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, classSubjectAssignments, userId)
 
     const primaryClass = classAssignments[0] ?? null
     const { error: profileError } = await admin
