@@ -28,6 +28,28 @@ export const SectionContext = createContext({
 })
 export const useSection = () => useContext(SectionContext)
 
+// Class workspaces are nested pages encoded in the URL. A generic “go home”
+// back button loses that hierarchy and sent admins to Overview. Always walk
+// the class hierarchy first, even when the page was opened in a new tab.
+const classParentSearch = (search) => {
+  const params = new URLSearchParams(search)
+  if (params.get('section') !== 'classes') return null
+
+  if (params.has('view')) {
+    params.delete('view')
+  } else if (params.has('stream')) {
+    params.delete('stream')
+  } else if (params.has('classLevel') || params.has('campus')) {
+    params.delete('classLevel')
+    params.delete('campus')
+  } else {
+    return null
+  }
+
+  const value = params.toString()
+  return value ? `?${value}` : ''
+}
+
 export default function StaffPortalLayout() {
   const { profile, user, supabase } = useAuth()
   const location = useLocation()
@@ -91,7 +113,14 @@ export default function StaffPortalLayout() {
   const changeSubjectAllocation = (allocationId, classStream = '') => navigateToSection('dashboard', 'subjects', allocationId, selectedSubject, selectedSubjectLevel, classStream)
   const changeSubjectGroup = (subject, level, allocationId = '') => navigateToSection(section, 'subjects', allocationId, subject, level, '')
   const clearSubjectGroup = () => navigateToSection('subject-allocations', 'subjects', '', '', '', '')
-  const goBack = () => changeSection(sectionConfig.defaultSection)
+  const goBack = () => {
+    const classParent = classParentSearch(location.search)
+    if (classParent !== null) {
+      navigate({ pathname: location.pathname, search: classParent })
+      return
+    }
+    changeSection(sectionConfig.defaultSection)
+  }
   useEffect(() => {
     if (!user || !profile) return
     logActivity(supabase, user, profile, { actionType: 'page_view', description: `Viewed ${section}`, metadata: { path: location.pathname, section } })
