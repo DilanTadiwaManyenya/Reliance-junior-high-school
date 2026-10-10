@@ -1364,7 +1364,7 @@ export default function StaffDashboard() {
   if (section === "classes" && isAdmin)
     return (
       <div className="staff-content-area">
-        <ClassManager supabase={supabase} onChanged={loadSchoolClasses} onViewLearners={(classRow) => { setActiveClassFilter({ level: classRow.class_level, stream: classRow.class_stream || null }); setSection("roster"); }} />
+        <ClassManager supabase={supabase} onChanged={loadSchoolClasses} />
       </div>
     );
 

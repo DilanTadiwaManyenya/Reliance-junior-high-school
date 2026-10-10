@@ -4,6 +4,7 @@ import Card from "../ui/Card";
 import PortalNotice from "./PortalNotice";
 import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const blankClass = { class_level: "", class_stream: "", campus: "junior", capacity: "50" };
 const blankLearner = {
@@ -15,7 +16,9 @@ const blankLearner = {
 const classLabel = (row) =>
   `${row.class_level}${row.class_stream ? ` · ${row.class_stream}` : ""}`;
 
-export default function ClassManager({ supabase, onChanged, onViewLearners }) {
+export default function ClassManager({ supabase, onChanged }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [teacherAssignments, setTeacherAssignments] = useState([]);
@@ -33,6 +36,12 @@ export default function ClassManager({ supabase, onChanged, onViewLearners }) {
   const isMissingTable = (value) => ["PGRST205", "42P01"].includes(value?.code);
   const selectedClass = classes.find((row) => row.id === selectedId);
   const displayedClasses = showInactive ? classes : classes.filter((row) => row.active);
+  const query = new URLSearchParams(location.search);
+  const selectedLevel = query.get("classLevel") || "";
+  const selectedCampus = query.get("campus") || "";
+  const selectedStreamId = query.get("stream") || "";
+  const classPageRows = displayedClasses.filter((row) => row.class_level === selectedLevel && row.campus === selectedCampus);
+  const selectedStream = classPageRows.find((row) => row.id === selectedStreamId) || null;
   const campusGroups = [
     { id: "junior", title: "Junior School", description: "Grade-based classes" },
     { id: "senior", title: "Senior School", description: "Form and stream classes" },
@@ -181,10 +190,9 @@ export default function ClassManager({ supabase, onChanged, onViewLearners }) {
       capacity: row.capacity == null ? "" : String(row.capacity),
     });
   };
-  const viewLearners = (row) => {
-    setSelectedId(row.id);
-    onViewLearners?.(row);
-  };
+  const openClassPage = (row) => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(row.campus)}&classLevel=${encodeURIComponent(row.class_level)}` });
+  const backToClasses = () => navigate({ pathname: location.pathname, search: "?section=classes" });
+  const openStreamPage = (row) => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(row.campus)}&classLevel=${encodeURIComponent(row.class_level)}&stream=${encodeURIComponent(row.id)}` });
   const cancelEdit = () => {
     setEditingId(null);
     setCorrectionTargetId("");
@@ -333,6 +341,16 @@ export default function ClassManager({ supabase, onChanged, onViewLearners }) {
         </Card>
       </div>
     );
+  if (selectedLevel && selectedCampus) {
+    const isJunior = selectedCampus === "junior";
+    const heading = isJunior ? `${selectedLevel} workspace` : `${selectedLevel} streams`;
+    return <div className="dash-section class-manager class-page">
+      <button type="button" className="class-page-back" onClick={backToClasses}>← All classes</button>
+      <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · class workspace" : "Senior School · select a stream"}</p><h1 className="dash-page-title">{heading}</h1><p className="dash-page-sub">{isJunior ? "This grade does not use streams. Its learners and class actions live together." : "Choose a stream before managing learners, teachers, and subject coverage."}</p></div><span>{classPageRows.length} {isJunior ? "grade" : "stream"}{classPageRows.length === 1 ? "" : "s"}</span></header>
+      {isJunior ? <section className="class-page-card"><div><p className="eyebrow">Whole grade</p><h2>{selectedLevel}</h2><p>{activeLearnersForClass(classPageRows[0] || {})} active learners · capacity {classPageRows[0]?.capacity || "—"}</p></div><button type="button" className="btn primary" onClick={() => classPageRows[0] && openStreamPage(classPageRows[0])}>Open grade workspace →</button></section> : <section className="class-stream-grid">{classPageRows.map((row) => { const capacity = capacityStatus(row); return <button type="button" className="class-stream-card" key={row.id} onClick={() => openStreamPage(row)}><span>Stream</span><strong>{row.class_stream || "Whole form"}</strong><small>{capacity.label}</small><b>Open workspace →</b></button> })}</section>}
+      {selectedStream && <section className="class-page-card class-page-next"><div><p className="eyebrow">Selected {isJunior ? "grade" : "stream"}</p><h2>{classLabel(selectedStream)}</h2><p>Stage 2 will place the learner register, staff allocations, and actions on this dedicated workspace.</p></div></section>}
+    </div>;
+  }
   return (
     <div className="dash-section class-manager">
       <div className="dash-page-header class-manager-header">
@@ -522,7 +540,7 @@ export default function ClassManager({ supabase, onChanged, onViewLearners }) {
                             className="class-manager-view"
                             variant="secondary"
                             type="button"
-                            onClick={() => viewLearners(row)}
+                            onClick={() => openClassPage(row)}
                           >
                             {selectedId === row.id
                               ? "Viewing learners"
