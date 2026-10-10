@@ -21,7 +21,6 @@ import ClassManager from "../../components/portal/ClassManager";
 import TeacherAttendanceHistory from "../../components/portal/TeacherAttendanceHistory";
 import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
 import { logActivity } from "../../lib/logActivity";
-import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import BulkLearnerExport from "../../components/portal/BulkLearnerExport";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
 import GradeBands from "../../components/portal/GradeBands";
@@ -886,9 +885,9 @@ export default function StaffDashboard() {
 
     const row = {
       ...student,
-      admission_number: editingId
-        ? student.admission_number
-        : nextAdmissionNumber(students, student.enrolled_year),
+      // New admission numbers are assigned by the database trigger. It holds a
+      // class-level lock, so simultaneous enrolments cannot receive the same ID.
+      ...(editingId ? { admission_number: student.admission_number } : {}),
       enrolled_year: Number(student.enrolled_year),
       class_stream: student.class_stream || null,
       inactive_reason:
@@ -1584,7 +1583,6 @@ export default function StaffDashboard() {
                           ? student.admission_number
                           : "Assigned securely on save"
                       }
-                      placeholder="0012026"
                       onChange={(e) =>
                         setStudent((v) => ({
                           ...v,
@@ -1595,7 +1593,7 @@ export default function StaffDashboard() {
                     <small>
                       {editingId
                         ? "Existing admission number."
-                        : "The next school-wide yearly number is assigned when the learner is saved."}
+                        : "The next class admission number is assigned securely when the learner is saved."}
                     </small>
                   </label>
                   <label>

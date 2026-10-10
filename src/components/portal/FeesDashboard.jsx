@@ -228,7 +228,6 @@ function EnrolmentModal({ supabase, onClose, onSaved, classLevels, streamsForLev
       .from("students")
       .insert({
         ...form,
-        admission_number: "pending",
         enrolled_year: Number(form.enrolled_year),
         class_stream: form.class_stream || null,
         status: "active",

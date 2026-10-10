@@ -7,7 +7,9 @@ import { buildStudentPortalEmail } from '../../../shared/portalAuth'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 import { useSchoolClasses } from '../../hooks/useSchoolClasses'
 
-const admissionPattern = /^\d{4,6}$/
+// 26f146 = 2026 · senior Form 1 · learner 46; 26g500 is Junior Grade 5.
+// ECD keeps its existing eA/eB school code.
+const admissionPattern = /^\d{2}(?:[fg][1-7]|e[ab])\d{2}$/i
 const strongPassword = value => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(value)
 
 export default function StudentSignup() {
@@ -28,7 +30,7 @@ export default function StudentSignup() {
     const next = {}
     if (!strongPassword(form.password)) next.password = 'Use at least 8 characters with uppercase, lowercase, and a number.'
     if (form.password !== form.confirmPassword) next.confirmPassword = 'Passwords do not match.'
-    if (!admissionPattern.test(form.admissionNumber.trim())) next.admissionNumber = 'Admission number must contain 4 to 6 digits.'
+    if (!admissionPattern.test(form.admissionNumber.trim())) next.admissionNumber = 'Use the school admission number, e.g. 26f146 (Senior) or 26g500 (Junior).'
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.dateOfBirth) || Number.isNaN(Date.parse(`${form.dateOfBirth}T00:00:00Z`))) next.dateOfBirth = 'Choose a valid date of birth.'
     if (!levels.includes(form.classLevel)) next.classLevel = 'Choose a class level.'
     if (streams.length ? !streams.includes(form.classStream) : form.classStream !== 'N/A') next.classStream = 'Choose a class stream.'
@@ -53,7 +55,7 @@ export default function StudentSignup() {
   return <main className="portal-auth"><section className="portal-auth-card student-signup-card"><PortalSiteExitLink className="portal-website-button">← Back to website</PortalSiteExitLink><p className="eyebrow">Student portal</p><h1>Create your account</h1><p className="student-signup-intro">Enter the details supplied by the school to activate your student portal access.</p>{submissionError && <PortalNotice tone="error">{submissionError}</PortalNotice>}<form className="form student-signup-form" onSubmit={submit} noValidate>
     <label>Password <span className="required-mark">*</span><PasswordInput id="student-password" label="" value={form.password} onChange={update('password')} required /></label>{errors.password && <p className="field-error">{errors.password}</p>}
     <label>Confirm password <span className="required-mark">*</span><PasswordInput id="student-confirm-password" label="" value={form.confirmPassword} onChange={update('confirmPassword')} required /></label>{errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
-    <label>Admission number <span className="required-mark">*</span><input inputMode="numeric" maxLength="6" value={form.admissionNumber} onChange={update('admissionNumber')} /></label>{errors.admissionNumber && <p className="field-error">{errors.admissionNumber}</p>}
+    <label>Admission number <span className="required-mark">*</span><input autoCapitalize="none" maxLength="6" placeholder="e.g. 26f146" value={form.admissionNumber} onChange={update('admissionNumber')} /></label>{errors.admissionNumber && <p className="field-error">{errors.admissionNumber}</p>}
     <label>Date of birth <span className="required-mark">*</span><input type="date" value={form.dateOfBirth} onChange={update('dateOfBirth')} /></label>{errors.dateOfBirth && <p className="field-error">{errors.dateOfBirth}</p>}
     <label>Class level <span className="required-mark">*</span><select value={form.classLevel} onChange={update('classLevel')} disabled={classesLoading}><option value="">{classesLoading ? 'Loading classes…' : 'Select class level'}</option>{levels.map(level => <option key={level} value={level}>{level}</option>)}</select></label>{errors.classLevel && <p className="field-error">{errors.classLevel}</p>}
     <label>Class stream <span className="required-mark">*</span><select value={form.classStream} onChange={update('classStream')} disabled={!form.classLevel || !streams.length}><option value="">{form.classLevel ? (streams.length ? 'Select class stream' : 'N/A (single ECD class)') : 'Choose a class level first'}</option>{!streams.length && form.classLevel && <option value="N/A">N/A (single ECD class)</option>}{streams.map(stream => <option key={stream} value={stream}>{stream}</option>)}</select></label>{errors.classStream && <p className="field-error">{errors.classStream}</p>}
