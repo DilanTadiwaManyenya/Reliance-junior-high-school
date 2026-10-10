@@ -52,6 +52,15 @@ export default function ClassManager({ supabase, onChanged }) {
     { id: "junior", title: "Junior School", description: "Grade-based classes" },
     { id: "senior", title: "Senior School", description: "Form and stream classes" },
   ].map((group) => ({ ...group, classes: displayedClasses.filter((row) => row.campus === group.id) }));
+  const classLevelGroups = campusGroups.map((group) => ({
+    ...group,
+    levels: Array.from(group.classes.reduce((levels, row) => {
+      const existing = levels.get(row.class_level) || { level: row.class_level, rows: [] };
+      existing.rows.push(row);
+      levels.set(row.class_level, existing);
+      return levels;
+    }, new Map()).values()),
+  }));
   const classStudents = useMemo(
     () =>
       selectedClass
@@ -532,101 +541,25 @@ export default function ClassManager({ supabase, onChanged }) {
               </thead>
               <tbody>
                 {displayedClasses.length ? (
-                  campusGroups.flatMap((group) => [
-                    <tr className="class-manager-campus-divider" key={`${group.id}-divider`}><td colSpan="7"><strong>{group.title}</strong><span>{group.description} · {group.classes.length} class{group.classes.length === 1 ? "" : "es"}</span></td></tr>,
-                    ...group.classes.map((row) => (
-                    <tr
-                      key={row.id}
-                      className={selectedId === row.id ? "is-selected" : ""}
-                    >
-                      <td>
-                        <strong>{classLabel(row)}</strong>
-                        <small>
-                          {row.class_stream
-                            ? `${row.class_level} stream`
-                            : "No stream assigned"}
-                        </small>
-                      </td>
-                      <td>
-                        {(() => {
-                          const capacity = capacityStatus(row);
-                          return <span className={`class-status ${capacity.tone}`}>{capacity.label}</span>;
-                        })()}
-                      </td>
-                      <td>
-                        <span className="class-campus">{row.campus}</span>
-                      </td>
-                      <td>
-                        {teacherForClass(row) ? (
-                          <strong>{teacherForClass(row).full_name}</strong>
-                        ) : (
-                          <span className="class-status is-inactive">Unassigned</span>
-                        )}
-                      </td>
-                      <td>
-                        {(() => {
-                          const coverage = subjectCoverageForClass(row);
-                          const covered = coverage.filter((item) => item.teacher).length;
-                          return coverage.length ? <><strong>{covered}/{coverage.length}</strong><small>{coverage.length - covered ? `${coverage.length - covered} unassigned` : "Fully assigned"}</small></> : <span className="class-status is-inactive">No subject plan</span>;
-                        })()}
-                      </td>
-                      <td>
-                        <span
-                          className={`class-status ${row.active ? "is-active" : "is-inactive"}`}
-                        >
-                          {row.active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="portal-action-row class-manager-actions">
-                          <Button
-                            className="class-manager-view"
-                            variant="secondary"
-                            type="button"
-                            onClick={() => openClassPage(row)}
-                          >
-                            {selectedId === row.id
-                              ? "Viewing learners"
-                              : "View learners"}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            type="button"
-                            onClick={() => editClass(row)}
-                          >
-                            Edit
-                          </Button>
-                          {Number(row.capacity || 0) > 0 && activeLearnersForClass(row) >= Number(row.capacity) && (
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              onClick={() => startRecommendedStream(row)}
-                            >
-                              Add new stream
-                            </Button>
-                          )}
-                          <Button
-                            className={
-                              row.active ? "class-manager-warning" : ""
-                            }
-                            variant="secondary"
-                            type="button"
-                            onClick={() => toggleClass(row)}
-                          >
-                            {row.active ? "Deactivate" : "Activate"}
-                          </Button>
-                          <Button
-                            className="class-manager-danger"
-                            variant="secondary"
-                            type="button"
-                            onClick={() => removeClass(row)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                    )),
+                  classLevelGroups.flatMap((group) => [
+                    <tr className="class-manager-campus-divider" key={`${group.id}-divider`}><td colSpan="7"><strong>{group.title}</strong><span>{group.description} · {group.levels.length} class level{group.levels.length === 1 ? "" : "s"}</span></td></tr>,
+                    ...group.levels.map(({ level, rows }) => {
+                      const enrolled = rows.reduce((total, row) => total + activeLearnersForClass(row), 0);
+                      const capacity = rows.reduce((total, row) => total + Number(row.capacity || 0), 0);
+                      const coverage = rows.flatMap((row) => subjectCoverageForClass(row));
+                      const covered = coverage.filter((item) => item.teacher).length;
+                      const teachers = [...new Set(rows.map(teacherForClass).filter(Boolean).map((teacher) => teacher.full_name))];
+                      const status = rows.every((row) => row.active) ? "Active" : rows.some((row) => row.active) ? "Partly active" : "Inactive";
+                      return <tr key={`${group.id}-${level}`}>
+                        <td><strong>{level}</strong><small>{group.id === "junior" ? "Whole grade" : `${rows.length} stream${rows.length === 1 ? "" : "s"}`}</small></td>
+                        <td><span className={`class-status ${capacity && enrolled >= capacity ? "is-full" : "is-active"}`}>{capacity ? `${enrolled}/${capacity} enrolled` : `${enrolled} enrolled`}</span></td>
+                        <td><span className="class-campus">{group.id}</span></td>
+                        <td>{teachers.length === 1 ? <strong>{teachers[0]}</strong> : teachers.length ? <span>{teachers.length} stream teachers</span> : <span className="class-status is-inactive">Unassigned</span>}</td>
+                        <td>{coverage.length ? <><strong>{covered}/{coverage.length}</strong><small>{coverage.length - covered ? `${coverage.length - covered} unassigned` : "Fully assigned"}</small></> : <span className="class-status is-inactive">No subject plan</span>}</td>
+                        <td><span className={`class-status ${status === "Active" ? "is-active" : "is-inactive"}`}>{status}</span></td>
+                        <td><div className="portal-action-row class-manager-actions"><Button className="class-manager-view" variant="secondary" type="button" onClick={() => openClassPage(rows[0])}>Open {group.id === "junior" ? "grade" : "streams"}</Button></div></td>
+                      </tr>;
+                    }),
                   ])
                 ) : (
                   <tr>
