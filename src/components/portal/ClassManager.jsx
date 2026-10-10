@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
 import PortalNotice from "./PortalNotice";
-import { nextAdmissionNumber } from "../../lib/admissionNumber";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -34,6 +33,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const [setupRequired, setSetupRequired] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [newStream, setNewStream] = useState({ name: "", capacity: "50" });
+  const [admissionRefreshKey, setAdmissionRefreshKey] = useState(0);
   const isMissingTable = (value) => ["PGRST205", "42P01"].includes(value?.code);
   const selectedClass = classes.find((row) => row.id === selectedId);
   const displayedClasses = showInactive ? classes : classes.filter((row) => row.active);
@@ -164,12 +164,18 @@ export default function ClassManager({ supabase, onChanged }) {
   }, [supabase]);
   useEffect(() => {
     const learnerDestination = selectedClass || selectedStream;
-    if (learnerDestination && !learner.admission_number)
-      setLearner((value) => ({
-        ...value,
-        admission_number: nextAdmissionNumber(students, value.enrolled_year),
-      }));
-  }, [selectedClass, selectedStream, students]);
+    if (!learnerDestination) return;
+    let active = true;
+    supabase.rpc("preview_admission_number", {
+      requested_year: Number(learner.enrolled_year),
+      requested_campus: learnerDestination.campus,
+      requested_class_level: learnerDestination.class_level,
+    }).then(({ data, error: previewError }) => {
+      if (!active || previewError || !data) return;
+      setLearner((value) => ({ ...value, admission_number: data }));
+    });
+    return () => { active = false; };
+  }, [supabase, selectedClass?.id, selectedStream?.id, learner.enrolled_year, admissionRefreshKey]);
   const saveClass = async (event) => {
     event.preventDefault();
     setError("");
@@ -355,10 +361,7 @@ export default function ClassManager({ supabase, onChanged }) {
     event.preventDefault();
     const learnerDestination = selectedClass || selectedStream;
     if (!learnerDestination) return setError("Choose a class first.");
-    const admissionNumber = nextAdmissionNumber(
-      students,
-      learner.enrolled_year,
-    );
+    const admissionNumber = learner.admission_number;
     const { error: saveError } = await supabase.from("students").insert({
       ...learner,
       admission_number: admissionNumber,
@@ -370,19 +373,8 @@ export default function ClassManager({ supabase, onChanged }) {
       inactive_reason: null,
     });
     if (saveError) return setError(saveError.message);
-    setLearner({
-      ...blankLearner,
-      admission_number: nextAdmissionNumber(
-        [
-          ...students,
-          {
-            enrolled_year: learner.enrolled_year,
-            admission_number: admissionNumber,
-          },
-        ],
-        learner.enrolled_year,
-      ),
-    });
+    setLearner({ ...blankLearner, enrolled_year: learner.enrolled_year });
+    setAdmissionRefreshKey((value) => value + 1);
     setNotice("Learner added to this class.");
     await load();
     onChanged?.();
