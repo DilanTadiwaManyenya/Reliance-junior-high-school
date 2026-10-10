@@ -15,7 +15,7 @@ const blankLearner = {
 const classLabel = (row) =>
   `${row.class_level}${row.class_stream ? ` · ${row.class_stream}` : ""}`;
 
-export default function ClassManager({ supabase, onChanged }) {
+export default function ClassManager({ supabase, onChanged, onViewLearners }) {
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [teacherAssignments, setTeacherAssignments] = useState([]);
@@ -33,6 +33,10 @@ export default function ClassManager({ supabase, onChanged }) {
   const isMissingTable = (value) => ["PGRST205", "42P01"].includes(value?.code);
   const selectedClass = classes.find((row) => row.id === selectedId);
   const displayedClasses = showInactive ? classes : classes.filter((row) => row.active);
+  const campusGroups = [
+    { id: "junior", title: "Junior School", description: "Grade-based classes" },
+    { id: "senior", title: "Senior School", description: "Form and stream classes" },
+  ].map((group) => ({ ...group, classes: displayedClasses.filter((row) => row.campus === group.id) }));
   const classStudents = useMemo(
     () =>
       selectedClass
@@ -176,6 +180,10 @@ export default function ClassManager({ supabase, onChanged }) {
       campus: row.campus,
       capacity: row.capacity == null ? "" : String(row.capacity),
     });
+  };
+  const viewLearners = (row) => {
+    setSelectedId(row.id);
+    onViewLearners?.(row);
   };
   const cancelEdit = () => {
     setEditingId(null);
@@ -463,7 +471,9 @@ export default function ClassManager({ supabase, onChanged }) {
               </thead>
               <tbody>
                 {displayedClasses.length ? (
-                  displayedClasses.map((row) => (
+                  campusGroups.flatMap((group) => [
+                    <tr className="class-manager-campus-divider" key={`${group.id}-divider`}><td colSpan="7"><strong>{group.title}</strong><span>{group.description} · {group.classes.length} class{group.classes.length === 1 ? "" : "es"}</span></td></tr>,
+                    ...group.classes.map((row) => (
                     <tr
                       key={row.id}
                       className={selectedId === row.id ? "is-selected" : ""}
@@ -512,7 +522,7 @@ export default function ClassManager({ supabase, onChanged }) {
                             className="class-manager-view"
                             variant="secondary"
                             type="button"
-                            onClick={() => setSelectedId(row.id)}
+                            onClick={() => viewLearners(row)}
                           >
                             {selectedId === row.id
                               ? "Viewing learners"
@@ -555,7 +565,8 @@ export default function ClassManager({ supabase, onChanged }) {
                         </div>
                       </td>
                     </tr>
-                  ))
+                    )),
+                  ])
                 ) : (
                   <tr>
                     <td colSpan="7" className="muted class-manager-empty">
