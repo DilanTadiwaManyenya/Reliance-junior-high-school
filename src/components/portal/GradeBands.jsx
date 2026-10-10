@@ -1,27 +1,28 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { calculateGrade } from '../../utils/GradeCalculator'
+import { useAuth } from '../../context/useAuth'
+import PortalNotice from './PortalNotice'
 
-const scales = [
-  { title: 'ECD & Primary', appliesTo: 'ECD A to Grade 7', rows: [['85–100', 'Unit 1', 'Excellent'], ['77–84', 'Unit 2', 'Very Good'], ['70–76', 'Unit 3', 'Good'], ['60–69', 'Unit 4', 'Satisfactory'], ['50–59', 'Unit 5', 'Fair'], ['40–49', 'Unit 6', 'Pass – Lower'], ['30–39', 'Unit 7', 'Pass – Low'], ['20–29', 'Unit 8', 'Fail'], ['0–19', 'Unit 9', 'Fail – Very Low']] },
-  { title: 'O Level', appliesTo: 'Form 1 to Form 4', rows: [['75–100', 'A', 'Distinction'], ['65–74', 'B', 'Merit'], ['50–64', 'C', 'Credit – Pass'], ['40–49', 'D', 'Pass'], ['0–39', 'E', 'Fair']] },
-  { title: 'A Level', appliesTo: 'Lower Six & Upper Six', rows: [['80–100', 'A', 'Outstanding'], ['70–79', 'B', 'Very Good'], ['60–69', 'C', 'Good'], ['50–59', 'D', 'Satisfactory'], ['40–49', 'E', 'Minimum Pass'], ['30–39', 'O', 'Subsidiary Pass'], ['0–29', 'F', 'Fail']] },
-]
+const groups = [{ id: 'primary', title: 'ECD & Primary', applies: 'ECD A to Grade 7' }, { id: 'olevel', title: 'O Level', applies: 'Form 1 to Form 4' }, { id: 'alevel', title: 'A Level', applies: 'Lower Six & Upper Six' }]
+const blank = group => ({ id: `new-${crypto.randomUUID()}`, band_group: group, minimum_score: '', maximum_score: '', grade: '', points: '', description: '' })
+const normalize = row => ({ band_group: row.band_group, minimum_score: Number(row.minimum_score), maximum_score: Number(row.maximum_score), grade: String(row.grade || '').trim(), points: row.points === '' || row.points == null ? null : Number(row.points), description: String(row.description || '').trim() })
+const validate = rows => {
+  for (const group of groups) {
+    const items = rows.filter(row => row.band_group === group.id).map(normalize).sort((a, b) => b.maximum_score - a.maximum_score)
+    if (!items.length) return `${group.title} needs at least one band.`
+    if (items.some(row => !Number.isInteger(row.minimum_score) || !Number.isInteger(row.maximum_score) || row.minimum_score < 0 || row.maximum_score > 100 || row.minimum_score > row.maximum_score || !row.grade || !row.description)) return `Complete every ${group.title} band with a valid range, grade and meaning.`
+    if (items[0].maximum_score !== 100 || items.at(-1).minimum_score !== 0) return `${group.title} must cover the full 0–100 range.`
+    for (let i = 1; i < items.length; i += 1) if (items[i - 1].minimum_score !== items[i].maximum_score + 1) return `${group.title} has a gap or overlap between its score bands.`
+  }
+  return ''
+}
 
 export default function GradeBands() {
-  const [level, setLevel] = useState('Form 1')
-  const [score, setScore] = useState('')
-  const outcome = useMemo(() => calculateGrade(score, level), [level, score])
-
-  return <div className="dash-section">
-    <div className="dash-page-header"><div><h1 className="dash-page-title">Grade bands</h1><p className="dash-page-sub">The official score-to-grade rules used by mark entry and academic report books.</p></div></div>
-    <section className="card" style={{ padding: '20px' }}>
-      <h2 style={{ marginTop: 0 }}>Check a result</h2>
-      <div className="portal-action-row" style={{ alignItems: 'end' }}>
-        <label>Class level<select value={level} onChange={event => setLevel(event.target.value)}><option>ECD A</option><option>Grade 1</option><option>Grade 7</option><option>Form 1</option><option>Form 4</option><option>Lower Six</option><option>Upper Six</option></select></label>
-        <label>Score (%)<input type="number" min="0" max="100" value={score} onChange={event => setScore(event.target.value)} placeholder="e.g. 68" /></label>
-        <div className="portal-notice" style={{ margin: 0, minWidth: '210px' }}>{outcome ? <><strong>{outcome.grade}</strong> · {outcome.description}</> : 'Enter a score from 0 to 100.'}</div>
-      </div>
-    </section>
-    <div className="portal-record-grid">{scales.map(scale => <section className="card" key={scale.title} style={{ padding: '20px' }}><h2 style={{ marginTop: 0 }}>{scale.title}</h2><p className="muted">{scale.appliesTo}</p><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Score</th><th>Grade</th><th>Meaning</th></tr></thead><tbody>{scale.rows.map(([range, grade, meaning]) => <tr key={grade}><td>{range}</td><td><strong>{grade}</strong></td><td>{meaning}</td></tr>)}</tbody></table></div></section>)}</div>
-  </div>
+  const { supabase } = useAuth(); const [rows, setRows] = useState([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [notice, setNotice] = useState(''); const [error, setError] = useState(''); const [level, setLevel] = useState('Form 1'); const [score, setScore] = useState('')
+  const outcome = useMemo(() => calculateGrade(score, level), [score, level])
+  const load = async () => { setLoading(true); const { data, error: requestError } = await supabase.from('grade_bands').select('*').order('band_group').order('maximum_score', { ascending: false }); setRows(requestError ? [] : (data || [])); setError(requestError?.message || ''); setLoading(false) }
+  useEffect(() => { load() }, [supabase])
+  const update = (id, field, value) => setRows(current => current.map(row => row.id === id ? { ...row, [field]: value } : row))
+  const save = async () => { setNotice(''); setError(''); const invalid = validate(rows); if (invalid) return setError(invalid); setSaving(true); const { error: removeError } = await supabase.from('grade_bands').delete().neq('id', '00000000-0000-0000-0000-000000000000'); if (removeError) { setSaving(false); return setError(removeError.message) }; const { error: insertError } = await supabase.from('grade_bands').insert(rows.map(normalize)); setSaving(false); if (insertError) return setError(insertError.message); setNotice('Grade bands saved successfully.'); load() }
+  return <div className="dash-section grade-bands-workspace"><header className="grade-bands-hero"><div><p className="eyebrow">Academic rules</p><h1 className="dash-page-title">Grade bands</h1><p>Manage the official score boundaries. Each scale must cover 0–100 with no gaps or overlaps.</p></div><div className="grade-bands-hero-stat"><b>{rows.length}</b><span>Configured bands</span></div></header><PortalNotice message={notice} error={error} /><section className="grade-bands-checker"><div><p className="eyebrow">Quick checker</p><h2>Test the current scale</h2></div><div className="grade-bands-checker-controls"><label>Class level<select value={level} onChange={e => setLevel(e.target.value)}><option>ECD A</option><option>Grade 1</option><option>Grade 7</option><option>Form 1</option><option>Form 4</option><option>Lower Six</option><option>Upper Six</option></select></label><label>Score (%)<input type="number" min="0" max="100" value={score} onChange={e => setScore(e.target.value)} placeholder="e.g. 68" /></label><output className="grade-bands-result">{outcome ? <><strong>{outcome.grade}</strong><span>{outcome.description}</span></> : <span>Enter a score</span>}</output></div></section>{loading ? <p className="muted">Loading grade bands…</p> : <div className="grade-bands-grid">{groups.map(group => { const items = rows.filter(row => row.band_group === group.id).sort((a, b) => Number(b.maximum_score) - Number(a.maximum_score)); return <section className="grade-band-card" key={group.id}><header><div><h2>{group.title}</h2><p>{group.applies}</p></div><button type="button" className="btn secondary" onClick={() => setRows(current => [...current, blank(group.id)])}>Add band</button></header><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>From</th><th>To</th><th>Grade</th><th>Points</th><th>Meaning</th><th /></tr></thead><tbody>{items.map(row => <tr key={row.id}><td><input type="number" min="0" max="100" value={row.minimum_score} onChange={e => update(row.id, 'minimum_score', e.target.value)} /></td><td><input type="number" min="0" max="100" value={row.maximum_score} onChange={e => update(row.id, 'maximum_score', e.target.value)} /></td><td><input value={row.grade} onChange={e => update(row.id, 'grade', e.target.value)} /></td><td><input type="number" value={row.points ?? ''} onChange={e => update(row.id, 'points', e.target.value)} /></td><td><input value={row.description} onChange={e => update(row.id, 'description', e.target.value)} /></td><td><button type="button" className="grade-band-delete" onClick={() => setRows(current => current.filter(item => item.id !== row.id))} aria-label={`Remove ${row.grade || 'new'} band`}>×</button></td></tr>)}</tbody></table></div></section> })}</div>}<div className="grade-bands-savebar"><div><b>Administrator-controlled settings</b><span>Only complete official ranges can be saved.</span></div><button type="button" className="btn primary" disabled={loading || saving} onClick={save}>{saving ? 'Saving bands…' : 'Save official grade bands'}</button></div></div>
 }
