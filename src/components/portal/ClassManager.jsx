@@ -122,7 +122,8 @@ export default function ClassManager({ supabase, onChanged }) {
       (classRow.campus === "junior" || !item.class_stream || item.class_stream === classRow.class_stream),
     );
     return expected.map((subject) => {
-      const assignment = assigned.find((item) => subjectKey(item.subject) === subjectKey(subject));
+      const assignment = assigned.find((item) => item.class_stream === (classRow.class_stream || "") && subjectKey(item.subject) === subjectKey(subject))
+        || assigned.find((item) => subjectKey(item.subject) === subjectKey(subject));
       const teacher = assignment && staffProfiles.find((profile) => profile.id === assignment.teacher_id && profile.portal_access_enabled !== false);
       return { subject, teacher };
     });
@@ -136,7 +137,7 @@ export default function ClassManager({ supabase, onChanged }) {
         .order("class_level"),
       supabase.from("students").select("*").order("full_name"),
       supabase.from("teacher_class_assignments").select("teacher_id, class_level, class_stream, campus"),
-      supabase.from("teacher_class_subject_assignments").select("teacher_id, class_level, class_stream, subject, campus"),
+      supabase.from("teacher_class_subject_assignments").select("id, teacher_id, class_level, class_stream, subject, campus"),
       supabase.from("profiles").select("id, full_name, portal_access_enabled").eq("role", "teacher"),
     ]);
     if (classResult.error) {
@@ -212,6 +213,7 @@ export default function ClassManager({ supabase, onChanged }) {
   const backToClasses = () => navigate({ pathname: location.pathname, search: "?section=classes" });
   const openStreamPage = (row) => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(row.campus)}&classLevel=${encodeURIComponent(row.class_level)}&stream=${encodeURIComponent(row.id)}` });
   const openStreamSettings = () => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(selectedCampus)}&classLevel=${encodeURIComponent(selectedLevel)}&stream=${encodeURIComponent(selectedStreamId)}&view=settings` });
+  const openStaffAllocation = () => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(selectedCampus)}&classLevel=${encodeURIComponent(selectedLevel)}&stream=${encodeURIComponent(selectedStreamId)}&view=staff` });
   const backToClassPage = () => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(selectedCampus)}&classLevel=${encodeURIComponent(selectedLevel)}` });
   const updateWorkspaceCapacity = async (event) => {
     event.preventDefault();
@@ -244,6 +246,39 @@ export default function ClassManager({ supabase, onChanged }) {
     if (saveError) return setError(saveError.message);
     setNewStream({ name: "", capacity: String(capacity) });
     setNotice(`${selectedLevel} ${stream} was created. Assign staff before enrolling learners.`);
+    await load();
+    onChanged?.();
+  };
+  const saveClassTeacher = async (event) => {
+    event.preventDefault();
+    if (!selectedStream) return;
+    const teacherId = new FormData(event.currentTarget).get("teacherId");
+    const scope = { class_level: selectedStream.class_level, class_stream: selectedStream.class_stream || "", campus: selectedStream.campus };
+    const { error: removeError } = await supabase.from("teacher_class_assignments").delete().match(scope);
+    if (removeError) return setError(removeError.message);
+    if (teacherId) {
+      const { error: saveError } = await supabase.from("teacher_class_assignments").insert({ ...scope, teacher_id: teacherId });
+      if (saveError) return setError(saveError.message);
+    }
+    setNotice(teacherId ? "Class teacher updated." : "Class teacher cleared.");
+    await load();
+    onChanged?.();
+  };
+  const saveSubjectTeacher = async (event, subject) => {
+    event.preventDefault();
+    if (!selectedStream) return;
+    const teacherId = new FormData(event.currentTarget).get("teacherId");
+    const scope = { class_level: selectedStream.class_level, class_stream: selectedStream.class_stream || "", campus: selectedStream.campus };
+    const existing = subjectAssignments.filter((item) => item.class_level === scope.class_level && item.class_stream === scope.class_stream && item.campus === scope.campus && subjectKey(item.subject) === subjectKey(subject));
+    if (existing.length) {
+      const { error: removeError } = await supabase.from("teacher_class_subject_assignments").delete().in("id", existing.map((item) => item.id));
+      if (removeError) return setError(removeError.message);
+    }
+    if (teacherId) {
+      const { error: saveError } = await supabase.from("teacher_class_subject_assignments").insert({ ...scope, subject, teacher_id: teacherId });
+      if (saveError) return setError(saveError.message);
+    }
+    setNotice(`${subject} teacher updated.`);
     await load();
     onChanged?.();
   };
@@ -417,8 +452,13 @@ export default function ClassManager({ supabase, onChanged }) {
         <section className="class-workspace-panel"><h2>Current status</h2><p>{selectedStream.active ? "This class is active and available for enrolment." : "This class is inactive and unavailable for new enrolment."}</p><Button type="button" variant="secondary" className={selectedStream.active ? "class-manager-warning" : ""} onClick={() => toggleClass(selectedStream)}>{selectedStream.active ? "Deactivate class" : "Activate class"}</Button></section>
         <section className="class-workspace-panel class-settings-danger"><h2>Remove this {isJunior ? "grade" : "stream"}</h2><p>Only remove a class that was created in error. Learner history stays in the system, but the class will no longer be available for enrolment.</p><Button type="button" variant="secondary" className="class-manager-danger" onClick={() => removeClass(selectedStream)}>Remove {classLabel(selectedStream)}</Button></section>
       </section>}
-      {selectedStream && selectedView !== "settings" && <section className="class-workspace">
-        <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · whole grade" : "Senior School · stream workspace"}</p><h1 className="dash-page-title">{classLabel(selectedStream)}</h1><p className="dash-page-sub">Manage this {isJunior ? "grade" : "stream"} without leaving its dedicated workspace.</p></div><div className="class-workspace-hero-actions"><span>{workspaceCapacity.label}</span><Button type="button" variant="secondary" onClick={openStreamSettings}>Manage {isJunior ? "grade" : "stream"}</Button></div></header>
+      {selectedStream && selectedView === "staff" && <section className="class-workspace class-settings-page">
+        <header className="class-page-hero"><div><p className="eyebrow">Staff allocations</p><h1 className="dash-page-title">{classLabel(selectedStream)}</h1><p className="dash-page-sub">Assign a class teacher and the teachers responsible for each subject in this {isJunior ? "grade" : "stream"}.</p></div><Button type="button" variant="secondary" onClick={() => openStreamPage(selectedStream)}>← Back to workspace</Button></header>
+        <section className="class-workspace-panel"><h2>Class teacher</h2><form className="class-allocation-form" onSubmit={saveClassTeacher}><label>Teacher<select name="teacherId" defaultValue={workspaceTeacher?.id || ""}><option value="">No class teacher</option>{staffProfiles.map((teacher) => <option value={teacher.id} key={teacher.id}>{teacher.full_name}</option>)}</select></label><Button type="submit">Save class teacher</Button></form></section>
+        <section className="class-workspace-panel"><h2>Subject teachers</h2><div className="class-subject-allocation-list">{workspaceCoverage.map((item) => <form key={item.subject} className="class-allocation-form" onSubmit={(event) => saveSubjectTeacher(event, item.subject)}><strong>{item.subject}</strong><label>Teacher<select name="teacherId" defaultValue={item.teacher?.id || ""}><option value="">Unassigned</option>{staffProfiles.map((teacher) => <option value={teacher.id} key={teacher.id}>{teacher.full_name}</option>)}</select></label><Button type="submit" variant="secondary">Save</Button></form>)}</div></section>
+      </section>}
+      {selectedStream && !["settings", "staff"].includes(selectedView) && <section className="class-workspace">
+        <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · whole grade" : "Senior School · stream workspace"}</p><h1 className="dash-page-title">{classLabel(selectedStream)}</h1><p className="dash-page-sub">Manage this {isJunior ? "grade" : "stream"} without leaving its dedicated workspace.</p></div><div className="class-workspace-hero-actions"><span>{workspaceCapacity.label}</span><Button type="button" variant="secondary" onClick={openStaffAllocation}>Allocate staff</Button><Button type="button" variant="secondary" onClick={openStreamSettings}>Manage {isJunior ? "grade" : "stream"}</Button></div></header>
         <div className="class-workspace-summary">
           <article><span>Class teacher</span><strong>{workspaceTeacher?.full_name || "Not assigned"}</strong></article>
           <article><span>Subject coverage</span><strong>{workspaceCoverage.filter((item) => item.teacher).length}/{workspaceCoverage.length} assigned</strong></article>
