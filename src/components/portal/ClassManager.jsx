@@ -42,6 +42,12 @@ export default function ClassManager({ supabase, onChanged }) {
   const selectedStreamId = query.get("stream") || "";
   const classPageRows = displayedClasses.filter((row) => row.class_level === selectedLevel && row.campus === selectedCampus);
   const selectedStream = classPageRows.find((row) => row.id === selectedStreamId) || null;
+  const workspaceStudents = selectedStream
+    ? students.filter((row) =>
+        row.class_level === selectedStream.class_level &&
+        (row.class_stream || "") === (selectedStream.class_stream || ""),
+      )
+    : [];
   const campusGroups = [
     { id: "junior", title: "Junior School", description: "Grade-based classes" },
     { id: "senior", title: "Senior School", description: "Form and stream classes" },
@@ -142,12 +148,13 @@ export default function ClassManager({ supabase, onChanged }) {
     load();
   }, [supabase]);
   useEffect(() => {
-    if (selectedClass && !learner.admission_number)
+    const learnerDestination = selectedClass || selectedStream;
+    if (learnerDestination && !learner.admission_number)
       setLearner((value) => ({
         ...value,
         admission_number: nextAdmissionNumber(students, value.enrolled_year),
       }));
-  }, [selectedClass, students]);
+  }, [selectedClass, selectedStream, students]);
   const saveClass = async (event) => {
     event.preventDefault();
     setError("");
@@ -193,6 +200,21 @@ export default function ClassManager({ supabase, onChanged }) {
   const openClassPage = (row) => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(row.campus)}&classLevel=${encodeURIComponent(row.class_level)}` });
   const backToClasses = () => navigate({ pathname: location.pathname, search: "?section=classes" });
   const openStreamPage = (row) => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(row.campus)}&classLevel=${encodeURIComponent(row.class_level)}&stream=${encodeURIComponent(row.id)}` });
+  const backToClassPage = () => navigate({ pathname: location.pathname, search: `?section=classes&campus=${encodeURIComponent(selectedCampus)}&classLevel=${encodeURIComponent(selectedLevel)}` });
+  const updateWorkspaceCapacity = async (event) => {
+    event.preventDefault();
+    if (!selectedStream) return;
+    const capacity = Number(new FormData(event.currentTarget).get("capacity"));
+    if (!Number.isInteger(capacity) || capacity < 1) return setError("Capacity must be a whole number of at least 1.");
+    const { error: saveError } = await supabase
+      .from("school_classes")
+      .update({ capacity, updated_at: new Date().toISOString() })
+      .eq("id", selectedStream.id);
+    if (saveError) return setError(saveError.message);
+    setNotice(`Capacity for ${classLabel(selectedStream)} updated to ${capacity}.`);
+    await load();
+    onChanged?.();
+  };
   const cancelEdit = () => {
     setEditingId(null);
     setCorrectionTargetId("");
@@ -257,7 +279,8 @@ export default function ClassManager({ supabase, onChanged }) {
   };
   const addLearner = async (event) => {
     event.preventDefault();
-    if (!selectedClass) return setError("Choose a class first.");
+    const learnerDestination = selectedClass || selectedStream;
+    if (!learnerDestination) return setError("Choose a class first.");
     const admissionNumber = nextAdmissionNumber(
       students,
       learner.enrolled_year,
@@ -266,9 +289,9 @@ export default function ClassManager({ supabase, onChanged }) {
       ...learner,
       admission_number: admissionNumber,
       enrolled_year: Number(learner.enrolled_year),
-      class_level: selectedClass.class_level,
-      class_stream: selectedClass.class_stream || null,
-      campus: selectedClass.campus,
+      class_level: learnerDestination.class_level,
+      class_stream: learnerDestination.class_stream || null,
+      campus: learnerDestination.campus,
       status: "active",
       inactive_reason: null,
     });
@@ -344,11 +367,31 @@ export default function ClassManager({ supabase, onChanged }) {
   if (selectedLevel && selectedCampus) {
     const isJunior = selectedCampus === "junior";
     const heading = isJunior ? `${selectedLevel} workspace` : `${selectedLevel} streams`;
+    const workspaceCoverage = selectedStream ? subjectCoverageForClass(selectedStream) : [];
+    const workspaceTeacher = selectedStream ? teacherForClass(selectedStream) : null;
+    const workspaceCapacity = selectedStream ? capacityStatus(selectedStream) : null;
     return <div className="dash-section class-manager class-page">
-      <button type="button" className="class-page-back" onClick={backToClasses}>← All classes</button>
-      <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · class workspace" : "Senior School · select a stream"}</p><h1 className="dash-page-title">{heading}</h1><p className="dash-page-sub">{isJunior ? "This grade does not use streams. Its learners and class actions live together." : "Choose a stream before managing learners, teachers, and subject coverage."}</p></div><span>{classPageRows.length} {isJunior ? "grade" : "stream"}{classPageRows.length === 1 ? "" : "s"}</span></header>
-      {isJunior ? <section className="class-page-card"><div><p className="eyebrow">Whole grade</p><h2>{selectedLevel}</h2><p>{activeLearnersForClass(classPageRows[0] || {})} active learners · capacity {classPageRows[0]?.capacity || "—"}</p></div><button type="button" className="btn primary" onClick={() => classPageRows[0] && openStreamPage(classPageRows[0])}>Open grade workspace →</button></section> : <section className="class-stream-grid">{classPageRows.map((row) => { const capacity = capacityStatus(row); return <button type="button" className="class-stream-card" key={row.id} onClick={() => openStreamPage(row)}><span>Stream</span><strong>{row.class_stream || "Whole form"}</strong><small>{capacity.label}</small><b>Open workspace →</b></button> })}</section>}
-      {selectedStream && <section className="class-page-card class-page-next"><div><p className="eyebrow">Selected {isJunior ? "grade" : "stream"}</p><h2>{classLabel(selectedStream)}</h2><p>Stage 2 will place the learner register, staff allocations, and actions on this dedicated workspace.</p></div></section>}
+      <button type="button" className="class-page-back" onClick={selectedStream ? backToClassPage : backToClasses}>← {selectedStream ? heading : "All classes"}</button>
+      {error && <PortalNotice tone="error">{error}</PortalNotice>}
+      {notice && <PortalNotice tone="success">{notice}</PortalNotice>}
+      {!selectedStream && <>
+        <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · class workspace" : "Senior School · select a stream"}</p><h1 className="dash-page-title">{heading}</h1><p className="dash-page-sub">{isJunior ? "This grade does not use streams. Its learners and class actions live together." : "Choose a stream before managing learners, teachers, and subject coverage."}</p></div><span>{classPageRows.length} {isJunior ? "grade" : "stream"}{classPageRows.length === 1 ? "" : "s"}</span></header>
+        {isJunior ? <section className="class-page-card"><div><p className="eyebrow">Whole grade</p><h2>{selectedLevel}</h2><p>{activeLearnersForClass(classPageRows[0] || {})} active learners · capacity {classPageRows[0]?.capacity || "—"}</p></div><button type="button" className="btn primary" onClick={() => classPageRows[0] && openStreamPage(classPageRows[0])}>Open grade workspace →</button></section> : <section className="class-stream-grid">{classPageRows.map((row) => { const capacity = capacityStatus(row); return <button type="button" className="class-stream-card" key={row.id} onClick={() => openStreamPage(row)}><span>Stream</span><strong>{row.class_stream || "Whole form"}</strong><small>{capacity.label}</small><b>Open workspace →</b></button> })}</section>}
+      </>}
+      {selectedStream && <section className="class-workspace">
+        <header className="class-page-hero"><div><p className="eyebrow">{isJunior ? "Junior School · whole grade" : "Senior School · stream workspace"}</p><h1 className="dash-page-title">{classLabel(selectedStream)}</h1><p className="dash-page-sub">Manage this {isJunior ? "grade" : "stream"} without leaving its dedicated workspace.</p></div><span>{workspaceCapacity.label}</span></header>
+        <div className="class-workspace-summary">
+          <article><span>Class teacher</span><strong>{workspaceTeacher?.full_name || "Not assigned"}</strong></article>
+          <article><span>Subject coverage</span><strong>{workspaceCoverage.filter((item) => item.teacher).length}/{workspaceCoverage.length} assigned</strong></article>
+          <article><span>Active learners</span><strong>{workspaceCapacity.enrolled}</strong></article>
+        </div>
+        <div className="class-workspace-grid">
+          <section className="class-workspace-panel"><h2>Class capacity</h2><p>Set the enrolment point at which another stream should be considered.</p><form onSubmit={updateWorkspaceCapacity}><label>Capacity<input name="capacity" type="number" min="1" defaultValue={selectedStream.capacity || 50} /></label><Button type="submit">Save capacity</Button></form></section>
+          <section className="class-workspace-panel"><h2>Allocated subject teachers</h2><div className="class-coverage-list">{workspaceCoverage.map((item) => <div key={item.subject}><span>{item.subject}</span><strong>{item.teacher?.full_name || "Unassigned"}</strong></div>)}</div></section>
+        </div>
+        <section className="class-workspace-panel class-workspace-register"><div className="class-workspace-panel-head"><div><h2>Learner register</h2><p>{workspaceStudents.length} learner{workspaceStudents.length === 1 ? "" : "s"} recorded for {classLabel(selectedStream)}.</p></div></div><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Admission no.</th><th>Status</th><th>Action</th></tr></thead><tbody>{workspaceStudents.length ? workspaceStudents.map((row) => <tr key={row.id}><td>{row.full_name}</td><td>{row.admission_number}</td><td><span className={row.status === "active" ? "status-chip is-active" : "status-chip is-inactive"}>{row.status === "active" ? "Enrolled" : "Inactive"}</span></td><td><Button type="button" variant="secondary" onClick={() => row.status === "active" ? deactivateLearner(row) : reactivateLearner(row)}>{row.status === "active" ? "Deactivate" : "Reactivate"}</Button></td></tr>) : <tr><td colSpan="4">No learners are recorded in this {isJunior ? "grade" : "stream"} yet.</td></tr>}</tbody></table></div></section>
+        <section className="class-workspace-panel class-workspace-add"><h2>Add learner to {classLabel(selectedStream)}</h2><form className="portal-form" onSubmit={addLearner}><label>Full name<input required value={learner.full_name} onChange={(event) => setLearner({ ...learner, full_name: event.target.value })} /></label><label>Admission number<input value={learner.admission_number} readOnly /></label><label>Date of birth<input type="date" value={learner.date_of_birth} onChange={(event) => setLearner({ ...learner, date_of_birth: event.target.value })} /></label><label>Enrolled year<input type="number" min="2000" max="2100" value={learner.enrolled_year} onChange={(event) => setLearner({ ...learner, enrolled_year: event.target.value })} /></label><Button type="submit">Add learner</Button></form></section>
+      </section>}
     </div>;
   }
   return (
