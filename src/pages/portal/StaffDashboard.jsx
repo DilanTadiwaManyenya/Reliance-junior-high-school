@@ -1357,7 +1357,7 @@ export default function StaffDashboard() {
   if (section === "grade-bands" && isAdmin)
     return <div className="staff-content-area"><GradeBands /></div>;
   if (section === "progress-reports" && (isAdmin || isTeacher))
-    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : ""} onOpenProgress={student => { setProfileInitialTab("Academics"); setProfileStudent(student); }} /></div>;
+    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : ""} onOpenProgress={student => { setProfileInitialTab(isTeacher ? "Summary" : "Academics"); setProfileStudent(student); }} /></div>;
   if (section === "coursework" && isTeacher)
     return <div className="staff-content-area"><CourseWork /></div>;
   if (section === "classes" && isAdmin)

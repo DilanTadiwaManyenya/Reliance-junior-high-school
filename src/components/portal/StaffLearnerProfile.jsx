@@ -340,7 +340,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           </section>
         </>
       )}
-      {activeTab === "Academics" && (
+      {!teacherView && activeTab === "Academics" && (
         <AcademicReportCard
           student={student}
           academics={state.academics}
