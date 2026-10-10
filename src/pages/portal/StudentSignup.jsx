@@ -44,7 +44,10 @@ export default function StudentSignup() {
     setSubmitting(true)
     try {
       await supabase.auth.signOut({ scope: 'local' })
-      const admissionNumber = form.admissionNumber.trim()
+      const admissionNumber = form.admissionNumber.trim().replace(
+        /^(\d{2})([fg])/i,
+        (_, year, campusCode) => `${year}${campusCode.toLowerCase()}`,
+      )
       const { data, error } = await supabase.functions.invoke('register_student', { body: { password: form.password, admission_number: admissionNumber, date_of_birth: form.dateOfBirth, class_level: form.classLevel, class_stream: form.classStream } })
       if (error || !data?.success) throw new Error(data?.message || 'We could not create your account. Please try again.')
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: buildStudentPortalEmail(admissionNumber), password: form.password })
