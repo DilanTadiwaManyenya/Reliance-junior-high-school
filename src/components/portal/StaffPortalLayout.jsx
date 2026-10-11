@@ -66,7 +66,10 @@ export default function StaffPortalLayout() {
   const section = requestedSection && sectionConfig.allowed.includes(requestedSection)
     ? requestedSection
     : sectionConfig.defaultSection
-  const teacherWorkspace = role === 'teacher' && searchParams.get('workspace') === 'subjects' ? 'subjects' : 'classes'
+  const isJuniorTeacher = role === 'teacher' && profile?.campus === 'junior'
+  // Junior class teachers work with the complete curriculum for their class.
+  // They must never be routed into the Senior subject-allocation workspace.
+  const teacherWorkspace = role === 'teacher' && !isJuniorTeacher && searchParams.get('workspace') === 'subjects' ? 'subjects' : 'classes'
   const selectedSubjectAllocationId = teacherWorkspace === 'subjects' ? searchParams.get('allocation') || '' : ''
   const selectedSubjectClassStream = teacherWorkspace === 'subjects' ? searchParams.get('subjectStream') || '' : ''
   const selectedSubject = teacherWorkspace === 'subjects' ? searchParams.get('subject') || '' : ''
@@ -95,7 +98,7 @@ export default function StaffPortalLayout() {
     if (role !== 'teacher') return navigateToSection(nextSection)
 
     const subjectSections = ['subject-allocations', 'entry', 'coursework']
-    const nextWorkspace = subjectSections.includes(nextSection)
+    const nextWorkspace = !isJuniorTeacher && subjectSections.includes(nextSection)
       ? 'subjects'
       : nextSection === 'roster' ? 'classes' : teacherWorkspace
     const preserveSubjectScope = nextWorkspace === 'subjects' && teacherWorkspace === 'subjects'
@@ -109,7 +112,10 @@ export default function StaffPortalLayout() {
       preserveSubjectScope ? selectedSubjectClassStream : '',
     )
   }
-  const changeTeacherWorkspace = workspace => navigateToSection(workspace === 'subjects' ? 'subject-allocations' : 'roster', workspace, '', '', '')
+  const changeTeacherWorkspace = workspace => {
+    if (isJuniorTeacher) return navigateToSection('roster', 'classes', '', '', '')
+    return navigateToSection(workspace === 'subjects' ? 'subject-allocations' : 'roster', workspace, '', '', '')
+  }
   const changeSubjectAllocation = (allocationId, classStream = '') => navigateToSection('dashboard', 'subjects', allocationId, selectedSubject, selectedSubjectLevel, classStream)
   const changeSubjectGroup = (subject, level, allocationId = '') => navigateToSection(section, 'subjects', allocationId, subject, level, '')
   const clearSubjectGroup = () => navigateToSection('subject-allocations', 'subjects', '', '', '', '')
@@ -127,7 +133,7 @@ export default function StaffPortalLayout() {
   }, [section, location.pathname, profile, supabase, user])
 
   return (
-    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
+    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, isJuniorTeacher, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
       <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${profile?.role === 'accountant' ? ' no-sidebar' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}

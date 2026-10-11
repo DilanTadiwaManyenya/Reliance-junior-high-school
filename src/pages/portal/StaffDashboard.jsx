@@ -1153,6 +1153,7 @@ export default function StaffDashboard() {
   };
 
   const isTeacher = profile?.role === "teacher";
+  const isJuniorTeacher = isTeacher && profile?.campus === "junior";
   const teacherAssignments = profile?.teacher_class_assignments || [];
   const teacherSubjectAssignments = profile?.teacher_class_subject_assignments || [];
   const hasTeacherSubjectScope = Boolean(
@@ -1711,7 +1712,7 @@ export default function StaffDashboard() {
       {/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Data Entry ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â */}
       {section === "entry" &&
         (profile?.role === "teacher" ? (
-          <TeacherGradeEntry key={`${selectedSubjectAllocationId}:${selectedSubject}:${selectedSubjectLevel}`} />
+          <TeacherGradeEntry key={isJuniorTeacher ? "junior-class-markbook" : `${selectedSubjectAllocationId}:${selectedSubject}:${selectedSubjectLevel}`} />
         ) : (
           <div className="dash-section record-entry-page">
             <div className="dash-page-header">

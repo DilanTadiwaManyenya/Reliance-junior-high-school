@@ -107,7 +107,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
       {/* ── Right: user info + logout ──────── */}
         <div className="top-bar-user">
-          {profile?.role === 'teacher' && (
+          {profile?.role === 'teacher' && profile?.campus !== 'junior' && (
             <div className="teacher-workspace-switch" aria-label="Teacher workspace">
               <button type="button" className={teacherWorkspace === 'classes' ? 'active' : ''} onClick={() => setTeacherWorkspace('classes')}>Class work</button>
               <button type="button" className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subject work</button>
