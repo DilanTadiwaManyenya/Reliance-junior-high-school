@@ -27,6 +27,7 @@ import ReportTermSettings from "../../components/portal/ReportTermSettings";
 import GradeBands from "../../components/portal/GradeBands";
 import ProgressReports from "../../components/portal/ProgressReports";
 import CourseWork from "../../components/portal/CourseWork";
+import JuniorCourseWork from "../../components/portal/JuniorCourseWork";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
 const workingNameFor = (legalFullName, workingTitle) => {
@@ -1361,7 +1362,7 @@ export default function StaffDashboard() {
   if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
     return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : ""} onOpenProgress={student => { setProfileInitialTab(isTeacher ? "Summary" : "Academics"); setProfileStudent(student); }} /></div>;
   if (section === "coursework" && isTeacher)
-    return <div className="staff-content-area"><CourseWork /></div>;
+    return <div className="staff-content-area">{isJuniorTeacher ? <JuniorCourseWork /> : <CourseWork />}</div>;
   if (section === "classes" && isAdmin)
     return (
       <div className="staff-content-area">
