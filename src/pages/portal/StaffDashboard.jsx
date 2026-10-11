@@ -15,6 +15,7 @@ import ClassSelector, {
   parseClassKey,
 } from "../../components/portal/ClassSelector";
 import TeacherGradeEntry from "../../components/portal/TeacherGradeEntryV2";
+import JuniorTeacherMarkbook from "../../components/portal/JuniorTeacherMarkbook";
 import SlideOver from "../../components/ui/SlideOver";
 import ActivityLog from "../../components/portal/ActivityLog";
 import ClassManager from "../../components/portal/ClassManager";
@@ -1712,7 +1713,9 @@ export default function StaffDashboard() {
       {/* ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Data Entry ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â */}
       {section === "entry" &&
         (profile?.role === "teacher" ? (
-          <TeacherGradeEntry key={isJuniorTeacher ? "junior-class-markbook" : `${selectedSubjectAllocationId}:${selectedSubject}:${selectedSubjectLevel}`} />
+          isJuniorTeacher
+            ? <JuniorTeacherMarkbook />
+            : <TeacherGradeEntry key={`${selectedSubjectAllocationId}:${selectedSubject}:${selectedSubjectLevel}`} />
         ) : (
           <div className="dash-section record-entry-page">
             <div className="dash-page-header">
