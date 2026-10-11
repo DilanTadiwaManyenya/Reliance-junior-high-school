@@ -63,10 +63,10 @@ export default function StaffPortalLayout() {
     teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'subject-allocations', 'roster', 'entry', 'coursework', 'settings'] },
     accountant: { defaultSection: 'fees',      allowed: ['fees', 'expenses', 'inventory', 'progress-reports'] },
   }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
-  const section = requestedSection && sectionConfig.allowed.includes(requestedSection)
+  const isJuniorTeacher = role === 'teacher' && profile?.campus === 'junior'
+  const section = requestedSection && sectionConfig.allowed.includes(requestedSection) && !(isJuniorTeacher && requestedSection === 'subject-allocations')
     ? requestedSection
     : sectionConfig.defaultSection
-  const isJuniorTeacher = role === 'teacher' && profile?.campus === 'junior'
   // Junior class teachers work with the complete curriculum for their class.
   // They must never be routed into the Senior subject-allocation workspace.
   const teacherWorkspace = role === 'teacher' && !isJuniorTeacher && searchParams.get('workspace') === 'subjects' ? 'subjects' : 'classes'
