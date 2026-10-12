@@ -37,6 +37,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     juniorComponentMarks: [],
     juniorDevelopmentalRatings: [],
     reportComments: [],
+    classTeacher: null,
     attendance: [],
     coursework: [],
     sports: [],
@@ -130,6 +131,9 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         teacherView
           ? Promise.resolve({ data: [], error: null })
           : supabase.rpc("report_subject_teachers_for_student", { requested_student_id: student.id }),
+        teacherView
+          ? Promise.resolve({ data: [], error: null })
+          : supabase.rpc("junior_report_class_teacher", { requested_student_id: student.id }),
       ]);
       if (!mounted) return;
       const [
@@ -147,6 +151,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         termSettings,
         reportFees,
         subjectTeachers,
+        classTeacher,
       ] = results;
       const optionalAwardsError = ["PGRST205", "42P01"].includes(
         awards.error?.code,
@@ -167,6 +172,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           termSettings.error?.message ||
           reportFees.error?.message ||
           subjectTeachers.error?.message ||
+          classTeacher.error?.message ||
           (!optionalAwardsError && awards.error?.message) ||
           "",
         academics: academics.data || [],
@@ -183,6 +189,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         termSettings: termSettings.data || [],
         reportFees: reportFees.data || [],
         subjectTeachers: subjectTeachers.data || [],
+        classTeacher: classTeacher.data?.[0] || null,
       });
     };
     load();
@@ -387,6 +394,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           juniorComponentMarks={state.juniorComponentMarks}
           juniorDevelopmentalRatings={state.juniorDevelopmentalRatings}
           reportComments={state.reportComments}
+          classTeacher={state.classTeacher}
           attendance={state.attendance}
           behavior={state.behavior}
           sports={state.sports}
