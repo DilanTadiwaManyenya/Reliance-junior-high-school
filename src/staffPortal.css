@@ -3947,6 +3947,62 @@
   background: #dcfce7;
   color: #166534;
 }
+.private-mark-record {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid #dbe2ee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(26, 40, 71, .05);
+}
+.private-mark-record::after {
+  position: absolute;
+  right: -20px;
+  bottom: 7px;
+  z-index: 0;
+  color: rgba(185, 28, 28, .09);
+  content: 'CONFIDENTIAL • TEACHER ONLY';
+  font-size: .9rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+  pointer-events: none;
+  transform: rotate(-8deg);
+}
+.private-mark-record > * { position: relative; z-index: 1; }
+.private-mark-record > div:first-child { display: grid; gap: 3px; }
+.private-mark-record > div:first-child span { color: #b91c1c; font-size: .65rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.private-mark-record > div:first-child strong { color: #172554; font-size: .95rem; }
+.private-mark-record > div:first-child small { color: #64748b; font-size: .75rem; }
+.private-mark-record .btn.subtle { align-self: center; margin: 0; }
+.private-mark-table {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 120px 120px;
+  gap: 12px;
+  align-items: center;
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: transparent;
+  filter: blur(8px);
+  user-select: none;
+  transition: filter .16s ease, color .16s ease;
+}
+.private-mark-record:hover .private-mark-table,
+.private-mark-record.revealed .private-mark-table { color: #172554; filter: none; user-select: text; }
+.private-mark-table span:last-child { color: inherit; font-weight: 900; text-align: right; }
+@media (max-width: 560px) {
+  .private-mark-record { grid-template-columns: 1fr; }
+  .private-mark-record .btn.subtle { justify-self: start; }
+  .private-mark-table { grid-template-columns: 1fr auto; }
+  .private-mark-table span:nth-child(2) { display: none; }
+}
 @media (max-width: 900px) {
   .grade-filterbar {
     grid-template-columns: 1fr 1fr;

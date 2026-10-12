@@ -20,6 +20,7 @@ export default function TeacherGradeEntryV2() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [showRecordedMarks, setShowRecordedMarks] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -56,6 +57,7 @@ export default function TeacherGradeEntryV2() {
     let active = true
     const reset = () => {
       setRecordId('')
+      setShowRecordedMarks(false)
       setForm(value => ({ ...blank(), term: value.term, year: value.year, subject: selectedSubject || '' }))
     }
     if (!learner || !hasSubjectScope) {
@@ -82,6 +84,7 @@ export default function TeacherGradeEntryV2() {
         return
       }
       setRecordId(data?.id || '')
+      setShowRecordedMarks(false)
       setForm(value => ({
         ...blank(),
         term: value.term,
@@ -178,17 +181,15 @@ export default function TeacherGradeEntryV2() {
 
       <div className="grade-main-grid">
         <section className="grade-form-card">
-          <header className="grade-form-card-heading"><div><h2>{recordId ? 'Edit saved mark' : 'New mark'}</h2><p>Exam mark overrides the term mark when provided.</p></div>{outcome && <b>Grade {outcome.grade}</b>}</header>
+          <header className="grade-form-card-heading"><div><h2>{recordId ? 'Edit saved mark' : 'New mark'}</h2><p>Exam mark overrides the term mark when provided. Grades are calculated securely for reports and are not shown in the teacher workspace.</p></div></header>
           <div className="grade-fields-v2">
             <label>Allocated subject<input readOnly value={selectedSubject || ''} placeholder="Choose a subject and form" /></label>
             <label>Term mark (%)<input required type="number" min="0" max="100" placeholder="e.g. 74" value={form.percentage} onChange={change('percentage')} disabled={loadingRecord} /></label>
-            <label>Grade / unit<input readOnly placeholder="Calculated" value={outcome?.grade || ''} /></label>
             <label>Possible mark<input readOnly value="100" /></label>
             <label>Exam mark (%) <span className="grade-info" title="The exam mark is used for the final grade when entered.">i</span><input type="number" min="0" max="100" placeholder="Optional" value={form.exam_mark} onChange={change('exam_mark')} disabled={loadingRecord} /></label>
-            <label>Points<input readOnly placeholder="Calculated" value={outcome?.points || ''} /></label>
             <label className="wide">Teacher’s comment<textarea placeholder="Add constructive feedback, strengths, or next steps…" value={form.comment} onChange={change('comment')} disabled={loadingRecord} /></label>
           </div>
-          <footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved mark…' : outcome?.description || 'Enter a mark to preview the calculated grade.'}</p><button className="btn primary" disabled={saving || loadingRecord || !learner || !hasSubjectScope}>{saving ? 'Saving mark…' : recordId ? `Update ${selectedSubject || 'subject'} mark` : `Save ${selectedSubject || 'subject'} mark`}</button></footer>
+          <footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved mark…' : 'Enter the marks and save. You can open the private recorded-mark view to check what was saved.'}</p><button className="btn primary" disabled={saving || loadingRecord || !learner || !hasSubjectScope}>{saving ? 'Saving mark…' : recordId ? `Update ${selectedSubject || 'subject'} mark` : `Save ${selectedSubject || 'subject'} mark`}</button></footer>
         </section>
 
         <aside className="subject-progress" aria-live="polite">
@@ -196,6 +197,11 @@ export default function TeacherGradeEntryV2() {
           {!learner ? <p>Select a learner to enter or edit their mark.</p> : loadingRecord ? <p>Loading this learner’s saved mark…</p> : <div className="subject-progress-list"><div><span>{learner.full_name}</span><b className={recordId ? 'complete' : ''}>{recordId ? 'Saved · editable' : 'No mark saved yet'}</b></div><small>Term {form.term} · {form.year}</small></div>}
         </aside>
       </div>
+      {learner && recordId && <section className={`private-mark-record ${showRecordedMarks ? 'revealed' : ''}`} onMouseEnter={() => setShowRecordedMarks(true)} onMouseLeave={() => setShowRecordedMarks(false)}>
+        <div><span>Confidential teacher record</span><strong>Saved marks only</strong><small>Hover to reveal on a computer, or tap the button on a phone. Grades and units are never shown here.</small></div>
+        <button type="button" className="btn subtle" onClick={() => setShowRecordedMarks(value => !value)} aria-expanded={showRecordedMarks}>{showRecordedMarks ? 'Hide marks' : 'View recorded marks'}</button>
+        <div className="private-mark-table" aria-hidden={!showRecordedMarks}><span>{selectedSubject}</span><span>Term {form.term}</span><span>{form.exam_mark !== '' ? form.exam_mark : form.percentage} / 100</span></div>
+      </section>}
     </form>
   </section>
 }
