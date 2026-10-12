@@ -635,7 +635,9 @@ export default function StaffDashboard() {
   const isAdmin = profile?.role === "admin";
   const isAccountant = profile?.role === "accountant";
   const isMainAdmin = isAdmin && profile?.campus === "all";
-  const adminCampusScope = isAdmin && profile?.campus === "junior" ? "junior" : null;
+  const adminCampusScope = isAdmin && ["junior", "senior"].includes(profile?.campus)
+    ? profile.campus
+    : null;
   const accountant = profile?.role === "accountant";
   const canViewLearnerProfile = manager || accountant;
 
@@ -1397,7 +1399,7 @@ export default function StaffDashboard() {
         <ClassManager
           supabase={supabase}
           onChanged={loadSchoolClasses}
-          campusScope={profile?.campus === "junior" ? "junior" : "all"}
+          campusScope={["junior", "senior"].includes(profile?.campus) ? profile.campus : "all"}
         />
       </div>
     );

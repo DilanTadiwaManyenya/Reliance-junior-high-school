@@ -53,8 +53,11 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
   const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
   const isJuniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
-  const visibleSchoolClasses = profile?.role === 'admin' && profile?.campus === 'junior'
-    ? schoolClasses.filter((row) => row.campus === 'junior')
+  const adminCampusScope = profile?.role === 'admin' && ['junior', 'senior'].includes(profile?.campus)
+    ? profile.campus
+    : null;
+  const visibleSchoolClasses = adminCampusScope
+    ? schoolClasses.filter((row) => row.campus === adminCampusScope)
     : schoolClasses
   const roleLabel = isMainAdmin ? 'Main Admin Portal' : {
     principal: 'Principal Portal',
