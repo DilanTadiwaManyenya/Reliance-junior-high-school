@@ -38,8 +38,8 @@ Deno.serve(async request => {
     if (!token) throw new Error('Your session has expired. Please sign in again.')
     const { data: { user }, error: userError } = await admin.auth.getUser(token)
     if (userError || !user) throw new Error('Your session has expired. Please sign in again.')
-    const { data: caller, error: callerError } = await admin.from('profiles').select('role, active_role').eq('id', user.id).single()
-    if (callerError || caller?.role !== 'admin' || caller?.active_role !== 'admin') throw new Error('Switch to the Admin role before creating staff accounts.')
+    const { data: caller, error: callerError } = await admin.from('profiles').select('role, active_role, campus').eq('id', user.id).single()
+    if (callerError || caller?.role !== 'admin' || caller?.active_role !== 'admin' || !['junior', 'senior', 'all'].includes(caller?.campus ?? '')) throw new Error('Switch to the Admin role before creating staff accounts.')
 
     const input = await request.json()
     const legalFullName = String(input.legalFullName ?? '').trim()
@@ -61,6 +61,11 @@ Deno.serve(async request => {
     if (password.length < 8) throw new Error('The password must be at least 8 characters.')
     if (!roles.has(role)) throw new Error('Choose a valid staff role.')
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
+    const isMainAdmin = caller.campus === 'all'
+    if (!isMainAdmin && (campus !== caller.campus || !['teacher', 'accountant'].includes(role))) {
+      throw new Error('Campus Admins can create only teachers or accountants in their own campus.')
+    }
+    if (campus === 'junior' && subjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')
     if (role === 'teacher' && (!classAssignments.length || (campus === 'senior' && !classStream))) throw new Error('Teachers require a class level; Senior teachers also require a stream.')
     if (role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) throw new Error('Each selected teacher class must belong to the selected campus.')
     if (role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ subject, class_level, class_stream: '' }))))

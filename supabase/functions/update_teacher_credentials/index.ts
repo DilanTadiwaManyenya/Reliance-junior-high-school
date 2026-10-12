@@ -16,19 +16,22 @@ Deno.serve(async request => {
     if (!user) throw new Error('Authentication is required.')
 
     const input = await request.json()
-    const { data: caller } = await admin.from('profiles').select('role').eq('id', user.id).single()
+    const { data: caller } = await admin.from('profiles').select('role, active_role, campus').eq('id', user.id).single()
 
     let targetUserId = user.id
-    if (caller?.role === 'admin') {
+    if (caller?.role === 'admin' && caller?.active_role === 'admin') {
       targetUserId = String(input.user_id || input.target_user_id || user.id)
     } else if (caller?.role !== 'teacher') {
       throw new Error('Only teachers or administrators can update credentials.')
     }
 
-    const { data: targetProfile } = await admin.from('profiles').select('is_protected').eq('id', targetUserId).maybeSingle()
+    const { data: targetProfile } = await admin.from('profiles').select('is_protected, role, campus').eq('id', targetUserId).maybeSingle()
     if (!targetProfile) throw new Error('The target profile was not found.')
     if (targetProfile.is_protected && targetUserId !== user.id) {
       throw new Error('The protected primary administrator can change credentials only on their own signed-in account.')
+    }
+    if (caller?.role === 'admin' && targetUserId !== user.id && caller.campus !== 'all' && (targetProfile.campus !== caller.campus || targetProfile.role === 'admin')) {
+      throw new Error('Campus Admins can reset credentials only for non-admin staff in their own campus.')
     }
 
     const nextPhone = phone(input.phone)
