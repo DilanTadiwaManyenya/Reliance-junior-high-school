@@ -16,6 +16,7 @@ export default function JuniorTeacherMarkbook() {
   const [students, setStudents] = useState([])
   const [studentId, setStudentId] = useState('')
   const [form, setForm] = useState(blank)
+  const [ecdRatings, setEcdRatings] = useState({})
   const [recordId, setRecordId] = useState('')
   const [markedStudentIds, setMarkedStudentIds] = useState(() => new Set())
   const [loading, setLoading] = useState(true)
@@ -32,7 +33,7 @@ export default function JuniorTeacherMarkbook() {
   const components = selectedSubject?.components || []
   const visible = useMemo(() => students.filter(student => student.class_level === classLevel), [students, classLevel])
   const learner = visible.find(student => student.id === studentId)
-  const activeItem = isEcd ? form.developmentArea : isGradeThreeSeven || isGradeOneTwo ? form.subject : form.component ? `${form.subject} · ${form.component}` : form.subject
+  const activeItem = isEcd ? 'ECD developmental checklist' : isGradeThreeSeven || isGradeOneTwo ? form.subject : form.component ? `${form.subject} · ${form.component}` : form.subject
   const percentage = form.score === '' || !Number(form.possibleMark) ? null : (Number(form.score) / Number(form.possibleMark)) * 100
   const combinedPossible = Number(form.paperOnePossible || 0) + Number(form.paperTwoPossible || 0)
   const combinedScore = Number(form.paperOneScore || 0) + Number(form.paperTwoScore || 0)
@@ -56,7 +57,7 @@ export default function JuniorTeacherMarkbook() {
   }, [supabase, assignedLevels.join('|')])
 
   useEffect(() => {
-    setStudentId(''); setRecordId(''); setMarkedStudentIds(new Set())
+    setStudentId(''); setRecordId(''); setMarkedStudentIds(new Set()); setEcdRatings({})
     setForm(value => ({ ...blank(), term: value.term, year: value.year }))
   }, [classLevel])
 
@@ -70,7 +71,7 @@ export default function JuniorTeacherMarkbook() {
     setForm(value => ({ ...value, score: '', possibleMark: '100', rating: '', comment: '' }))
   }, [form.component])
 
-  const selectionReady = isEcd ? Boolean(form.developmentArea) : isGradeThreeSeven || isGradeOneTwo ? Boolean(form.subject) : Boolean(form.subject && form.component)
+  const selectionReady = isEcd ? Boolean(classLevel) : isGradeThreeSeven || isGradeOneTwo ? Boolean(form.subject) : Boolean(form.subject && form.component)
 
   useEffect(() => {
     let active = true
@@ -78,7 +79,7 @@ export default function JuniorTeacherMarkbook() {
     const loadRecord = async () => {
       setLoadingRecord(true); setError(''); setNotice('')
       const query = isEcd
-        ? supabase.from('junior_developmental_ratings').select('id,rating,comment').eq('student_id', learner.id).eq('development_area', form.developmentArea).eq('term', form.term).eq('year', Number(form.year)).maybeSingle()
+        ? supabase.from('junior_developmental_ratings').select('id,development_area,rating,comment').eq('student_id', learner.id).in('development_area', reportBook?.areas || []).eq('term', form.term).eq('year', Number(form.year))
         : isGradeThreeSeven
           ? supabase.from('junior_component_marks').select('id,component,score,possible_mark,comment').eq('student_id', learner.id).eq('subject', form.subject).in('component', ['Paper 1', 'Paper 2']).eq('term', form.term).eq('year', Number(form.year))
           : isGradeOneTwo
@@ -90,14 +91,16 @@ export default function JuniorTeacherMarkbook() {
       const paperOne = isGradeThreeSeven ? (data || []).find(row => row.component === 'Paper 1') : null
       const paperTwo = isGradeThreeSeven ? (data || []).find(row => row.component === 'Paper 2') : null
       const savedComponents = isGradeOneTwo ? Object.fromEntries((data || []).map(row => [row.component, { score: row.score ?? '', possible: row.possible_mark ?? '' }])) : {}
-      setRecordId(isGradeThreeSeven ? paperOne?.id || paperTwo?.id || '' : isGradeOneTwo ? data?.[0]?.id || '' : data?.id || '')
+      const savedRatings = isEcd ? Object.fromEntries((data || []).map(row => [row.development_area, row.rating?.toString() || ''])) : {}
+      setRecordId(isGradeThreeSeven ? paperOne?.id || paperTwo?.id || '' : isGradeOneTwo || isEcd ? data?.[0]?.id || '' : data?.id || '')
       setForm(value => isEcd
-        ? { ...value, rating: data?.rating?.toString() || '', comment: data?.comment || '' }
+        ? { ...value, comment: data?.[0]?.comment || '' }
         : isGradeThreeSeven
           ? { ...value, paperOneScore: paperOne?.score ?? '', paperOnePossible: paperOne?.possible_mark ?? '50', paperTwoScore: paperTwo?.score ?? '', paperTwoPossible: paperTwo?.possible_mark ?? '50', comment: paperOne?.comment || paperTwo?.comment || '' }
           : isGradeOneTwo
             ? { ...value, componentScores: savedComponents, comment: data?.[0]?.comment || '' }
         : { ...value, score: data?.score ?? '', possibleMark: data?.possible_mark ?? '100', comment: data?.comment || '' })
+      if (isEcd) setEcdRatings(savedRatings)
       setLoadingRecord(false)
     }
     loadRecord()
@@ -109,7 +112,7 @@ export default function JuniorTeacherMarkbook() {
     const ids = visible.map(student => student.id)
     if (!selectionReady || !ids.length) { setMarkedStudentIds(new Set()); return () => { active = false } }
     const query = isEcd
-      ? supabase.from('junior_developmental_ratings').select('student_id').eq('development_area', form.developmentArea).eq('term', form.term).eq('year', Number(form.year)).in('student_id', ids)
+      ? supabase.from('junior_developmental_ratings').select('student_id,development_area').in('development_area', reportBook?.areas || []).eq('term', form.term).eq('year', Number(form.year)).in('student_id', ids)
       : isGradeThreeSeven
         ? supabase.from('junior_component_marks').select('student_id,component').eq('subject', form.subject).in('component', ['Paper 1', 'Paper 2']).eq('term', form.term).eq('year', Number(form.year)).in('student_id', ids)
         : isGradeOneTwo
@@ -118,10 +121,10 @@ export default function JuniorTeacherMarkbook() {
     query.then(({ data, error: requestError }) => {
       if (!active) return
       if (requestError) setError(requestError.message)
-      else if (isGradeThreeSeven || isGradeOneTwo) {
+      else if (isEcd || isGradeThreeSeven || isGradeOneTwo) {
         const complete = new Map()
         ;(data || []).forEach(row => complete.set(row.student_id, (complete.get(row.student_id) || 0) + 1))
-        const requiredCount = isGradeThreeSeven ? 2 : components.length
+        const requiredCount = isEcd ? (reportBook?.areas || []).length : isGradeThreeSeven ? 2 : components.length
         setMarkedStudentIds(new Set([...complete].filter(([, count]) => count === requiredCount).map(([studentId]) => studentId)))
       } else setMarkedStudentIds(new Set((data || []).map(row => row.student_id)))
     })
@@ -131,7 +134,7 @@ export default function JuniorTeacherMarkbook() {
   const save = async event => {
     event.preventDefault(); setError(''); setNotice('')
     if (!assignedLevels.includes(classLevel) || !learner || !selectionReady) return setError('Choose your class, learner, and report-book item first.')
-    if (isEcd && !form.rating) return setError('Choose a developmental rating from 1 to 5.')
+    if (isEcd && !(reportBook?.areas || []).every(area => ecdRatings[area])) return setError('Tick a developmental rating from 1 to 5 for every area.')
     if (isGradeThreeSeven) {
       const paperOneValid = form.paperOneScore !== '' && Number(form.paperOnePossible) > 0 && Number(form.paperOneScore) <= Number(form.paperOnePossible)
       const paperTwoValid = form.paperTwoScore !== '' && Number(form.paperTwoPossible) > 0 && Number(form.paperTwoScore) <= Number(form.paperTwoPossible)
@@ -146,7 +149,7 @@ export default function JuniorTeacherMarkbook() {
     } else if (!isEcd && (form.score === '' || !Number(form.possibleMark) || Number(form.score) > Number(form.possibleMark))) return setError('Enter a valid mark that does not exceed the possible mark.')
     setSaving(true)
     const payload = isEcd
-      ? { student_id: learner.id, development_area: form.developmentArea, rating: Number(form.rating), term: form.term, year: Number(form.year), comment: form.comment || null, recorded_by: user?.id || null }
+      ? (reportBook?.areas || []).map(development_area => ({ student_id: learner.id, development_area, rating: Number(ecdRatings[development_area]), term: form.term, year: Number(form.year), comment: form.comment || null, recorded_by: user?.id || null }))
       : isGradeThreeSeven
         ? ['Paper 1', 'Paper 2'].map((component, index) => ({ student_id: learner.id, subject: form.subject, component, score: Number(index ? form.paperTwoScore : form.paperOneScore), possible_mark: Number(index ? form.paperTwoPossible : form.paperOnePossible), term: form.term, year: Number(form.year), comment: form.comment || null, recorded_by: user?.id || null }))
         : isGradeOneTwo
@@ -155,10 +158,10 @@ export default function JuniorTeacherMarkbook() {
     const table = isEcd ? 'junior_developmental_ratings' : 'junior_component_marks'
     const onConflict = isEcd ? 'student_id,development_area,term,year' : 'student_id,subject,component,term,year'
     const request = supabase.from(table).upsert(payload, { onConflict }).select('id')
-    const { data, error: requestError } = isGradeThreeSeven || isGradeOneTwo ? await request : await request.single()
+    const { data, error: requestError } = isEcd || isGradeThreeSeven || isGradeOneTwo ? await request : await request.single()
     setSaving(false)
     if (requestError) return setError(requestError.message || 'The report-book entry could not be saved.')
-    setRecordId(isGradeThreeSeven || isGradeOneTwo ? data?.[0]?.id || recordId : data?.id || recordId); setMarkedStudentIds(current => new Set([...current, learner.id]))
+    setRecordId(isEcd || isGradeThreeSeven || isGradeOneTwo ? data?.[0]?.id || recordId : data?.id || recordId); setMarkedStudentIds(current => new Set([...current, learner.id]))
     setNotice(recordId ? `${activeItem} updated.` : `${activeItem} saved.`)
   }
 
@@ -175,13 +178,13 @@ export default function JuniorTeacherMarkbook() {
     <form className="grade-workspace" onSubmit={save}>
       <section className="grade-filterbar" aria-label="Junior markbook filters">
         <label>Class<select value={classLevel} onChange={event => setClassLevel(event.target.value)} disabled={!assignedLevels.length}><option value="">Choose class</option>{assignedLevels.map(level => <option key={level}>{level}</option>)}</select></label>
-        {isEcd ? <label>Development area<select value={form.developmentArea} onChange={change('developmentArea')} disabled={!classLevel}><option value="">Choose area</option>{(reportBook?.areas || []).map(area => <option key={area}>{area}</option>)}</select></label> : <><label>Subject<select value={form.subject} onChange={change('subject')} disabled={!classLevel}><option value="">Choose subject</option>{subjectOptions.map(item => <option key={item.subject}>{item.subject}</option>)}</select></label>{!isGradeThreeSeven && !isGradeOneTwo && <label>Component<select value={form.component} onChange={change('component')} disabled={!form.subject}><option value="">Choose component</option>{components.map(component => <option key={component}>{component}</option>)}</select></label>}</>}
+        {isEcd ? <div className="ecd-filter-note"><strong>ECD checklist</strong><span>Select a learner, then tick one rating for each development area.</span></div> : <><label>Subject<select value={form.subject} onChange={change('subject')} disabled={!classLevel}><option value="">Choose subject</option>{subjectOptions.map(item => <option key={item.subject}>{item.subject}</option>)}</select></label>{!isGradeThreeSeven && !isGradeOneTwo && <label>Component<select value={form.component} onChange={change('component')} disabled={!form.subject}><option value="">Choose component</option>{components.map(component => <option key={component}>{component}</option>)}</select></label>}</>}
         <label>Learner<select value={studentId} onChange={event => setStudentId(event.target.value)} disabled={!selectionReady}><option value="">Select a learner</option>{visible.map(student => <option key={student.id} value={student.id}>{student.full_name} — {student.admission_number}</option>)}</select></label>
         <label>Term<select value={form.term} onChange={change('term')}><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></label>
         <label>Year<input type="number" min="2020" value={form.year} onChange={change('year')} /></label>
       </section>
       {learner && <div className="learner-summary"><strong>{learner.full_name}</strong><span>{learner.admission_number}</span><span>{learner.class_level}</span></div>}
-      <div className="grade-main-grid"><section className="grade-form-card"><header className="grade-form-card-heading"><div><h2>{recordId ? 'Edit saved entry' : 'New report-book entry'}</h2><p>{isEcd ? 'Use the ECD scale from 1 (Below Average) to 5 (Excellent).' : isGradeThreeSeven ? 'Enter both examination papers together. Their possible marks must add to 100 before the unit is calculated.' : isGradeOneTwo ? 'Enter all subject components together. Their possible marks must add to 50; Grade 1 and 2 reports do not use units.' : 'Each report-book component is recorded independently.'}</p></div>{isEcd ? form.rating && <b>Rating {form.rating}/5</b> : outcome && <b>Grade {outcome.grade}</b>}</header><div className="grade-fields-v2">{isEcd ? <><label className="wide">Development area<input readOnly value={form.developmentArea} placeholder="Choose an area" /></label><label>Rating<select required value={form.rating} onChange={change('rating')} disabled={loadingRecord || !learner}><option value="">Choose 1–5</option>{[1, 2, 3, 4, 5].map(value => <option key={value} value={value}>{value} — {reportBook.ratingScale[value - 1].replace(/^\d\s*/, '')}</option>)}</select></label></> : isGradeThreeSeven ? <><label className="wide">Subject<input readOnly value={form.subject} placeholder="Choose subject" /></label><div className="combined-paper-card"><div><span>Paper 1</span><label>Score<input required type="number" min="0" max={form.paperOnePossible || undefined} value={form.paperOneScore} onChange={change('paperOneScore')} disabled={loadingRecord || !learner} /></label><label>Out of<input required type="number" min="1" value={form.paperOnePossible} onChange={change('paperOnePossible')} disabled={loadingRecord || !learner} /></label></div><div><span>Paper 2</span><label>Score<input required type="number" min="0" max={form.paperTwoPossible || undefined} value={form.paperTwoScore} onChange={change('paperTwoScore')} disabled={loadingRecord || !learner} /></label><label>Out of<input required type="number" min="1" value={form.paperTwoPossible} onChange={change('paperTwoPossible')} disabled={loadingRecord || !learner} /></label></div><aside><span>Combined result</span><strong>{combinedScore || '—'} / {combinedPossible || '—'}</strong><small>{combinedPossible === 100 ? outcome ? `Grade ${outcome.grade}` : 'Enter both scores' : 'Possible marks must total 100'}</small></aside></div><p className={`paper-total-note ${combinedPossible === 100 ? 'ready' : ''}`}>Paper 1 + Paper 2 possible marks: <strong>{combinedPossible}/100</strong>. Use any split that totals 100, such as 50 + 50 or 40 + 60.</p></> : isGradeOneTwo ? <><label className="wide">Subject<input readOnly value={form.subject} placeholder="Choose subject" /></label><div className="component-total-grid">{components.map(component => <div key={component}><strong>{component}</strong><label>Score<input required type="number" min="0" max={form.componentScores[component]?.possible || undefined} value={form.componentScores[component]?.score || ''} onChange={event => setForm(value => ({ ...value, componentScores: { ...value.componentScores, [component]: { ...(value.componentScores[component] || {}), score: event.target.value } } }))} disabled={loadingRecord || !learner} /></label><label>Out of<input required type="number" min="1" value={form.componentScores[component]?.possible || ''} onChange={event => setForm(value => ({ ...value, componentScores: { ...value.componentScores, [component]: { ...(value.componentScores[component] || {}), possible: event.target.value } } }))} disabled={loadingRecord || !learner} /></label></div>)}</div><p className={`paper-total-note ${components.reduce((total, component) => total + Number(form.componentScores[component]?.possible || 0), 0) === 50 ? 'ready' : ''}`}>Subject possible marks: <strong>{components.reduce((total, component) => total + Number(form.componentScores[component]?.possible || 0), 0)}/50</strong>. There is no grade or unit for Grade 1 and Grade 2.</p></> : <><label>Subject<input readOnly value={form.subject} placeholder="Choose subject" /></label><label>Component<input readOnly value={form.component} placeholder="Choose component" /></label><label>Mark<input required type="number" min="0" max={form.possibleMark || undefined} value={form.score} onChange={change('score')} disabled={loadingRecord || !learner} /></label><label>Possible mark<input required type="number" min="1" value={form.possibleMark} onChange={change('possibleMark')} disabled={loadingRecord || !learner} /></label><label>Grade / unit<input readOnly value={outcome?.grade || ''} placeholder="Calculated" /></label></>}<label className="wide">Teacher’s comment<textarea value={form.comment} onChange={change('comment')} disabled={loadingRecord || !learner} placeholder="Add constructive feedback, strengths, or next steps…" /></label></div><footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved entry…' : isEcd ? 'Each rating will appear in the ECD report book.' : isGradeThreeSeven ? combinedPossible === 100 ? outcome?.description || 'Both papers will be saved together.' : 'Set the two possible marks to a combined total of 100.' : isGradeOneTwo ? 'Save all subject components together once their possible marks total 50.' : outcome?.description || 'Enter a mark to preview the calculated grade.'}</p><button className="btn primary" disabled={saving || loadingRecord || !learner || !selectionReady}>{saving ? 'Saving…' : recordId ? 'Update entry' : 'Save entry'}</button></footer></section><aside className="subject-progress"><header><span>{activeItem || (isEcd ? 'Development area' : 'Component')} progress</span><strong>{markedCount}/{visible.length} learners recorded</strong><div className="subject-progress-bar"><i style={{ width: `${progress}%` }} /></div></header><p>{learner ? (recordId ? 'Saved entry can be edited at any time.' : 'No entry saved for this learner yet.') : 'Select a learner to enter a report-book value.'}</p></aside></div>
+      <div className="grade-main-grid"><section className="grade-form-card"><header className="grade-form-card-heading"><div><h2>{recordId ? 'Edit saved entry' : 'New report-book entry'}</h2><p>{isEcd ? 'Tick one rating in every row. This completes the learner’s ECD developmental checklist in one clear step.' : isGradeThreeSeven ? 'Enter both examination papers together. Their possible marks must add to 100 before the unit is calculated.' : isGradeOneTwo ? 'Enter all subject components together. Their possible marks must add to 50; Grade 1 and 2 reports do not use units.' : 'Each report-book component is recorded independently.'}</p></div>{outcome && <b>Grade {outcome.grade}</b>}</header><div className="grade-fields-v2">{isEcd ? <><div className="ecd-rating-grid"><div className="ecd-rating-head"><span>Development area</span>{[1, 2, 3, 4, 5].map(value => <span key={value}>{value}</span>)}</div>{(reportBook?.areas || []).map(area => <div className="ecd-rating-row" key={area}><strong>{area}</strong>{[1, 2, 3, 4, 5].map(value => <label key={value} title={reportBook.ratingScale[value - 1]}><input type="radio" name={`ecd-${area}`} checked={ecdRatings[area] === String(value)} onChange={() => setEcdRatings(current => ({ ...current, [area]: String(value) }))} disabled={loadingRecord || !learner} /><span className="sr-only">{value}</span></label>)}</div>)}</div><p className={`paper-total-note ${Object.keys(ecdRatings).length === (reportBook?.areas || []).length ? 'ready' : ''}`}>Checklist complete: <strong>{Object.keys(ecdRatings).filter(area => ecdRatings[area]).length}/{(reportBook?.areas || []).length}</strong> areas rated.</p></> : isGradeThreeSeven ? <><label className="wide">Subject<input readOnly value={form.subject} placeholder="Choose subject" /></label><div className="combined-paper-card"><div><span>Paper 1</span><label>Score<input required type="number" min="0" max={form.paperOnePossible || undefined} value={form.paperOneScore} onChange={change('paperOneScore')} disabled={loadingRecord || !learner} /></label><label>Out of<input required type="number" min="1" value={form.paperOnePossible} onChange={change('paperOnePossible')} disabled={loadingRecord || !learner} /></label></div><div><span>Paper 2</span><label>Score<input required type="number" min="0" max={form.paperTwoPossible || undefined} value={form.paperTwoScore} onChange={change('paperTwoScore')} disabled={loadingRecord || !learner} /></label><label>Out of<input required type="number" min="1" value={form.paperTwoPossible} onChange={change('paperTwoPossible')} disabled={loadingRecord || !learner} /></label></div><aside><span>Combined result</span><strong>{combinedScore || '—'} / {combinedPossible || '—'}</strong><small>{combinedPossible === 100 ? outcome ? `Grade ${outcome.grade}` : 'Enter both scores' : 'Possible marks must total 100'}</small></aside></div><p className={`paper-total-note ${combinedPossible === 100 ? 'ready' : ''}`}>Paper 1 + Paper 2 possible marks: <strong>{combinedPossible}/100</strong>. Use any split that totals 100, such as 50 + 50 or 40 + 60.</p></> : isGradeOneTwo ? <><label className="wide">Subject<input readOnly value={form.subject} placeholder="Choose subject" /></label><div className="component-total-grid">{components.map(component => <div key={component}><strong>{component}</strong><label>Score<input required type="number" min="0" max={form.componentScores[component]?.possible || undefined} value={form.componentScores[component]?.score || ''} onChange={event => setForm(value => ({ ...value, componentScores: { ...value.componentScores, [component]: { ...(value.componentScores[component] || {}), score: event.target.value } } }))} disabled={loadingRecord || !learner} /></label><label>Out of<input required type="number" min="1" value={form.componentScores[component]?.possible || ''} onChange={event => setForm(value => ({ ...value, componentScores: { ...value.componentScores, [component]: { ...(value.componentScores[component] || {}), possible: event.target.value } } }))} disabled={loadingRecord || !learner} /></label></div>)}</div><p className={`paper-total-note ${components.reduce((total, component) => total + Number(form.componentScores[component]?.possible || 0), 0) === 50 ? 'ready' : ''}`}>Subject possible marks: <strong>{components.reduce((total, component) => total + Number(form.componentScores[component]?.possible || 0), 0)}/50</strong>. There is no grade or unit for Grade 1 and Grade 2.</p></> : <><label>Subject<input readOnly value={form.subject} placeholder="Choose subject" /></label><label>Component<input readOnly value={form.component} placeholder="Choose component" /></label><label>Mark<input required type="number" min="0" max={form.possibleMark || undefined} value={form.score} onChange={change('score')} disabled={loadingRecord || !learner} /></label><label>Possible mark<input required type="number" min="1" value={form.possibleMark} onChange={change('possibleMark')} disabled={loadingRecord || !learner} /></label><label>Grade / unit<input readOnly value={outcome?.grade || ''} placeholder="Calculated" /></label></>}<label className="wide">Teacher’s comment<textarea value={form.comment} onChange={change('comment')} disabled={loadingRecord || !learner} placeholder="Add constructive feedback, strengths, or next steps…" /></label></div><footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved entry…' : isEcd ? 'Save only once every row has one tick. Saved ratings remain editable.' : isGradeThreeSeven ? combinedPossible === 100 ? outcome?.description || 'Both papers will be saved together.' : 'Set the two possible marks to a combined total of 100.' : isGradeOneTwo ? 'Save all subject components together once their possible marks total 50.' : outcome?.description || 'Enter a mark to preview the calculated grade.'}</p><button className="btn primary" disabled={saving || loadingRecord || !learner || !selectionReady}>{saving ? 'Saving…' : recordId ? 'Update entry' : 'Save entry'}</button></footer></section><aside className="subject-progress"><header><span>{activeItem || (isEcd ? 'Developmental checklist' : 'Component')} progress</span><strong>{markedCount}/{visible.length} learners recorded</strong><div className="subject-progress-bar"><i style={{ width: `${progress}%` }} /></div></header><p>{learner ? (recordId ? 'Saved entry can be edited at any time.' : 'No entry saved for this learner yet.') : 'Select a learner to enter a report-book value.'}</p></aside></div>
     </form>
   </section>
 }

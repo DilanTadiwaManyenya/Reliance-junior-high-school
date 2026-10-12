@@ -3688,6 +3688,14 @@
   font: 600 0.84rem var(--font-ui, inherit);
   text-transform: none;
 }
+.ecd-filter-note {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  color: #40506f;
+  font-size: .76rem;
+}
+.ecd-filter-note strong { color: #172554; }
 .grade-fields-v2 input[readonly] {
   background: #f8fafc;
   color: #64748b;
@@ -3815,6 +3823,34 @@
 }
 .component-total-grid label { font-size: .64rem; }
 .component-total-grid input { min-height: 38px; }
+.ecd-rating-grid {
+  grid-column: 1 / -1;
+  overflow: auto;
+  border: 1px solid #dbe5f3;
+  border-radius: 10px;
+}
+.ecd-rating-head,
+.ecd-rating-row {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) repeat(5, 46px);
+  align-items: center;
+  min-width: 480px;
+}
+.ecd-rating-head {
+  background: #172554;
+  color: #dbeafe;
+  font-size: .67rem;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.ecd-rating-head span:first-child { padding: 11px 13px; text-align: left; }
+.ecd-rating-row { border-top: 1px solid #e8edf4; background: #fff; }
+.ecd-rating-row:nth-child(odd) { background: #f8fafc; }
+.ecd-rating-row strong { padding: 10px 13px; color: #334e7e; font-size: .76rem; }
+.ecd-rating-row label { display: grid; place-items: center; min-height: 39px; cursor: pointer; }
+.ecd-rating-row input { width: 17px; height: 17px; accent-color: #4f46e5; cursor: pointer; }
 .grade-info {
   display: inline-grid;
   place-items: center;
