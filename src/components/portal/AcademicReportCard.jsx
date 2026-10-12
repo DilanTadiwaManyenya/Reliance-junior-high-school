@@ -3,7 +3,7 @@ import { calculateGrade } from '../../utils/GradeCalculator'
 import { totalOwing } from './LearnerRecords'
 import { getSubjectReportComment } from '../../data/reportComments'
 import seniorLogo from '../../assets/images/reliance-senior-logo.png'
-import juniorLogo from '../../assets/images/reliance-junior-logo.png'
+import juniorReportLogo from '../../assets/images/reliance-junior-report-logo.png'
 import reportWatermark from '../../assets/images/reliance-report-watermark.png'
 import SchoolStamp from '../ui/SchoolStamp'
 import '../../reportDashboard.css'
@@ -29,7 +29,10 @@ function StudentIdentity({ student }) {
 
 export default function AcademicReportCard({ student, academics = [], attendance = [], behavior = [], sports = [], awards = [], fees = [], subjects = [], subjectTeachers = [], report = {}, reportFees = [], nextTermFee, adminAccess = false }) {
   const isSenior = /^Form\s/i.test(student.class_level || '')
-  const schoolLogo = isSenior ? seniorLogo : juniorLogo
+  // Junior report books use the supplied Junior School crest. It is kept
+  // independent of portal-navigation branding so the printed report uses the
+  // official report-book logo without changing the rest of the portal.
+  const schoolLogo = isSenior ? seniorLogo : juniorReportLogo
   const [selectedTerm, setSelectedTerm] = useState(() => termValue(academics[0]?.term ?? 3))
   const [year, setYear] = useState(() => recordYear(academics[0] ?? {}))
   const selectedInitialReport = useRef(false)
