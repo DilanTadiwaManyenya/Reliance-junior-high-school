@@ -33,11 +33,11 @@ const scopeTitle = ({ scope, campus, level, stream }) => {
   return `${level || 'Selected class'} · all streams`
 }
 
-export default function BulkLearnerExport({ supabase: provided }) {
+export default function BulkLearnerExport({ supabase: provided, campusScope = 'all' }) {
   const db = provided ?? fallback
   const { classes, loading: classesLoading } = useSchoolClasses(db)
   const [scope, setScope] = useState('class')
-  const [campus, setCampus] = useState('junior')
+  const [campus, setCampus] = useState(campusScope === 'all' ? 'junior' : campusScope)
   const [level, setLevel] = useState('')
   const [stream, setStream] = useState('')
   const [learners, setLearners] = useState([])
@@ -45,8 +45,12 @@ export default function BulkLearnerExport({ supabase: provided }) {
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
 
-  const levels = useMemo(() => [...new Set(classes.map(row => row.class_level))], [classes])
-  const streams = useMemo(() => [...new Set(classes.filter(row => row.class_level === level).map(row => row.class_stream).filter(Boolean))], [classes, level])
+  const isCampusScoped = campusScope === 'junior' || campusScope === 'senior'
+  const effectiveCampus = isCampusScoped ? campusScope : campus
+  const visibleClasses = useMemo(() => isCampusScoped ? classes.filter(row => row.campus === campusScope) : classes, [classes, campusScope, isCampusScoped])
+  const levels = useMemo(() => [...new Set(visibleClasses.map(row => row.class_level))], [visibleClasses])
+  const streams = useMemo(() => [...new Set(visibleClasses.filter(row => row.class_level === level).map(row => row.class_stream).filter(Boolean))], [visibleClasses, level])
+  const availableScopes = isCampusScoped ? scopes.filter(option => option.id !== 'all') : scopes
 
   useEffect(() => {
     if (!level && levels.length) setLevel(levels[0])
@@ -56,8 +60,12 @@ export default function BulkLearnerExport({ supabase: provided }) {
     if (scope === 'stream' && !streams.includes(stream)) setStream(streams[0] || '')
   }, [scope, stream, streams])
 
-  const canPreview = scope === 'all' || scope === 'campus' || Boolean(level && (scope !== 'stream' || stream))
-  const currentScope = scopeTitle({ scope, campus, level, stream })
+  useEffect(() => {
+    if (isCampusScoped && scope === 'all') setScope('class')
+  }, [isCampusScoped, scope])
+
+  const canPreview = (scope === 'all' && !isCampusScoped) || scope === 'campus' || Boolean(level && (scope !== 'stream' || stream))
+  const currentScope = scopeTitle({ scope, campus: effectiveCampus, level, stream })
   const documentTitle = `Reliance learner register - ${currentScope.replaceAll(' · ', ' - ')}`
 
   const preview = async () => {
@@ -66,7 +74,7 @@ export default function BulkLearnerExport({ supabase: provided }) {
     setError('')
     setSearched(true)
     let query = db.from('students').select('id, admission_number, full_name, date_of_birth, sex, class_level, class_stream, campus, parent_name, parent_phone, address, birth_cert_no, status').order('campus').order('class_level').order('class_stream').order('full_name')
-    if (scope === 'campus') query = query.eq('campus', campus)
+    if (isCampusScoped || scope === 'campus') query = query.eq('campus', effectiveCampus)
     if (scope === 'class' || scope === 'stream') query = query.eq('class_level', level)
     if (scope === 'stream') query = query.eq('class_stream', stream)
     const { data, error: requestError } = await query
@@ -87,10 +95,10 @@ export default function BulkLearnerExport({ supabase: provided }) {
     </div>
 
     <section className="bulk-export-controls" aria-label="Learner export scope">
-      <fieldset><legend>1. Choose the export scope</legend><div className="bulk-export-scope-grid">{scopes.map(option => <label key={option.id} className={`bulk-export-scope${scope === option.id ? ' selected' : ''}`}><input type="radio" name="export-scope" value={option.id} checked={scope === option.id} onChange={() => setScope(option.id)} /><span><b>{option.title}</b><small>{option.description}</small></span></label>)}</div></fieldset>
+      <fieldset><legend>1. Choose the export scope</legend><div className="bulk-export-scope-grid">{availableScopes.map(option => <label key={option.id} className={`bulk-export-scope${scope === option.id ? ' selected' : ''}`}><input type="radio" name="export-scope" value={option.id} checked={scope === option.id} onChange={() => setScope(option.id)} /><span><b>{option.title}</b><small>{option.description}</small></span></label>)}</div></fieldset>
 
       {(scope === 'campus' || scope === 'stream' || scope === 'class') && <div className="bulk-export-fields">
-        {scope === 'campus' && <label>Campus<select value={campus} onChange={event => setCampus(event.target.value)}><option value="junior">Junior campus</option><option value="senior">Senior campus</option></select></label>}
+        {scope === 'campus' && <label>Campus{isCampusScoped ? <input readOnly value={`${effectiveCampus === 'junior' ? 'Junior' : 'Senior'} campus`} aria-label="Campus locked to your admin campus" /> : <select value={campus} onChange={event => setCampus(event.target.value)}><option value="junior">Junior campus</option><option value="senior">Senior campus</option></select>}</label>}
         {(scope === 'class' || scope === 'stream') && <label>Class<select value={level} disabled={classesLoading} onChange={event => { setLevel(event.target.value); setStream('') }}>{levels.map(item => <option key={item} value={item}>{item}</option>)}</select></label>}
         {scope === 'stream' && <label>Stream<select value={stream} disabled={!level || classesLoading} onChange={event => setStream(event.target.value)}>{streams.map(item => <option key={item} value={item}>{item}</option>)}</select></label>}
       </div>}

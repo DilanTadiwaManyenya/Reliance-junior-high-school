@@ -1381,10 +1381,10 @@ export default function StaffDashboard() {
           <div className="dash-page-header">
             <div>
               <h1 className="dash-page-title">Bulk learner export</h1>
-              <p className="dash-page-sub">Prepare a printable learner register for a class, stream, campus, or the whole school.</p>
+              <p className="dash-page-sub">{adminCampusScope ? `Prepare a printable learner register for classes and streams in the ${adminCampusScope} campus.` : "Prepare a printable learner register for a class, stream, campus, or the whole school."}</p>
             </div>
           </div>
-          <BulkLearnerExport supabase={supabase} />
+          <BulkLearnerExport supabase={supabase} campusScope={adminCampusScope || "all"} />
         </div>
       </div>
     );
