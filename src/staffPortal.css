@@ -3883,6 +3883,13 @@
   justify-content: center;
   background: #4f46e5;
 }
+.grade-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+}
+.grade-action-buttons .btn { margin: 0; }
 .subject-progress {
   position: sticky;
   top: 14px;
@@ -4031,6 +4038,8 @@
   .grade-form-actions .btn.primary {
     width: 100%;
   }
+  .grade-action-buttons { width: 100%; }
+  .grade-action-buttons .btn { flex: 1; }
   .combined-paper-card,
   .combined-paper-card > div { grid-template-columns: 1fr; }
   .combined-paper-card > div > span { grid-column: auto; }

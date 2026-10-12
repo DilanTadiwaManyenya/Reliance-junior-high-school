@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateGrade } from '../../utils/GradeCalculator'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
@@ -21,6 +21,11 @@ export default function TeacherGradeEntryV2() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [showRecordedMarks, setShowRecordedMarks] = useState(false)
+  const recordedMarksRef = useRef(null)
+  const openRecordedMarks = () => {
+    setShowRecordedMarks(true)
+    requestAnimationFrame(() => recordedMarksRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+  }
 
   useEffect(() => {
     let active = true
@@ -189,7 +194,7 @@ export default function TeacherGradeEntryV2() {
             <label>Exam mark (%) <span className="grade-info" title="The exam mark is used for the final grade when entered.">i</span><input type="number" min="0" max="100" placeholder="Optional" value={form.exam_mark} onChange={change('exam_mark')} disabled={loadingRecord} /></label>
             <label className="wide">Teacher’s comment<textarea placeholder="Add constructive feedback, strengths, or next steps…" value={form.comment} onChange={change('comment')} disabled={loadingRecord} /></label>
           </div>
-          <footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved mark…' : 'Enter the marks and save. You can open the private recorded-mark view to check what was saved.'}</p><button className="btn primary" disabled={saving || loadingRecord || !learner || !hasSubjectScope}>{saving ? 'Saving mark…' : recordId ? `Update ${selectedSubject || 'subject'} mark` : `Save ${selectedSubject || 'subject'} mark`}</button></footer>
+          <footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved mark…' : 'Enter the marks and save. You can open the private recorded-mark view to check what was saved.'}</p><div className="grade-action-buttons">{recordId && <button type="button" className="btn subtle" onClick={openRecordedMarks}>Open recorded marks</button>}<button className="btn primary" disabled={saving || loadingRecord || !learner || !hasSubjectScope}>{saving ? 'Saving mark…' : recordId ? `Update ${selectedSubject || 'subject'} mark` : `Save ${selectedSubject || 'subject'} mark`}</button></div></footer>
         </section>
 
         <aside className="subject-progress" aria-live="polite">
@@ -197,7 +202,7 @@ export default function TeacherGradeEntryV2() {
           {!learner ? <p>Select a learner to enter or edit their mark.</p> : loadingRecord ? <p>Loading this learner’s saved mark…</p> : <div className="subject-progress-list"><div><span>{learner.full_name}</span><b className={recordId ? 'complete' : ''}>{recordId ? 'Saved · editable' : 'No mark saved yet'}</b></div><small>Term {form.term} · {form.year}</small></div>}
         </aside>
       </div>
-      {learner && recordId && <section className={`private-mark-record ${showRecordedMarks ? 'revealed' : ''}`} onMouseEnter={() => setShowRecordedMarks(true)} onMouseLeave={() => setShowRecordedMarks(false)}>
+      {learner && recordId && <section ref={recordedMarksRef} className={`private-mark-record ${showRecordedMarks ? 'revealed' : ''}`} onMouseEnter={() => setShowRecordedMarks(true)} onMouseLeave={() => setShowRecordedMarks(false)}>
         <div><span>Confidential teacher record</span><strong>Saved marks only</strong><small>Hover to reveal on a computer, or tap the button on a phone. Grades and units are never shown here.</small></div>
         <button type="button" className="btn subtle" onClick={() => setShowRecordedMarks(value => !value)} aria-expanded={showRecordedMarks}>{showRecordedMarks ? 'Hide marks' : 'View recorded marks'}</button>
         <div className="private-mark-table" aria-hidden={!showRecordedMarks}><span>{selectedSubject}</span><span>Term {form.term}</span><span>{form.exam_mark !== '' ? form.exam_mark : form.percentage} / 100</span></div>
