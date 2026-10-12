@@ -8,6 +8,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
   const { profile } = useAuth()
   const manager = ['admin', 'principal'].includes(profile?.role)
   const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
+  const accountant = profile?.role === 'accountant'
   const juniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
   const teacherInSubjectWorkspace = profile?.role === 'teacher' && teacherWorkspace === 'subjects'
   
@@ -36,8 +37,8 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
       title: 'Finance',
       items: [
         { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
-        { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
-        { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: ['admin', 'accountant'].includes(profile?.active_role ?? profile?.role) },
+        { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: isMainAdmin || profile?.role === 'principal' || accountant },
+        { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: isMainAdmin || accountant },
       ].filter(i => i.show)
     },
     {

@@ -1283,7 +1283,7 @@ export default function StaffDashboard() {
     return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} students={filteredStudents} teacherName={profile?.full_name} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onBack={clearSubjectGroup} />;
 
   const shopRole = profile?.active_role ?? profile?.role;
-  if (section === "inventory" && ["admin", "accountant"].includes(shopRole))
+  if (section === "inventory" && (isMainAdmin || accountant))
     return (
       <div className="staff-content-area">
         {accountant && (
@@ -1306,7 +1306,7 @@ export default function StaffDashboard() {
 
   if (
     section === "expenses" &&
-    ["admin", "principal", "accountant"].includes(shopRole)
+    (isMainAdmin || profile?.role === "principal" || accountant)
   )
     return (
       <div className="staff-content-area">
