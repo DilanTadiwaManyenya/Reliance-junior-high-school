@@ -2549,6 +2549,22 @@
   font-size: 0.76rem;
   font-style: italic;
 }
+.staff-junior-coverage {
+  display: grid;
+  min-width: 180px;
+  gap: 3px;
+  color: #45536a;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+.staff-junior-coverage > strong {
+  color: #167445;
+  font-size: 0.72rem;
+}
+.staff-junior-coverage > small {
+  color: #71809a;
+  font-size: 0.67rem;
+}
 .staff-reset-button {
   min-height: 34px;
   padding: 6px 10px;

@@ -40,6 +40,22 @@ const inferredWorkingTitle = (name) => /^ms\.?\s/i.test(String(name || "")) ? "M
 function StaffSubjectAssignments({ staff }) {
   if (staff.role !== "teacher") return "—";
 
+  const classAssignments = staff.teacher_class_assignments ?? [];
+  if (staff.campus === "junior") {
+    const classLabels = [...new Set(classAssignments.map((assignment) => {
+      const stream = String(assignment.class_stream || "").trim();
+      return stream ? `${assignment.class_level} ${stream}` : assignment.class_level;
+    }).filter(Boolean))];
+
+    return (
+      <div className="staff-junior-coverage">
+        <strong>Class curriculum</strong>
+        <span>{classLabels.length ? classLabels.join(", ") : "No class allocation"}</span>
+        <small>Markbook &amp; Course Work</small>
+      </div>
+    );
+  }
+
   const assignments = staff.teacher_class_subject_assignments ?? [];
   if (!assignments.length) {
     return <span className="staff-subjects-empty">No subjects assigned</span>;
@@ -2431,7 +2447,7 @@ export default function StaffDashboard() {
                       <th>Role</th>
                       <th>Campus</th>
                       <th>Class</th>
-                      <th>Subjects assigned</th>
+                      <th>Teaching coverage</th>
                       <th>Status</th>
                       {isAdmin && <th>Action</th>}
                     </tr>
