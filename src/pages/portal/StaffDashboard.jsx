@@ -1382,7 +1382,11 @@ export default function StaffDashboard() {
   if (section === "classes" && isAdmin)
     return (
       <div className="staff-content-area">
-        <ClassManager supabase={supabase} onChanged={loadSchoolClasses} />
+        <ClassManager
+          supabase={supabase}
+          onChanged={loadSchoolClasses}
+          campusScope={profile?.campus === "junior" ? "junior" : "all"}
+        />
       </div>
     );
 

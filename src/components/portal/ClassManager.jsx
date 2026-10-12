@@ -15,7 +15,7 @@ const blankLearner = {
 const classLabel = (row) =>
   `${row.class_level}${row.class_stream ? ` · ${row.class_stream}` : ""}`;
 
-export default function ClassManager({ supabase, onChanged }) {
+export default function ClassManager({ supabase, onChanged, campusScope = "all" }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
@@ -53,10 +53,12 @@ export default function ClassManager({ supabase, onChanged }) {
         (row.class_stream || "") === (selectedStream.class_stream || ""),
       )
     : [];
+  const permittedCampuses = campusScope === "all" ? ["junior", "senior"] : [campusScope];
   const campusGroups = [
     { id: "junior", title: "Junior School", description: "Grade-based classes" },
     { id: "senior", title: "Senior School", description: "Form and stream classes" },
-  ].map((group) => ({ ...group, classes: displayedClasses.filter((row) => row.campus === group.id) }));
+  ].filter((group) => permittedCampuses.includes(group.id))
+    .map((group) => ({ ...group, classes: displayedClasses.filter((row) => row.campus === group.id) }));
   const classLevelGroups = campusGroups.map((group) => ({
     ...group,
     levels: Array.from(group.classes.reduce((levels, row) => {
@@ -132,16 +134,17 @@ export default function ClassManager({ supabase, onChanged }) {
     });
   };
   const load = async () => {
+    const scoped = (request) => campusScope === "all" ? request : request.eq("campus", campusScope);
     const [classResult, studentResult, assignmentResult, subjectResult, staffResult] = await Promise.all([
-      supabase
+      scoped(supabase
         .from("school_classes")
         .select("*")
         .order("campus")
-        .order("class_level"),
-      supabase.from("students").select("*").order("full_name"),
-      supabase.from("teacher_class_assignments").select("teacher_id, class_level, class_stream, campus"),
-      supabase.from("teacher_class_subject_assignments").select("id, teacher_id, class_level, class_stream, subject, campus"),
-      supabase.from("profiles").select("id, full_name, campus, portal_access_enabled").eq("role", "teacher"),
+        .order("class_level")),
+      scoped(supabase.from("students").select("*").order("full_name")),
+      scoped(supabase.from("teacher_class_assignments").select("teacher_id, class_level, class_stream, campus")),
+      scoped(supabase.from("teacher_class_subject_assignments").select("id, teacher_id, class_level, class_stream, subject, campus")),
+      scoped(supabase.from("profiles").select("id, full_name, campus, portal_access_enabled").eq("role", "teacher")),
     ]);
     if (classResult.error) {
       if (isMissingTable(classResult.error)) setSetupRequired(true);
@@ -161,7 +164,7 @@ export default function ClassManager({ supabase, onChanged }) {
   };
   useEffect(() => {
     load();
-  }, [supabase]);
+  }, [supabase, campusScope]);
   useEffect(() => {
     const learnerDestination = selectedClass || selectedStream;
     if (!learnerDestination) return;
@@ -181,8 +184,9 @@ export default function ClassManager({ supabase, onChanged }) {
     setError("");
     const row = {
       ...form,
+      campus: campusScope === "all" ? form.campus : campusScope,
       class_level: form.class_level.trim(),
-      class_stream: form.campus === "junior" ? null : form.class_stream.trim() || null,
+      class_stream: (campusScope === "all" ? form.campus : campusScope) === "junior" ? null : form.class_stream.trim() || null,
       capacity: form.capacity === "" ? null : Number(form.capacity),
       updated_at: new Date().toISOString(),
     };
@@ -214,7 +218,7 @@ export default function ClassManager({ supabase, onChanged }) {
     setForm({
       class_level: row.class_level,
       class_stream: row.class_stream || "",
-      campus: row.campus,
+      campus: campusScope === "all" ? row.campus : campusScope,
       capacity: row.capacity == null ? "" : String(row.capacity),
     });
   };
@@ -536,22 +540,29 @@ export default function ClassManager({ supabase, onChanged }) {
             ) : (
               <p className="muted">Junior classes are grade-based and do not use streams.</p>
             )}
-            <label>
-              Campus
-              <select
-                value={form.campus}
-                onChange={(e) =>
-                  setForm((value) => ({
-                    ...value,
-                    campus: e.target.value,
-                    class_stream: e.target.value === "junior" ? "" : value.class_stream,
-                  }))
-                }
-              >
-                <option value="junior">Junior campus</option>
-                <option value="senior">Senior campus</option>
-              </select>
-            </label>
+            {campusScope === "all" ? (
+              <label>
+                Campus
+                <select
+                  value={form.campus}
+                  onChange={(e) =>
+                    setForm((value) => ({
+                      ...value,
+                      campus: e.target.value,
+                      class_stream: e.target.value === "junior" ? "" : value.class_stream,
+                    }))
+                  }
+                >
+                  <option value="junior">Junior campus</option>
+                  <option value="senior">Senior campus</option>
+                </select>
+              </label>
+            ) : (
+              <div className="class-manager-campus-lock">
+                <span>Campus</span>
+                <strong>Junior campus</strong>
+              </div>
+            )}
             <label>
               Capacity
               <input
@@ -561,7 +572,7 @@ export default function ClassManager({ supabase, onChanged }) {
                 placeholder="50"
                 onChange={(e) => setForm((value) => ({ ...value, capacity: e.target.value }))}
               />
-              <small>When enrolment reaches this number, the system recommends another stream.</small>
+              <small>When enrolment reaches this number, the system recommends another {campusScope === "junior" || form.campus === "junior" ? "class group" : "stream"}.</small>
             </label>
             {editingId && (
               <fieldset style={{ gridColumn: "1 / -1" }}>
