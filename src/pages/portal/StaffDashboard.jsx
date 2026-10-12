@@ -635,6 +635,7 @@ export default function StaffDashboard() {
   const isAdmin = profile?.role === "admin";
   const isAccountant = profile?.role === "accountant";
   const isMainAdmin = isAdmin && profile?.campus === "all";
+  const adminCampusScope = isAdmin && profile?.campus === "junior" ? "junior" : null;
   const accountant = profile?.role === "accountant";
   const canViewLearnerProfile = manager || accountant;
 
@@ -737,18 +738,25 @@ export default function StaffDashboard() {
 
   const loadStudents = useCallback(async () => {
     setLoading(true);
-    const { data, error: requestError } = await supabase
+    const studentQuery = supabase
       .from("students")
       .select("*")
       .order("full_name");
+    if (adminCampusScope) studentQuery.eq("campus", adminCampusScope);
+    const { data, error: requestError } = await studentQuery;
     if (requestError) showError(requestError.message);
     else setStudents(data ?? []);
 
     const today = new Date().toISOString().slice(0, 10);
-    const { data: attendanceData } = await supabase
+    const learnerIds = (data ?? []).map((student) => student.id);
+    const attendanceQuery = supabase
       .from("attendance")
       .select("student_id, status")
       .eq("date", today);
+    if (adminCampusScope) attendanceQuery.in("student_id", learnerIds);
+    const { data: attendanceData } = learnerIds.length || !adminCampusScope
+      ? await attendanceQuery
+      : { data: [] };
     if (attendanceData) {
       const map = {};
       attendanceData.forEach((r) => (map[r.student_id] = r.status));
@@ -756,28 +764,32 @@ export default function StaffDashboard() {
     }
 
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, adminCampusScope]);
 
   const loadStaff = useCallback(async () => {
     if (!manager) return;
-    const { data, error: requestError } = await supabase
+    const staffQuery = supabase
       .from("profiles")
       .select(
         "id, full_name, legal_full_name, working_title, signature_initials, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream), teacher_class_subject_assignments (id, class_level, class_stream, subject, campus)",
       )
       .order("full_name");
+    if (adminCampusScope) staffQuery.eq("campus", adminCampusScope);
+    const { data, error: requestError } = await staffQuery;
     if (requestError) showError(requestError.message);
     else setStaff(data ?? []);
     console.log("Loaded staff data", data);
     console.log("Loaded staff count", (data ?? []).length, data);
-  }, [manager, supabase]);
+  }, [manager, supabase, adminCampusScope]);
   const loadSchoolClasses = useCallback(async () => {
-    const { data } = await supabase
+    const classQuery = supabase
       .from("school_classes")
       .select("class_level, class_stream, campus")
       .eq("active", true);
+    if (adminCampusScope) classQuery.eq("campus", adminCampusScope);
+    const { data } = await classQuery;
     setSchoolClasses(data ?? []);
-  }, [supabase]);
+  }, [supabase, adminCampusScope]);
 
   const handleToggleAttendance = async (studentId, currentStatus) => {
     if (savingAttendance[studentId]) return;
