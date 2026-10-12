@@ -3741,6 +3741,58 @@
   min-height: 90px;
   resize: vertical;
 }
+.combined-paper-card {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(170px, 0.8fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #c7d2fe;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #f8faff, #eff6ff);
+}
+.combined-paper-card > div,
+.combined-paper-card > aside {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dbe5f3;
+  border-radius: 9px;
+  background: #fff;
+}
+.combined-paper-card > div > span,
+.combined-paper-card aside > span {
+  color: #334e7e;
+  font-size: .73rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.combined-paper-card > div {
+  grid-template-columns: 1fr 1fr;
+}
+.combined-paper-card > div > span { grid-column: 1 / -1; }
+.combined-paper-card label { font-size: .67rem; }
+.combined-paper-card input { min-height: 38px; }
+.combined-paper-card aside {
+  background: #172554;
+  border-color: #172554;
+  color: #fff;
+}
+.combined-paper-card aside > span { color: #bfdbfe; }
+.combined-paper-card aside strong { font-size: 1.25rem; }
+.combined-paper-card aside small { color: #dbeafe; font-size: .73rem; }
+.paper-total-note {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: .78rem;
+}
+.paper-total-note.ready { background: #ecfdf5; color: #166534; }
 .grade-info {
   display: inline-grid;
   place-items: center;
@@ -3847,6 +3899,8 @@
   .subject-progress {
     position: static;
   }
+  .combined-paper-card { grid-template-columns: 1fr 1fr; }
+  .combined-paper-card > aside { grid-column: 1 / -1; }
 }
 @media (max-width: 560px) {
   .grade-filterbar,
@@ -3863,6 +3917,9 @@
   .grade-form-actions .btn.primary {
     width: 100%;
   }
+  .combined-paper-card,
+  .combined-paper-card > div { grid-template-columns: 1fr; }
+  .combined-paper-card > div > span { grid-column: auto; }
 }
 .sr-only {
   position: absolute;
