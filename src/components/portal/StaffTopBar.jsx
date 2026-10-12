@@ -53,6 +53,9 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
   const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
   const isJuniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
+  const visibleSchoolClasses = profile?.role === 'admin' && profile?.campus === 'junior'
+    ? schoolClasses.filter((row) => row.campus === 'junior')
+    : schoolClasses
   const roleLabel = isMainAdmin ? 'Main Admin Portal' : {
     principal: 'Principal Portal',
     admin:     'Admin Portal',
@@ -119,7 +122,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             <ClassSelector 
               role={profile?.role} 
               assignedClasses={profile?.teacher_class_assignments || []} 
-              allClasses={schoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '' }))}
+              allClasses={visibleSchoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '' }))}
               activeClassKey={activeClassKey} 
               onClassChange={handleClassChange} 
             />
