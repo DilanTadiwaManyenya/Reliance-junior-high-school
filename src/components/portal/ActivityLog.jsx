@@ -7,7 +7,7 @@ const relativeTime = date => {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 1000))
   if (seconds < 60) return 'just now'; if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`; return `${Math.floor(seconds / 86400)}d ago`
 }
-export default function ActivityLog() {
+export default function ActivityLog({ campusScope = null }) {
   const { supabase } = useAuth(); const [tab, setTab] = useState('staff'); const [rows, setRows] = useState([]); const [query, setQuery] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(true)
   useEffect(() => { let active = true; (async () => { setLoading(true); let request = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(500); if (from) request = request.gte('created_at', `${from}T00:00:00`); if (to) request = request.lte('created_at', `${to}T23:59:59.999`); const { data, error: loadError } = await request; if (!active) return; setRows(data ?? []); setError(loadError?.message ?? ''); setLoading(false) })(); return () => { active = false } }, [supabase, from, to])
   const shown = useMemo(() => rows.filter(row => tabs[tab].includes(row.actor_role) && `${row.metadata?.actor_name ?? ''} ${row.description ?? ''}`.toLowerCase().includes(query.toLowerCase())), [rows, tab, query])
@@ -18,7 +18,7 @@ export default function ActivityLog() {
       <div>
         <span className="activity-log-eyebrow"><CalendarDays size={15} aria-hidden="true" /> Portal oversight</span>
         <h1 className="dash-page-title">Activity log</h1>
-        <p className="dash-page-sub">Review recent portal events and quickly trace who did what.</p>
+        <p className="dash-page-sub">Review {campusScope ? `${campusScope} campus` : 'school-wide'} portal events and quickly trace who did what.</p>
       </div>
       <div className="activity-log-total" aria-label={`${shown.length} events shown`}><UsersRound size={18} aria-hidden="true" /><span><strong>{loading ? '—' : shown.length}</strong> events shown</span></div>
     </div>

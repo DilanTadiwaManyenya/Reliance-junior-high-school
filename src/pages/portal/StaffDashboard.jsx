@@ -1371,7 +1371,7 @@ export default function StaffDashboard() {
   if (section === "activity" && manager)
     return (
       <div className="staff-content-area">
-        <ActivityLog />
+        <ActivityLog campusScope={adminCampusScope} />
       </div>
     );
   if (section === "bulk-import" && isAdmin)
