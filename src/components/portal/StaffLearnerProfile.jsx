@@ -34,6 +34,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     loading: true,
     error: "",
     academics: [],
+    juniorComponentMarks: [],
+    juniorDevelopmentalRatings: [],
     attendance: [],
     coursework: [],
     sports: [],
@@ -63,6 +65,16 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       const results = await Promise.all([
         supabase
           .from("academic_records")
+          .select("*")
+          .eq("student_id", student.id)
+          .order("created_at", { ascending: false }),
+        teacherView ? unavailableToTeacher : supabase
+          .from("junior_component_marks")
+          .select("*")
+          .eq("student_id", student.id)
+          .order("created_at", { ascending: false }),
+        teacherView ? unavailableToTeacher : supabase
+          .from("junior_developmental_ratings")
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
@@ -113,6 +125,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       if (!mounted) return;
       const [
         academics,
+        juniorComponentMarks,
+        juniorDevelopmentalRatings,
         attendance,
         coursework,
         sports,
@@ -131,6 +145,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         loading: false,
         error:
           academics.error?.message ||
+          juniorComponentMarks.error?.message ||
+          juniorDevelopmentalRatings.error?.message ||
           attendance.error?.message ||
           coursework.error?.message ||
           sports.error?.message ||
@@ -143,6 +159,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           (!optionalAwardsError && awards.error?.message) ||
           "",
         academics: academics.data || [],
+        juniorComponentMarks: juniorComponentMarks.data || [],
+        juniorDevelopmentalRatings: juniorDevelopmentalRatings.data || [],
         attendance: attendance.data || [],
         coursework: coursework.data || [],
         sports: sports.data || [],
@@ -354,6 +372,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         <AcademicReportCard
           student={student}
           academics={state.academics}
+          juniorComponentMarks={state.juniorComponentMarks}
+          juniorDevelopmentalRatings={state.juniorDevelopmentalRatings}
           attendance={state.attendance}
           behavior={state.behavior}
           sports={state.sports}
