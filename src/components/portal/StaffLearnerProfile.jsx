@@ -54,6 +54,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     const channel = supabase
       .channel(`staff-academic-${student.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "academic_records", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "junior_component_marks", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "junior_developmental_ratings", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [student.id, supabase, teacherView]);

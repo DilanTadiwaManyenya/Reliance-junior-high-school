@@ -19,7 +19,11 @@ export default function ParentRecordPage() {
   const [academicRevision, setAcademicRevision] = useState(0)
   useEffect(() => {
     if (view !== 'academics') return undefined
-    const channel = supabase.channel(`parent-academic-${studentId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'academic_records', filter: `student_id=eq.${studentId}` }, () => setAcademicRevision(value => value + 1)).subscribe()
+    const channel = supabase.channel(`parent-academic-${studentId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'academic_records', filter: `student_id=eq.${studentId}` }, () => setAcademicRevision(value => value + 1))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'junior_component_marks', filter: `student_id=eq.${studentId}` }, () => setAcademicRevision(value => value + 1))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'junior_developmental_ratings', filter: `student_id=eq.${studentId}` }, () => setAcademicRevision(value => value + 1))
+      .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [studentId, supabase, view])
   useEffect(() => {
