@@ -28,7 +28,7 @@ const term = (value) =>
 const termNumber = (value) => String(value ?? "").replace(/^term\s*/i, "");
 const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
 
-export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false, initialTab = "Summary" }) {
+export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false, initialTab = "Summary", canManageReports = false }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [state, setState] = useState({
     loading: true,
@@ -36,6 +36,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     academics: [],
     juniorComponentMarks: [],
     juniorDevelopmentalRatings: [],
+    reportComments: [],
     attendance: [],
     coursework: [],
     sports: [],
@@ -56,6 +57,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       .on("postgres_changes", { event: "*", schema: "public", table: "academic_records", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "junior_component_marks", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
       .on("postgres_changes", { event: "*", schema: "public", table: "junior_developmental_ratings", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "report_card_comments", filter: `student_id=eq.${student.id}` }, () => setAcademicRevision((value) => value + 1))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [student.id, supabase, teacherView]);
@@ -80,6 +82,11 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
+        teacherView ? unavailableToTeacher : supabase
+          .from("report_card_comments")
+          .select("*")
+          .eq("student_id", student.id)
+          .order("updated_at", { ascending: false }),
         supabase
           .from("attendance")
           .select("*")
@@ -129,6 +136,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         academics,
         juniorComponentMarks,
         juniorDevelopmentalRatings,
+        reportComments,
         attendance,
         coursework,
         sports,
@@ -149,6 +157,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           academics.error?.message ||
           juniorComponentMarks.error?.message ||
           juniorDevelopmentalRatings.error?.message ||
+          reportComments.error?.message ||
           attendance.error?.message ||
           coursework.error?.message ||
           sports.error?.message ||
@@ -163,6 +172,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         academics: academics.data || [],
         juniorComponentMarks: juniorComponentMarks.data || [],
         juniorDevelopmentalRatings: juniorDevelopmentalRatings.data || [],
+        reportComments: reportComments.data || [],
         attendance: attendance.data || [],
         coursework: coursework.data || [],
         sports: sports.data || [],
@@ -376,6 +386,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           academics={state.academics}
           juniorComponentMarks={state.juniorComponentMarks}
           juniorDevelopmentalRatings={state.juniorDevelopmentalRatings}
+          reportComments={state.reportComments}
           attendance={state.attendance}
           behavior={state.behavior}
           sports={state.sports}
@@ -388,7 +399,9 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           report={report}
           reportFees={state.reportFees}
           subjectTeachers={state.subjectTeachers}
-          adminAccess
+          adminAccess={canManageReports}
+          supabase={supabase}
+          onReportCommentSaved={() => setAcademicRevision((value) => value + 1)}
         />
       )}
       {activeTab === "Attendance" && <TeacherAttendanceHistory supabase={supabase} student={student} onClose={() => setActiveTab("Summary")} />}

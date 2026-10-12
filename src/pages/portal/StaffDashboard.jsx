@@ -1320,6 +1320,7 @@ export default function StaffDashboard() {
         supabase={supabase}
         student={profileStudent}
         teacherView={isTeacher}
+        canManageReports={manager}
         initialTab={profileInitialTab}
         onBack={() => { setProfileStudent(null); setProfileInitialTab("Summary"); }}
       />
