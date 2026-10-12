@@ -7,6 +7,7 @@ function NavItem({ item, active, onClick, collapsed }) { return <button classNam
 export default function PortalSidebar({ section, setSection, teacherWorkspace, collapsed, onClose }) {
   const { profile } = useAuth()
   const manager = ['admin', 'principal'].includes(profile?.role)
+  const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
   const juniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
   const teacherInSubjectWorkspace = profile?.role === 'teacher' && teacherWorkspace === 'subjects'
   
@@ -26,8 +27,8 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
       title: 'Academic services',
       items: [
         { id: 'bulk-import', label: 'Bulk learner export', iconKey: 'roster', show: profile?.role === 'admin' },
-        { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: profile?.role === 'admin' },
-        { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: profile?.role === 'admin' },
+        { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: isMainAdmin },
+        { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: isMainAdmin },
         { id: 'classes', label: 'Classes', iconKey: 'staff', show: profile?.role === 'admin' },
       ].filter(i => i.show)
     },

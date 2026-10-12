@@ -1388,7 +1388,7 @@ export default function StaffDashboard() {
         </div>
       </div>
     );
-  if (section === "report-settings" && isAdmin)
+  if (section === "report-settings" && isMainAdmin)
     return (
       <div className="staff-content-area">
         <div className="dash-section">
@@ -1406,7 +1406,7 @@ export default function StaffDashboard() {
         </div>
       </div>
     );
-  if (section === "grade-bands" && isAdmin)
+  if (section === "grade-bands" && isMainAdmin)
     return <div className="staff-content-area"><GradeBands /></div>;
   if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
     return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : ""} onOpenProgress={student => { setProfileInitialTab(isTeacher ? "Summary" : "Academics"); setProfileStudent(student); }} /></div>;

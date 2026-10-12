@@ -792,6 +792,7 @@ export default function FeesDashboard({
   const [toast, setToast] = useState("");
   const [quickStatus, setQuickStatus] = useState("");
   const readOnly = profile?.role === "principal";
+  const isMainAdmin = profile?.role === "admin" && profile?.campus === "all";
   const { levels: registryLevels, streamsForLevel } = useSchoolClasses(supabase);
   const classLevels = registryLevels.length ? registryLevels : CLASS_LEVELS;
 
@@ -1102,7 +1103,7 @@ export default function FeesDashboard({
               ))}
             </select>
           </label>
-          {profile?.role === "admin" && (
+          {isMainAdmin && (
             <>
               <button
                 className="fee-button fee-button-secondary"
