@@ -3793,6 +3793,28 @@
   font-size: .78rem;
 }
 .paper-total-note.ready { background: #ecfdf5; color: #166534; }
+.component-total-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 10px;
+}
+.component-total-grid > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dbe5f3;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+.component-total-grid > div > strong {
+  grid-column: 1 / -1;
+  color: #1e3a66;
+  font-size: .78rem;
+}
+.component-total-grid label { font-size: .64rem; }
+.component-total-grid input { min-height: 38px; }
 .grade-info {
   display: inline-grid;
   place-items: center;
