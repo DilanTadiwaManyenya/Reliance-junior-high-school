@@ -638,6 +638,7 @@ export default function StaffDashboard() {
   const adminCampusScope = isAdmin && ["junior", "senior"].includes(profile?.campus)
     ? profile.campus
     : null;
+  const isCampusAdmin = Boolean(adminCampusScope);
   const accountant = profile?.role === "accountant";
   const canViewLearnerProfile = manager || accountant;
 
@@ -657,7 +658,7 @@ export default function StaffDashboard() {
     phone: "",
     password: "",
     role: "teacher",
-    campus: "junior",
+    campus: adminCampusScope || "junior",
     classLevel: "",
     classStream: "",
     classAssignments: [],
@@ -979,7 +980,7 @@ export default function StaffDashboard() {
       phone: "",
       password: "",
       role: "teacher",
-      campus: "junior",
+      campus: adminCampusScope || "junior",
       classLevel: "",
       classStream: "",
       classAssignments: [],
@@ -988,6 +989,24 @@ export default function StaffDashboard() {
     });
     loadStaff();
     setStaffModal(false);
+  };
+
+  const openStaffCreateModal = () => {
+    setStaffForm({
+      fullName: "",
+      legalFullName: "",
+      workingTitle: "Mr",
+      phone: "",
+      password: "",
+      role: "teacher",
+      campus: adminCampusScope || "junior",
+      classLevel: "",
+      classStream: "",
+      classAssignments: [],
+      subjectAssignments: [],
+      subjectName: "",
+    });
+    setStaffModal(true);
   };
 
   const seedStaffing = async () => {
@@ -2010,7 +2029,7 @@ export default function StaffDashboard() {
               <h1 className="dash-page-title">Staff Management</h1>
               <p className="dash-page-sub">Create and manage staff accounts</p>
               {isAdmin && (
-                <Button type="button" onClick={() => setStaffModal(true)}>
+                <Button type="button" onClick={openStaffCreateModal}>
                   + Add Staff Member
                 </Button>
               )}
@@ -2088,16 +2107,20 @@ export default function StaffDashboard() {
                     >
                       <option value="teacher">Teacher</option>
                       <option value="accountant">Accountant</option>
-                      <option value="admin">Admin</option>
-                      <option value="principal">Principal</option>
+                      {!isCampusAdmin && <option value="admin">Admin</option>}
+                      {!isCampusAdmin && <option value="principal">Principal</option>}
                     </select>
                   </label>
                   <label>
                     Campus
-                    <select value={staffForm.campus} onChange={(e) => setStaffForm((x) => ({ ...x, campus: e.target.value, classLevel: "", classStream: "", classAssignments: [], subjectAssignments: [], subjectName: "" }))}>
-                      <option value="junior">Junior School</option>
-                      <option value="senior">Senior School</option>
-                    </select>
+                    {isCampusAdmin ? (
+                      <input readOnly value={`${adminCampusScope === "junior" ? "Junior" : "Senior"} School`} aria-label="Campus locked to your admin campus" />
+                    ) : (
+                      <select value={staffForm.campus} onChange={(e) => setStaffForm((x) => ({ ...x, campus: e.target.value, classLevel: "", classStream: "", classAssignments: [], subjectAssignments: [], subjectName: "" }))}>
+                        <option value="junior">Junior School</option>
+                        <option value="senior">Senior School</option>
+                      </select>
+                    )}
                   </label>
                   {staffForm.role === "teacher" && (
                     <>
@@ -2155,7 +2178,7 @@ export default function StaffDashboard() {
                           Junior classes currently do not use streams.
                         </p>
                       )}
-                      <fieldset style={{ gridColumn: "1 / -1" }}>
+                      {staffForm.campus === "senior" ? <fieldset style={{ gridColumn: "1 / -1" }}>
                         <legend>Subject allocations</legend>
                         <p className="muted" style={{ marginTop: 0 }}>Add the subjects this teacher teaches. These are available immediately in their Subject workspace.</p>
                         <div className="portal-action-row">
@@ -2166,7 +2189,7 @@ export default function StaffDashboard() {
                           <Button type="button" variant="secondary" onClick={() => setStaffForm((x) => !x.subjectName ? x : ({ ...x, subjectAssignments: x.subjectAssignments.includes(x.subjectName) ? x.subjectAssignments : [...x.subjectAssignments, x.subjectName], subjectName: "" }))}>Add subject</Button>
                         </div>
                         {staffForm.subjectAssignments.length ? <div className="allocation-chip-list">{staffForm.subjectAssignments.map((subject) => <span className="allocation-chip" key={subject}>{subject}<button type="button" onClick={() => setStaffForm((x) => ({ ...x, subjectAssignments: x.subjectAssignments.filter((value) => value !== subject) }))}>×</button></span>)}</div> : <p className="muted">No subjects selected yet.</p>}
-                      </fieldset>
+                      </fieldset> : <p className="muted" style={{ gridColumn: "1 / -1", margin: 0 }}>Junior teachers work from their class assignment only. Their Markbook and Course Work do not use subject allocations.</p>}
                     </>
                   )}
                   <div className="portal-action-row">
@@ -2212,21 +2235,25 @@ export default function StaffDashboard() {
                   </p>
                   <label>
                     Campus
-                    <select
-                      value={staffEditor.campus}
-                      onChange={(e) => setStaffEditor((value) => ({
-                        ...value,
-                        campus: e.target.value,
-                        classAssignments: [],
-                        classStream: "",
-                        subjectAssignments: [],
-                        subjectLevel: "",
-                        subjectStream: "",
-                      }))}
-                    >
-                      <option value="junior">Junior School</option>
-                      <option value="senior">Senior School</option>
-                    </select>
+                    {isCampusAdmin ? (
+                      <input readOnly value={`${adminCampusScope === "junior" ? "Junior" : "Senior"} School`} aria-label="Campus locked to your admin campus" />
+                    ) : (
+                      <select
+                        value={staffEditor.campus}
+                        onChange={(e) => setStaffEditor((value) => ({
+                          ...value,
+                          campus: e.target.value,
+                          classAssignments: [],
+                          classStream: "",
+                          subjectAssignments: [],
+                          subjectLevel: "",
+                          subjectStream: "",
+                        }))}
+                      >
+                        <option value="junior">Junior School</option>
+                        <option value="senior">Senior School</option>
+                      </select>
+                    )}
                   </label>
                   {staffEditor.staff?.role === "teacher" && (
                     <>
@@ -2234,9 +2261,9 @@ export default function StaffDashboard() {
                         <legend>Teaching allocations</legend>
                         <div className="portal-action-row" role="tablist" aria-label="Teacher allocation type">
                           <Button type="button" variant={staffEditor.allocationTab === "classes" ? "primary" : "secondary"} onClick={() => setStaffEditor((value) => ({ ...value, allocationTab: "classes" }))}>Classes</Button>
-                          <Button type="button" variant={staffEditor.allocationTab === "subjects" ? "primary" : "secondary"} onClick={() => setStaffEditor((value) => ({ ...value, allocationTab: "subjects" }))}>Subjects</Button>
+                          {staffEditor.campus === "senior" && <Button type="button" variant={staffEditor.allocationTab === "subjects" ? "primary" : "secondary"} onClick={() => setStaffEditor((value) => ({ ...value, allocationTab: "subjects" }))}>Subjects</Button>}
                         </div>
-                        {staffEditor.allocationTab === "classes" ? <>
+                        {staffEditor.allocationTab === "classes" || staffEditor.campus === "junior" ? <>
                         <p className="muted" style={{ marginTop: 0 }}>
                           Untick a class to remove this teacher from it. A class with no active teacher will be marked Unassigned in Class Management.
                         </p>
