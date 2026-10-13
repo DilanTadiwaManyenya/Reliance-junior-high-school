@@ -2496,6 +2496,25 @@
 .junior-class-scope span { color: #6b7b98; font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .junior-class-scope strong { color: #162e62; }
 .junior-class-scope small { color: #5f7190; }
+.junior-teacher-home { display: grid; gap: 22px; }
+.junior-teacher-home-hero { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 28px; border: 1px solid #d8e1f0; border-radius: 18px; background: linear-gradient(135deg, #ffffff 0%, #f3f7ff 100%); }
+.junior-teacher-home-hero h1 { margin: 4px 0 8px; color: #172e61; font-size: clamp(2rem, 4vw, 3rem); }
+.junior-teacher-home-hero p { max-width: 680px; margin: 0; color: #5d7090; }
+.junior-teacher-home-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.junior-teacher-home-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.junior-teacher-home-stats article, .junior-teacher-class-list { border: 1px solid #d8e1f0; border-radius: 16px; background: #fff; padding: 20px; box-shadow: 0 8px 20px rgba(19, 42, 86, .05); }
+.junior-teacher-home-stats span, .junior-teacher-class-grid article > span { display: block; color: #71809b; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.junior-teacher-home-stats strong { display: block; margin: 7px 0 3px; color: #172e61; font-size: 2rem; }
+.junior-teacher-home-stats small { color: #5d7090; }
+.junior-teacher-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.junior-teacher-section-heading h2 { margin: 2px 0 0; color: #172e61; }
+.junior-teacher-class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.junior-teacher-class-grid article { padding: 18px; border: 1px solid #d8e1f0; border-radius: 13px; background: #f9fbff; }
+.junior-teacher-class-grid h3 { margin: 6px 0; color: #172e61; }
+.junior-teacher-class-grid p { margin: 0 0 15px; color: #5d7090; }
+.junior-teacher-class-grid article > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.junior-teacher-class-grid button { padding: 8px 11px; border: 1px solid #9baccc; border-radius: 8px; color: #172e61; background: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.junior-teacher-class-grid button:hover { border-color: #b63131; color: #a32020; }
 .coursework-page .portal-form { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .coursework-page .portal-form h2 { grid-column: 1 / -1; margin: 0; color: #1b2a56; }
 .coursework-heading { display: flex; justify-content: space-between; gap: 16px; align-items: end; margin-bottom: 16px; }
@@ -2533,7 +2552,7 @@
 .subject-allocation-action b { margin-left: 4px; font-size: 1rem; }
 .teacher-subject-context-list b { color: #1b2a56; }
 .teacher-subject-context p { margin: 0; color: #64748b; }
-@media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } .junior-class-scope { grid-template-columns: 1fr; gap: 4px; } .subject-allocation-grid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } .junior-class-scope { grid-template-columns: 1fr; gap: 4px; } .junior-teacher-home-hero, .junior-teacher-section-heading { align-items: stretch; flex-direction: column; } .junior-teacher-home-stats { grid-template-columns: 1fr; } .subject-allocation-grid { grid-template-columns: 1fr; } }
 .staff-directory-table tbody tr.staff-directory-row-action {
   cursor: pointer;
 }
