@@ -2289,6 +2289,32 @@
   box-shadow: 0 0 0 4px #fdf0f2;
 }
 
+.portal-scope-label {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid #c9d7ef;
+  border-radius: 999px;
+  background: #f5f8ff;
+  color: #18356a;
+  font-size: .75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.portal-form-title {
+  align-items: flex-start;
+}
+
+.portal-form-title p {
+  margin: 5px 0 0;
+  color: #62718d;
+  font-size: .88rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 380px) {
   .top-bar-class-control {
     max-width: 39vw;

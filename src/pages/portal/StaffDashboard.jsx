@@ -255,8 +255,11 @@ function DashboardHome({
   role,
   supabase,
   teacherScopeLabel = "",
+  campusScope = "all",
 }) {
   const isTeacher = role === "teacher";
+  const isCampusAdmin = ["junior", "senior"].includes(campusScope);
+  const campusName = campusScope === "junior" ? "Junior Campus" : campusScope === "senior" ? "Senior Campus" : "School";
   const active = students.filter(
     (student) => student.status === "active",
   ).length;
@@ -269,13 +272,13 @@ function DashboardHome({
     linkedParents: null,
     feesCollected: null,
   });
-  const title = isTeacher ? "Teaching dashboard" : "School dashboard";
+  const title = isTeacher ? "Teaching dashboard" : isCampusAdmin ? `${campusName} dashboard` : "School dashboard";
   const subtitle = isTeacher
     ? teacherScopeLabel
       ? `${teacherScopeLabel} · learners in your assigned subject classes`
       : "Your learner records and marking workspace"
-    : "A clear overview of learners and school operations";
-  const actionLabel = isTeacher ? "Enter learner grades" : "Manage learners";
+    : isCampusAdmin ? `A clear overview of ${campusName.toLowerCase()} learners and operations.` : "A clear overview of learners and school operations";
+  const actionLabel = isTeacher ? "Enter learner grades" : "Open learner register";
   const listTitle = isTeacher ? "Your learners" : "Recent learners";
 
   useEffect(() => {
@@ -383,7 +386,7 @@ function DashboardHome({
       <div className="dash-page-header">
         <div>
           <p className="dash-kicker">
-            {isTeacher ? "Teaching workspace" : "School overview"}
+            {isTeacher ? "Teaching workspace" : isCampusAdmin ? `${campusName} overview` : "School overview"}
           </p>
           <h1 className="dash-page-title">{title}</h1>
           <p className="dash-page-sub">{subtitle}</p>
@@ -503,7 +506,7 @@ function DashboardHome({
             <div>
               <h2 className="dash-card-title">Today's Attendance</h2>
               <p className="dash-card-subtitle">
-                Live breakdown for {isTeacher ? "your assigned subject classes" : "all classes"}.
+                Live breakdown for {isTeacher ? "your assigned subject classes" : isCampusAdmin ? `the ${campusName.toLowerCase()}` : "all classes"}.
               </p>
             </div>
           </div>
@@ -1447,6 +1450,7 @@ export default function StaffDashboard() {
           role={profile?.role}
           supabase={supabase}
           teacherScopeLabel={teacherScopeLabel}
+          campusScope={adminCampusScope || "all"}
         />
       )}
 
@@ -1459,7 +1463,9 @@ export default function StaffDashboard() {
               <p className="dash-page-sub">
                 {isTeacher
                   ? "Mark today’s register, then open a learner for weekly and monthly attendance history."
-                  : "All enrolled learners and records"}
+                  : isCampusAdmin
+                    ? `Manage learner records for the ${adminCampusScope === "junior" ? "Junior" : "Senior"} campus.`
+                    : "All enrolled learners and records"}
               </p>
             </div>
           </div>
@@ -1467,7 +1473,7 @@ export default function StaffDashboard() {
           <div className="portal-workspace">
             <Card>
               <div className="portal-card-title">
-                <h2>Learner roster</h2>
+                <h2>{isCampusAdmin ? `${adminCampusScope === "junior" ? "Junior" : "Senior"} learner register` : "Learner roster"}</h2>
                 <label className="portal-inline-search">
                   Search
                   <input
@@ -1476,7 +1482,7 @@ export default function StaffDashboard() {
                     placeholder="Name or admission number"
                   />
                 </label>
-                <label className="portal-inline-search">Campus<select value={staffCampusFilter} onChange={(e) => setStaffCampusFilter(e.target.value)}><option value="all">All campuses</option><option value="junior">Junior School</option><option value="senior">Senior School</option></select></label>
+                {isCampusAdmin && <span className="portal-scope-label">Campus locked to {adminCampusScope === "junior" ? "Junior School" : "Senior School"}</span>}
               </div>
               {loading ? (
                 <p className="muted">
@@ -1619,7 +1625,13 @@ export default function StaffDashboard() {
 
             {(isAdmin || profile?.role === "teacher" || accountant) && (
               <Card>
-                <h2>{editingId ? "Edit learner" : "Add learner"}</h2>
+                <div className="portal-card-title portal-form-title">
+                  <div>
+                    <h2>{editingId ? "Edit learner" : "Add learner"}</h2>
+                    <p>{editingId ? "Update the learner’s recorded details." : "Enter the learner details, choose a class, then save to allocate the next admission number."}</p>
+                  </div>
+                  {isCampusAdmin && <span className="portal-scope-label">{adminCampusScope === "junior" ? "Junior School" : "Senior School"}</span>}
+                </div>
                 <form className="form portal-form" onSubmit={saveStudent}>
                   <label>
                     Full name
