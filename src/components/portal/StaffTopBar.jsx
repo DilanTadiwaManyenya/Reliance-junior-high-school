@@ -69,6 +69,22 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
   const initials = (profile?.full_name || 'Portal User').split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase()
   const hasTeacherSubjectScope = profile?.role === 'teacher' && teacherWorkspace === 'subjects' && Boolean(selectedSubjectAllocationId)
+  // A Senior teacher can be allocated a form through either a class-teacher
+  // assignment or a subject allocation. Class Work must offer every distinct
+  // assigned form; Subject Work continues to use its own subject allocation
+  // scope and is deliberately not mixed into this switcher.
+  const teacherClassOptions = profile?.role === 'teacher' && !isJuniorTeacher
+    ? [...new Map([
+        ...(profile?.teacher_class_assignments || []),
+        ...(profile?.teacher_class_subject_assignments || []).map(assignment => ({
+          class_level: assignment.class_level,
+          class_stream: assignment.class_stream || '',
+        })),
+      ].filter(assignment => assignment.class_level).map(assignment => [
+        `${assignment.class_level}:${assignment.class_stream || ''}`,
+        assignment,
+      ])).values()]
+    : profile?.teacher_class_assignments || []
   const showClassControl = profile?.role === 'teacher'
     ? teacherWorkspace !== 'subjects'
     : ['dashboard', 'roster', 'entry', 'progress-reports', 'classes'].includes(section)
@@ -128,7 +144,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
           {showClassControl && <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
             <ClassSelector 
               role={profile?.role} 
-              assignedClasses={profile?.teacher_class_assignments || []} 
+              assignedClasses={teacherClassOptions}
               allClasses={visibleSchoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '' }))}
               activeClassKey={activeClassKey} 
               onClassChange={handleClassChange} 
