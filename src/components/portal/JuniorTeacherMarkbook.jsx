@@ -43,6 +43,8 @@ export default function JuniorTeacherMarkbook() {
   const components = selectedSubject?.components || []
   const gradeOneTwoAssessmentPossible = components.filter(component => component !== 'Project').reduce((total, component) => total + Number(form.componentScores[component]?.possible || 0), 0)
   const visible = useMemo(() => students.filter(student => student.class_level === classLevel), [students, classLevel])
+  const activeClassAssignment = assignedClasses.find(assignment => assignment.level === classLevel)
+  const classScopeLabel = activeClassAssignment?.stream ? `${classLevel} · ${activeClassAssignment.stream}` : classLevel
   const learner = visible.find(student => student.id === studentId)
   const activeItem = isEcd ? 'ECD developmental checklist' : isGradeThreeSeven || isGradeOneTwo ? form.subject : form.component ? `${form.subject} · ${form.component}` : form.subject
   const percentage = form.score === '' || !Number(form.possibleMark) ? null : (Number(form.score) / Number(form.possibleMark)) * 100
@@ -193,6 +195,7 @@ export default function JuniorTeacherMarkbook() {
     <header className="grade-entry-heading"><p className="eyebrow">Junior class markbook</p><h1>{heading}</h1><p>{description}</p></header>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}
     {!assignedLevels.length && <PortalNotice tone="error">No Junior class has been assigned to your account yet. Ask the Main Admin to assign your class first.</PortalNotice>}
+    {classLevel && <div className="junior-class-scope"><span>Working class</span><strong>{classScopeLabel}</strong><small>{visible.length} active learner{visible.length === 1 ? '' : 's'} · only your assigned Junior class is available here.</small></div>}
     <form className="grade-workspace" onSubmit={save}>
       <section className="grade-filterbar" aria-label="Junior markbook filters">
         <label>Class<select value={classLevel} onChange={event => setClassLevel(event.target.value)} disabled={!assignedLevels.length}><option value="">Choose class</option>{assignedLevels.map(level => <option key={level}>{level}</option>)}</select></label>

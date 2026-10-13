@@ -17,7 +17,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
     {
       title: 'Workspace',
       items: [
-        { id: 'dashboard', label: 'Class overview', iconKey: 'dashboard', show: !teacherInSubjectWorkspace },
+        { id: 'dashboard', label: juniorTeacher ? 'My class' : 'Class overview', iconKey: 'dashboard', show: !teacherInSubjectWorkspace },
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: profile?.role !== 'teacher' || !teacherInSubjectWorkspace },
         { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || teacherInSubjectWorkspace || juniorTeacher },
         { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: teacherInSubjectWorkspace || juniorTeacher },
