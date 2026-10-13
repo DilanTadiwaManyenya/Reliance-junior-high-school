@@ -66,18 +66,11 @@ const statusMeta = {
 };
 
 function PaymentModal({ student, onClose, onSave, saving }) {
-  const [totalFees, setTotalFees] = useState(String(student.totalFees));
-  const [amountPaid, setAmountPaid] = useState(String(student.amountPaid));
+  const [amountReceived, setAmountReceived] = useState("");
   const [paidOn, setPaidOn] = useState(new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [paymentPlan, setPaymentPlan] = useState(
-    Number(student.amountPaid) > 0 &&
-      Number(student.amountPaid) < Number(student.totalFees)
-      ? "instalment"
-      : "once_off",
-  );
   const [referenceNumber, setReferenceNumber] = useState("");
-  const balance = Number(totalFees) - Number(amountPaid);
+  const balance = Number(student.totalFees) - (Number(student.amountPaid) + Number(amountReceived || 0));
   const isCredit = balance < 0;
 
   return (
@@ -93,11 +86,9 @@ function PaymentModal({ student, onClose, onSave, saving }) {
         onSubmit={(event) => {
           event.preventDefault();
           onSave(student, {
-            total_fees: totalFees,
-            amount_paid: amountPaid,
+            amount: amountReceived,
             paid_on: paidOn,
             payment_method: paymentMethod,
-            payment_plan: paymentPlan,
             reference_number: referenceNumber,
           });
         }}
@@ -124,23 +115,21 @@ function PaymentModal({ student, onClose, onSave, saving }) {
             Total term fee
             <input
               type="number"
-              min="0"
-              step="0.01"
-              value={totalFees}
-              onChange={(event) => setTotalFees(event.target.value)}
-              required
+              value={student.totalFees}
+              readOnly
             />
           </label>
           <label>
-            Amount paid
+            Already received
             <input
               type="number"
-              min="0"
-              step="0.01"
-              value={amountPaid}
-              onChange={(event) => setAmountPaid(event.target.value)}
-              required
+              value={student.amountPaid}
+              readOnly
             />
+          </label>
+          <label>
+            New amount received
+            <input type="number" min="0.01" step="0.01" value={amountReceived} onChange={(event) => setAmountReceived(event.target.value)} required autoFocus />
           </label>
           <label>
             Payment date
@@ -165,16 +154,6 @@ function PaymentModal({ student, onClose, onSave, saving }) {
             </select>
           </label>
           <label>
-            Payment plan
-            <select
-              value={paymentPlan}
-              onChange={(event) => setPaymentPlan(event.target.value)}
-            >
-              <option value="once_off">Once-off payment</option>
-              <option value="instalment">Instalment plan</option>
-            </select>
-          </label>
-          <label>
             Receipt / reference <span className="field-optional">Optional</span>
             <input
               value={referenceNumber}
@@ -187,7 +166,7 @@ function PaymentModal({ student, onClose, onSave, saving }) {
           <span>
             {isCredit
               ? "Credit after update (overpaid)"
-              : "Balance after update"}
+              : "Balance after this payment"}
           </span>
           <strong>{money(balance)}</strong>
         </div>
@@ -200,7 +179,7 @@ function PaymentModal({ student, onClose, onSave, saving }) {
             Cancel
           </button>
           <button className="fee-button fee-button-primary" disabled={saving}>
-            {saving ? "Saving…" : "Save payment"}
+            {saving ? "Recording…" : "Record payment"}
           </button>
         </div>
       </form>
@@ -907,56 +886,21 @@ export default function FeesDashboard({
   const savePayment = async (student, form) => {
     setSaving(true);
     setError("");
-    const nextAmountPaid = Number(form.amount_paid);
-    const previousAmountPaid = Number(student.amountPaid);
-    const { data: balanceRecord, error: saveError } = await supabase
-      .from("fee_balances")
-      .upsert(
-        {
-          student_id: student.id,
-          term,
-          academic_year: year,
-          total_fees: Number(form.total_fees),
-          amount_paid: nextAmountPaid,
-          payment_date: form.paid_on,
-          updated_by: user?.id,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "student_id,term,academic_year" },
-      )
-      .select("id")
-      .single();
+    const { error: saveError } = await supabase.rpc("record_learner_fee_payment", {
+      p_student_id: student.id, p_term: term, p_academic_year: year,
+      p_amount: Number(form.amount), p_paid_on: form.paid_on,
+      p_payment_method: form.payment_method, p_reference_number: form.reference_number || null,
+      p_total_fees: Number(student.totalFees),
+    });
     if (saveError) {
       setSaving(false);
       setError(saveError.message);
       return;
     }
-    const received = nextAmountPaid - previousAmountPaid;
-    if (received > 0) {
-      const { error: paymentError } = await supabase
-        .from("fee_payments")
-        .insert({
-          fee_balance_id: balanceRecord.id,
-          student_id: student.id,
-          term,
-          academic_year: year,
-          amount: received,
-          paid_on: form.paid_on,
-          payment_method: form.payment_method,
-          payment_plan: form.payment_plan,
-          reference_number: form.reference_number || null,
-          received_by: user?.id,
-        });
-      if (paymentError) {
-        setSaving(false);
-        setError(paymentError.message);
-        return;
-      }
-    }
     setSaving(false);
     logActivity(supabase, user, profile, {
       actionType: "update",
-      description: `Updated ${term} fees for ${student.full_name}`,
+      description: `Recorded ${money(form.amount)} payment for ${student.full_name}`,
       targetTable: "fee_balances",
       targetId: student.id,
     });
