@@ -2315,6 +2315,14 @@
   line-height: 1.45;
 }
 
+.junior-grade-bands-workspace .grade-bands-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.junior-grade-bands-workspace .grade-band-card {
+  max-width: 1040px;
+}
+
 @media (max-width: 380px) {
   .top-bar-class-control {
     max-width: 39vw;

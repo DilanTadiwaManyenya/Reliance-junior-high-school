@@ -38,8 +38,10 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
   const selectedClass = classes.find((row) => row.id === selectedId);
   const displayedClasses = showInactive ? classes : classes.filter((row) => row.active);
   const query = new URLSearchParams(location.search);
+  const permittedCampuses = campusScope === "all" ? ["junior", "senior"] : [campusScope];
   const selectedLevel = query.get("classLevel") || "";
-  const selectedCampus = query.get("campus") || "";
+  const requestedCampus = query.get("campus") || "";
+  const selectedCampus = permittedCampuses.includes(requestedCampus) ? requestedCampus : "";
   const selectedStreamId = query.get("stream") || "";
   const selectedView = query.get("view") || "register";
   const classPageRows = displayedClasses.filter((row) => row.class_level === selectedLevel && row.campus === selectedCampus);
@@ -53,7 +55,6 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
         (row.class_stream || "") === (selectedStream.class_stream || ""),
       )
     : [];
-  const permittedCampuses = campusScope === "all" ? ["junior", "senior"] : [campusScope];
   const campusGroups = [
     { id: "junior", title: "Junior School", description: "Grade-based classes" },
     { id: "senior", title: "Senior School", description: "Form and stream classes" },
