@@ -10,25 +10,3 @@
 .junior-foundation-book-table tfoot th:last-child {
   display: none;
 }
-
-.junior-total-units {
-  margin: 14px 0 0;
-  padding: 10px 12px;
-  border: 1px solid #9bb0c8;
-  border-left: 4px solid #17446d;
-  background: #f3f8fc;
-  color: #17446d;
-  font-size: .78rem;
-}
-
-.junior-total-units span {
-  margin-left: 8px;
-  color: #52667c;
-}
-
-@media (max-width: 760px) {
-  .junior-total-units span {
-    display: block;
-    margin: 4px 0 0;
-  }
-}
