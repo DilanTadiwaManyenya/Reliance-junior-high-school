@@ -296,9 +296,11 @@ function DashboardHome({
   role,
   supabase,
   teacherScopeLabel = "",
+  teacherWorkspace = "classes",
   campusScope = "all",
 }) {
   const isTeacher = role === "teacher";
+  const teacherInSubjectWorkspace = isTeacher && teacherWorkspace === "subjects";
   const isCampusAdmin = ["junior", "senior"].includes(campusScope);
   const campusName = campusScope === "junior" ? "Junior Campus" : campusScope === "senior" ? "Senior Campus" : "School";
   const active = students.filter(
@@ -313,18 +315,26 @@ function DashboardHome({
     linkedParents: null,
     feesCollected: null,
   });
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState("");
   const title = isTeacher ? "Teaching dashboard" : isCampusAdmin ? `${campusName} dashboard` : "School dashboard";
   const subtitle = isTeacher
     ? teacherScopeLabel
-      ? `${teacherScopeLabel} · learners in your assigned subject classes`
+      ? `${teacherScopeLabel}. Learners, attendance, and actions follow this active workspace.`
       : "Your learner records and marking workspace"
     : isCampusAdmin ? `A clear overview of ${campusName.toLowerCase()} learners and operations.` : "A clear overview of learners and school operations";
-  const actionLabel = isTeacher ? "Enter learner grades" : "Open learner register";
+  const actionLabel = isTeacher
+    ? teacherInSubjectWorkspace
+      ? "Open subject allocations"
+      : "Open class roster"
+    : "Open learner register";
   const listTitle = isTeacher ? "Your learners" : "Recent learners";
 
   useEffect(() => {
     let mounted = true;
     const loadOverview = async () => {
+      setOverviewLoading(true);
+      setOverviewError("");
       const year = new Date().getFullYear();
       const [attendanceResult, parentResult, feesResult] = await Promise.all([
         supabase
@@ -345,6 +355,8 @@ function DashboardHome({
               .eq("academic_year", year),
       ]);
       if (!mounted) return;
+      if (attendanceResult.error)
+        setOverviewError("Attendance summary could not be loaded. Open the learner roster to continue working.");
       const months = Array.from({ length: 6 }, (_, index) => {
         const date = new Date(year, new Date().getMonth() - 5 + index, 1);
         return {
@@ -376,6 +388,7 @@ function DashboardHome({
             0,
           ) ?? null,
       });
+      setOverviewLoading(false);
     };
     loadOverview();
     return () => {
@@ -383,7 +396,13 @@ function DashboardHome({
     };
   }, [isTeacher, supabase, students]);
 
-  const todayDate = new Date().toISOString().slice(0, 10);
+  const harareDateParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Harare",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const todayDate = `${harareDateParts.find((part) => part.type === "year")?.value}-${harareDateParts.find((part) => part.type === "month")?.value}-${harareDateParts.find((part) => part.type === "day")?.value}`;
   const todayBreakdown = Object.entries(
     students.reduce((acc, student) => {
       const record = overview.rawAttendance?.find(
@@ -392,11 +411,13 @@ function DashboardHome({
       const className =
         `${student.class_level} ${student.class_stream || ""}`.trim() ||
         "Unassigned";
-      if (!acc[className]) acc[className] = { present: 0, absent: 0 };
+      if (!acc[className]) acc[className] = { present: 0, absent: 0, unmarked: 0 };
       if (record?.status === "present" || record?.status === "late") {
         acc[className].present++;
-      } else {
+      } else if (record?.status === "absent") {
         acc[className].absent++;
+      } else {
+        acc[className].unmarked++;
       }
       return acc;
     }, {}),
@@ -436,7 +457,7 @@ function DashboardHome({
           <Button
             className="dashboard-ghost-action"
             variant="secondary"
-            onClick={() => setSection(isTeacher ? "entry" : "roster")}
+            onClick={() => setSection(isTeacher && teacherInSubjectWorkspace ? "entry" : "roster")}
           >
             {actionLabel}
           </Button>
@@ -547,7 +568,13 @@ function DashboardHome({
             <div>
               <h2 className="dash-card-title">Today's Attendance</h2>
               <p className="dash-card-subtitle">
-                Live breakdown for {isTeacher ? "your assigned subject classes" : isCampusAdmin ? `the ${campusName.toLowerCase()}` : "all classes"}.
+                {isTeacher && teacherScopeLabel
+                  ? `Today in ${teacherScopeLabel.replace(" · Class Work", "")}.`
+                  : isTeacher
+                    ? "Mark attendance from the learner roster."
+                    : isCampusAdmin
+                      ? `Live breakdown for the ${campusName.toLowerCase()}.`
+                      : "Live breakdown for all classes."}
               </p>
             </div>
           </div>
@@ -562,7 +589,11 @@ function DashboardHome({
               maxHeight: "200px",
             }}
           >
-            {todayBreakdown.length === 0 ? (
+            {overviewLoading ? (
+              <p className="muted">Loading today’s attendance…</p>
+            ) : overviewError ? (
+              <p className="muted">{overviewError}</p>
+            ) : todayBreakdown.length === 0 ? (
               <p className="muted">No classes to display</p>
             ) : (
               todayBreakdown.map(([className, counts]) => (
@@ -585,6 +616,12 @@ function DashboardHome({
                     <span style={{ color: "var(--error-color)" }}>
                       {counts.absent} absent
                     </span>
+                    {counts.unmarked > 0 && <>
+                      ,{" "}
+                      <span style={{ color: "#64748b" }}>
+                        {counts.unmarked} unmarked
+                      </span>
+                    </>}
                   </span>
                 </div>
               ))
@@ -1521,6 +1558,7 @@ export default function StaffDashboard() {
           role={profile?.role}
           supabase={supabase}
           teacherScopeLabel={teacherScopeLabel}
+          teacherWorkspace={teacherWorkspace}
           campusScope={adminCampusScope || "all"}
         />
       )}
