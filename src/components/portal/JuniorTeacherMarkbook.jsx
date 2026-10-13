@@ -3,6 +3,7 @@ import { calculateGrade } from "../../utils/GradeCalculator";
 import { getJuniorReportBook } from "../../utils/CurriculumData";
 import { useAuth } from "../../context/useAuth";
 import PortalNotice from "./PortalNotice";
+import { useSection } from "./StaffPortalLayout";
 
 const currentTerm = () =>
   String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
@@ -27,6 +28,8 @@ const blank = () => ({
 
 export default function JuniorTeacherMarkbook() {
   const { supabase, profile, user } = useAuth();
+  const { activeClassFilter, setActiveClassFilter, setActiveClassKey } =
+    useSection();
   const assignedClasses = useMemo(
     () =>
       (profile?.teacher_class_assignments || [])
@@ -134,9 +137,28 @@ export default function JuniorTeacherMarkbook() {
   const change = (field) => (event) =>
     setForm((value) => ({ ...value, [field]: event.target.value }));
 
+  const selectClassLevel = (level) => {
+    const assignment = assignedClasses.find((item) => item.level === level);
+    setClassLevel(level);
+    setActiveClassKey(`${level}:${assignment?.stream || ""}`);
+    setActiveClassFilter({ level, stream: assignment?.stream || null });
+  };
+
   useEffect(() => {
-    if (!classLevel && assignedLevels.length) setClassLevel(assignedLevels[0]);
-  }, [assignedLevels, classLevel]);
+    const sharedLevel = activeClassFilter.level;
+    if (sharedLevel && assignedLevels.includes(sharedLevel)) {
+      if (classLevel !== sharedLevel) setClassLevel(sharedLevel);
+      return;
+    }
+    if (!classLevel && assignedLevels.length) selectClassLevel(assignedLevels[0]);
+  }, [
+    activeClassFilter.level,
+    assignedLevels,
+    assignedClasses,
+    classLevel,
+    setActiveClassFilter,
+    setActiveClassKey,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -660,7 +682,7 @@ export default function JuniorTeacherMarkbook() {
             Class
             <select
               value={classLevel}
-              onChange={(event) => setClassLevel(event.target.value)}
+              onChange={(event) => selectClassLevel(event.target.value)}
               disabled={!assignedLevels.length}
             >
               <option value="">Choose class</option>

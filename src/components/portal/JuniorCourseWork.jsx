@@ -4,12 +4,14 @@ import Card from '../ui/Card'
 import PortalNotice from './PortalNotice'
 import { getJuniorReportBook, getSubjectsByGradeStream } from '../../utils/CurriculumData'
 import { useAuth } from '../../context/useAuth'
+import { useSection } from './StaffPortalLayout'
 
 const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1))
 const blankAssessment = () => ({ title: '', assessment_type: 'weekly', total_marks: '100', assessment_date: new Date().toISOString().slice(0, 10), term: currentTerm(), academic_year: new Date().getFullYear() })
 
 export default function JuniorCourseWork() {
   const { supabase, user, profile } = useAuth()
+  const { activeClassFilter, setActiveClassFilter, setActiveClassKey } = useSection()
   const assignedClasses = useMemo(() => (profile?.teacher_class_assignments || [])
     .filter(assignment => /^Grade [1-7]$|^ECD [AB]$/.test(assignment.class_level))
     .map(assignment => ({
@@ -40,7 +42,20 @@ export default function JuniorCourseWork() {
   const scopedAssessments = useMemo(() => assessments.filter(item => item.class_level === classLevel && (item.class_stream || '') === activeClassStream && item.subject === subject && (item.report_component || '') === reportComponent), [assessments, classLevel, activeClassStream, subject, reportComponent])
   const selectedAssessment = assessments.find(item => item.id === selected)
 
-  useEffect(() => { if (!classLevel && assignedLevels.length) setClassLevel(assignedLevels[0]) }, [assignedLevels, classLevel])
+  const selectClassLevel = level => {
+    const assignment = assignedClasses.find(item => item.level === level)
+    setClassLevel(level)
+    setActiveClassKey(`${level}:${assignment?.stream || ''}`)
+    setActiveClassFilter({ level, stream: assignment?.stream || null })
+  }
+  useEffect(() => {
+    const sharedLevel = activeClassFilter.level
+    if (sharedLevel && assignedLevels.includes(sharedLevel)) {
+      if (classLevel !== sharedLevel) setClassLevel(sharedLevel)
+      return
+    }
+    if (!classLevel && assignedLevels.length) selectClassLevel(assignedLevels[0])
+  }, [activeClassFilter.level, assignedLevels, assignedClasses, classLevel, setActiveClassFilter, setActiveClassKey])
   useEffect(() => { setSubject(''); setReportComponent(''); setSelected(''); setStudents([]); setMarks({}) }, [classLevel])
   useEffect(() => { setReportComponent(''); setSelected('') }, [subject])
   useEffect(() => { if (isJuniorProject) setForm(value => ({ ...value, total_marks: '20' })) }, [isJuniorProject])
@@ -93,7 +108,7 @@ export default function JuniorCourseWork() {
   return <section className="coursework-page"><header className="grade-entry-heading"><p className="eyebrow">Junior class coursework</p><h1>Course Work</h1><p>Create coursework for any subject in your assigned Junior class, then enter marks for its learners.</p></header>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}{loading && <PortalNotice>Loading your Junior coursework…</PortalNotice>}{!loading && !assignedLevels.length && <PortalNotice tone="error">No Junior class has been assigned to your account yet. Ask the Main Admin to assign your class first.</PortalNotice>}
     {classLevel && <div className="junior-class-scope"><span>Working class</span><strong>{classScopeLabel}</strong><small>Only learners in this assigned Junior class can be included.</small></div>}
-    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label>Class<select value={classLevel} onChange={event => setClassLevel(event.target.value)} disabled={!assignedLevels.length}><option value="">Choose class</option>{assignedLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Subject<select value={subject} onChange={event => setSubject(event.target.value)} disabled={!classLevel}><option value="">Choose subject</option>{subjects.map(item => <option key={item}>{item}</option>)}</select></label>{reportSubjects.length > 0 && <label>Report component<select value={reportComponent} onChange={event => setReportComponent(event.target.value)} disabled={!subject}><option value="">Choose component</option>{components.map(item => <option key={item}>{item}</option>)}</select></label>}<label>Assessment title<input required value={form.title} onChange={event => setForm(value => ({ ...value, title: event.target.value }))} placeholder="e.g. Week 4 fractions test" /></label><label>Type<select value={form.assessment_type} onChange={event => setForm(value => ({ ...value, assessment_type: event.target.value }))}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={event => setForm(value => ({ ...value, total_marks: event.target.value }))} readOnly={isJuniorProject} /><small>{isJuniorProject ? 'Project is fixed at 20 marks and remains separate from the assessment total.' : ''}</small></label><label>Date<input required type="date" value={form.assessment_date} onChange={event => setForm(value => ({ ...value, assessment_date: event.target.value }))} /></label><Button type="submit" disabled={saving || !classLevel || !subject || (reportSubjects.length > 0 && !reportComponent)}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
+    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label>Class<select value={classLevel} onChange={event => selectClassLevel(event.target.value)} disabled={!assignedLevels.length}><option value="">Choose class</option>{assignedLevels.map(level => <option key={level}>{level}</option>)}</select></label><label>Subject<select value={subject} onChange={event => setSubject(event.target.value)} disabled={!classLevel}><option value="">Choose subject</option>{subjects.map(item => <option key={item}>{item}</option>)}</select></label>{reportSubjects.length > 0 && <label>Report component<select value={reportComponent} onChange={event => setReportComponent(event.target.value)} disabled={!subject}><option value="">Choose component</option>{components.map(item => <option key={item}>{item}</option>)}</select></label>}<label>Assessment title<input required value={form.title} onChange={event => setForm(value => ({ ...value, title: event.target.value }))} placeholder="e.g. Week 4 fractions test" /></label><label>Type<select value={form.assessment_type} onChange={event => setForm(value => ({ ...value, assessment_type: event.target.value }))}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={event => setForm(value => ({ ...value, total_marks: event.target.value }))} readOnly={isJuniorProject} /><small>{isJuniorProject ? 'Project is fixed at 20 marks and remains separate from the assessment total.' : ''}</small></label><label>Date<input required type="date" value={form.assessment_date} onChange={event => setForm(value => ({ ...value, assessment_date: event.target.value }))} /></label><Button type="submit" disabled={saving || !classLevel || !subject || (reportSubjects.length > 0 && !reportComponent)}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
     <Card><div className="coursework-heading"><div><h2>2. Enter marks</h2><p>Select an assessment for {classScopeLabel || 'your selected Junior class and subject'}.</p></div><label>Assessment<select value={selected} onChange={event => setSelected(event.target.value)} disabled={!subject}><option value="">Choose assessment</option>{scopedAssessments.map(item => <option key={item.id} value={item.id}>{item.title} · {item.assessment_date}</option>)}</select></label></div>{selectedAssessment && <><p className="muted">{completed}/{students.length} marks entered · Missing marks remain blank until saved.</p><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Class</th><th>Admission no.</th><th>Mark / {selectedAssessment.total_marks}</th><th>Status</th></tr></thead><tbody>{students.map(student => { const value = marks[student.id] ?? ''; return <tr key={student.id}><td><strong>{student.full_name}</strong></td><td>{student.class_level}</td><td>{student.admission_number}</td><td><input aria-label={`Mark for ${student.full_name}`} type="number" min="0" max={selectedAssessment.total_marks} value={value} onChange={event => setMarks(current => ({ ...current, [student.id]: event.target.value }))} /></td><td><span className={`class-status ${value === '' ? 'is-inactive' : 'is-active'}`}>{value === '' ? 'Missing' : 'Entered'}</span></td></tr>})}</tbody></table></div><Button type="button" onClick={saveMarks} disabled={saving}>{saving ? 'Saving…' : `Save ${completed} marks`}</Button></>}</Card>
   </section>
 }
