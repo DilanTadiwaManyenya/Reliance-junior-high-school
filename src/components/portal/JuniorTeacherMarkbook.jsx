@@ -74,6 +74,9 @@ export default function JuniorTeacherMarkbook() {
     [classLevel],
   );
   const isEcd = reportBook?.type === "developmental-ratings";
+  const ecdAreas = reportBook?.areas || [];
+  const ecdRatedCount = ecdAreas.filter((area) => ecdRatings[area]).length;
+  const ecdChecklistComplete = Boolean(ecdAreas.length) && ecdRatedCount === ecdAreas.length;
   const isGradeThreeSeven = /^Grade [3-7]$/.test(classLevel);
   const isGradeOneTwo = /^Grade [12]$/.test(classLevel);
   const subjectOptions = reportBook?.subjects || [];
@@ -828,6 +831,18 @@ export default function JuniorTeacherMarkbook() {
             <div className="grade-fields-v2">
               {isEcd ? (
                 <>
+                  <section className="ecd-checklist-summary" aria-label="ECD rating progress and key">
+                    <div>
+                      <span>Checklist progress</span>
+                      <strong>{ecdRatedCount}/{ecdAreas.length} areas rated</strong>
+                      <small>{ecdChecklistComplete ? "Every development area is ready to save." : `${ecdAreas.length - ecdRatedCount} area${ecdAreas.length - ecdRatedCount === 1 ? "" : "s"} remaining.`}</small>
+                    </div>
+                    <div className="ecd-rating-key" aria-label="Development rating key">
+                      {reportBook.ratingScale.map((label, index) => (
+                        <span key={label}><b>{index + 1}</b>{label}</span>
+                      ))}
+                    </div>
+                  </section>
                   <div className="ecd-rating-grid">
                     <div className="ecd-rating-head">
                       <span>Development area</span>
@@ -841,6 +856,7 @@ export default function JuniorTeacherMarkbook() {
                         {[1, 2, 3, 4, 5].map((value) => (
                           <label
                             key={value}
+                            className={ecdRatings[area] === String(value) ? "is-selected" : ""}
                             title={reportBook.ratingScale[value - 1]}
                           >
                             <input
@@ -855,23 +871,18 @@ export default function JuniorTeacherMarkbook() {
                               }
                               disabled={loadingRecord || !learner}
                             />
-                            <span className="sr-only">{value}</span>
+                            <span className="sr-only">{area}: {value} — {reportBook.ratingScale[value - 1]}</span>
                           </label>
                         ))}
                       </div>
                     ))}
                   </div>
                   <p
-                    className={`paper-total-note ${Object.keys(ecdRatings).length === (reportBook?.areas || []).length ? "ready" : ""}`}
+                    className={`paper-total-note ${ecdChecklistComplete ? "ready" : ""}`}
                   >
                     Checklist complete:{" "}
                     <strong>
-                      {
-                        Object.keys(ecdRatings).filter(
-                          (area) => ecdRatings[area],
-                        ).length
-                      }
-                      /{(reportBook?.areas || []).length}
+                      {ecdRatedCount}/{ecdAreas.length}
                     </strong>{" "}
                     areas rated.
                   </p>
@@ -1117,7 +1128,7 @@ export default function JuniorTeacherMarkbook() {
                 <button
                   className="btn primary"
                   disabled={
-                    saving || loadingRecord || !learner || !selectionReady
+                    saving || loadingRecord || !learner || !selectionReady || (isEcd && !ecdChecklistComplete)
                   }
                 >
                   {saving
