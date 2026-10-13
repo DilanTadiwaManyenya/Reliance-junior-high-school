@@ -28,7 +28,7 @@ const term = (value) =>
 const termNumber = (value) => String(value ?? "").replace(/^term\s*/i, "");
 const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
 
-export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false, initialTab = "Summary", canManageReports = false }) {
+export default function StaffLearnerProfile({ supabase, student, onBack, teacherView = false, initialTab = "Summary", canManageReports = false, backLabel = "Back to learner register", teacherScopeLabel = "" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [state, setState] = useState({
     loading: true,
@@ -300,11 +300,11 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
   return (
     <div className="staff-content-area learner-profile-page">
       <button type="button" className="learner-profile-back" onClick={onBack}>
-        ← Back to learner register
+        ← {backLabel}
       </button>
       <header className="learner-profile-hero">
         <div>
-          <p className="learner-profile-kicker">Learner 360° profile</p>
+          <p className="learner-profile-kicker">{teacherView ? "Teacher learner view" : "Learner 360° profile"}</p>
           <h1>{student.full_name}</h1>
           <p>
             {student.admission_number} · {student.class_level}
@@ -317,6 +317,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           {student.status === "active" ? "Enrolled" : "Left school"}
         </span>
       </header>
+      {teacherView && <div className="learner-profile-teacher-scope"><span>Teacher access</span><strong>{teacherScopeLabel || "Assigned learner scope"}</strong><small>Only attendance and course-work progress are available from this learner view.</small></div>}
       {student.status !== "active" && (
         <PortalNotice tone="error">
           This learner is no longer enrolled. Their school and finance history

@@ -1417,6 +1417,8 @@ export default function StaffDashboard() {
         teacherView={isTeacher}
         canManageReports={manager}
         initialTab={profileInitialTab}
+        backLabel={isTeacher ? (teacherWorkspace === "subjects" ? "Back to subject learners" : "Back to class learners") : "Back to learner register"}
+        teacherScopeLabel={isTeacher ? teacherScopeLabel : ""}
         onBack={() => { setProfileStudent(null); setProfileInitialTab("Summary"); }}
       />
     );
