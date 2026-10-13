@@ -403,6 +403,8 @@ function MasterTable({
   onExport,
   readOnly,
   quickStatus,
+  campusScope,
+  scopeLabel,
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -464,9 +466,11 @@ function MasterTable({
           <p className="fees-kicker">Term collection register</p>
           <h2 id="student-fees-heading">Student fee balances</h2>
           <p>
-            {readOnly
-              ? "Search and filter the school-wide fee collection register."
-              : "Search, filter and collect payments from one consolidated view."}
+            {campusScope
+              ? `Search, filter and collect payments for ${scopeLabel}.`
+              : readOnly
+                ? "Search and filter the school-wide fee collection register."
+                : "Search, filter and collect payments from one consolidated view."}
           </p>
         </div>
         <button
@@ -519,9 +523,6 @@ function MasterTable({
             <button type="button" onClick={() => setSelectedIds(new Set())}>
               Clear selection
             </button>
-            <button type="button" onClick={() => setSelectedIds(new Set())}>
-              <LuSend size={15} /> Send payment reminders
-            </button>
             <button type="button" onClick={() => onExport(selected)}>
               <LuDownload size={15} /> Export selected
             </button>
@@ -546,7 +547,7 @@ function MasterTable({
               <th>Student name</th>
               <th>Admission ID</th>
               <th>Class / Grade</th>
-              <th>Campus</th>
+              {!campusScope && <th>Campus</th>}
               <th className="currency">Total term fee</th>
               <th className="currency">Amount paid</th>
               <th className="currency">Balance owed</th>
@@ -595,14 +596,16 @@ function MasterTable({
                       {student.class_level}
                       {student.class_stream ? ` · ${student.class_stream}` : ""}
                     </td>
-                    <td>
-                      <span
-                        className={`fee-campus-badge ${student.campus === "junior" ? "junior" : "senior"}`}
-                      >
-                        <LuBuilding2 size={13} />
-                        {student.campus === "junior" ? "Junior" : "Senior"}
-                      </span>
-                    </td>
+                    {!campusScope && (
+                      <td>
+                        <span
+                          className={`fee-campus-badge ${student.campus === "junior" ? "junior" : "senior"}`}
+                        >
+                          <LuBuilding2 size={13} />
+                          {student.campus === "junior" ? "Junior" : "Senior"}
+                        </span>
+                      </td>
+                    )}
                     <td className="currency">{money(student.totalFees)}</td>
                     <td className="currency paid-value">
                       {money(student.amountPaid)}
@@ -651,7 +654,7 @@ function MasterTable({
               })
             ) : (
               <tr>
-                <td colSpan={readOnly ? 10 : 11} className="fee-empty-state">
+                <td colSpan={(readOnly ? 10 : 11) - (campusScope ? 1 : 0)} className="fee-empty-state">
                   No students match the current search and filters.
                 </td>
               </tr>
@@ -734,6 +737,8 @@ export default function FeesDashboard({
   const [quickStatus, setQuickStatus] = useState("");
   const readOnly = profile?.role === "principal";
   const isMainAdmin = profile?.role === "admin" && profile?.campus === "all";
+  const campusScope = ["junior", "senior"].includes(profile?.campus) && !isMainAdmin;
+  const scopeLabel = profile?.campus === "junior" ? "Junior School" : "Senior School";
   const { levels: registryLevels, streamsForLevel } = useSchoolClasses(supabase);
   const classLevels = registryLevels.length ? registryLevels : CLASS_LEVELS;
 
@@ -971,7 +976,7 @@ export default function FeesDashboard({
       <header className="fees-page-header">
         <div>
           <p className="fees-kicker">
-            Finance · {term} {year}
+            {campusScope ? `${scopeLabel} finance` : "Finance"} · {term} {year}
           </p>
           <h1>Fees tracking</h1>
           <p>
@@ -1077,6 +1082,8 @@ export default function FeesDashboard({
           onExport={exportReport}
           readOnly={readOnly}
           quickStatus={quickStatus}
+          campusScope={campusScope}
+          scopeLabel={scopeLabel}
         />
       )}
       {editTarget && (
