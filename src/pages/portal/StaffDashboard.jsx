@@ -2476,7 +2476,7 @@ export default function StaffDashboard() {
                   </button>
                 ))}
               </div>
-              {staffCategory === "teachers" && (
+              {staffCategory === "teachers" && isMainAdmin && (
                 <div className="staff-campus-tabs" role="tablist" aria-label="Teacher campus">
                   <span>Teacher campus</span>
                   {[
