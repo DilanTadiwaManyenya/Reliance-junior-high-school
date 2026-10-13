@@ -60,3 +60,62 @@
     width: 43mm;
   }
 }
+
+/* The supplied crest is a document watermark, not report content. */
+.junior-report-book {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.junior-report-book::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 14% 18%;
+  background: url('./assets/images/reliance-junior-report-logo.png') center / contain no-repeat;
+  opacity: .055;
+  pointer-events: none;
+}
+
+/* The bulk-export print rule hides the whole portal by default. Restore only
+   the Junior report book so browser print and Save as PDF contain the report. */
+@media print {
+  @page { size: A4 portrait; margin: 6mm; }
+
+  body:has(.junior-report-book) * { visibility: hidden !important; }
+  body:has(.junior-report-book) .junior-report-book,
+  body:has(.junior-report-book) .junior-report-book * { visibility: visible !important; }
+
+  body:has(.junior-report-book) .junior-report-book {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 3.5mm !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    font-size: 6.2pt !important;
+  }
+
+  .junior-report-book::before { inset: 17% 24%; opacity: .045; }
+  .junior-report-heading { grid-template-columns: 18mm 1fr !important; gap: 3mm !important; padding-bottom: 2mm !important; }
+  .junior-report-heading > img { width: 17mm !important; height: 20mm !important; }
+  .junior-report-heading h2 { font-size: 11pt !important; }
+  .junior-report-heading p, .junior-report-heading span { font-size: 5.6pt !important; }
+  .junior-report-meta { gap: 1mm 4mm !important; margin: 2mm 0 !important; padding: 1.2mm 0 !important; font-size: 5.4pt !important; }
+  .junior-report-section h3, .junior-rating-key { margin: 0 0 1mm !important; font-size: 5.6pt !important; }
+  .junior-report-table { font-size: 5.2pt !important; }
+  .junior-report-table th, .junior-report-table td { padding: .55mm .7mm !important; line-height: 1.05 !important; }
+  .junior-report-table th { font-size: 4.8pt !important; }
+  .junior-report-comments { gap: 1mm !important; margin-top: 2mm !important; padding-top: 1.5mm !important; font-size: 5.4pt !important; }
+  .junior-report-comments p { line-height: 1.25 !important; }
+  .junior-report-footer { gap: 4mm !important; margin-top: 2mm !important; padding-top: 1.5mm !important; font-size: 5.2pt !important; }
+  .junior-report-footer p { margin: .5mm 0 !important; }
+  .junior-report-footer small { margin-top: 1mm !important; }
+  .junior-report-footer .junior-report-stamp { min-width: 42mm !important; min-height: 28mm !important; padding: 2mm !important; }
+  .junior-report-footer .junior-report-stamp svg { width: 37mm !important; }
+}
