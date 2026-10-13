@@ -35,7 +35,7 @@ export default function JuniorPrincipalStamp({ date, width = 320 }) {
         <text x="320" y="78" fontSize="30" fontWeight="800" letterSpacing="1.8">THE PRINCIPAL</text>
         <text x="320" y="116" fontSize="28" fontWeight="800" letterSpacing="1.1">RELIANCE JUNIOR SCHOOL</text>
         <path d="M128 142H512M128 198H512" fill="none" stroke="#D32F2F" strokeWidth="2.5" />
-        <text x="320" y="177" fontSize="24" fontWeight="800" letterSpacing="1.5">{assignedDate}</text>
+        <text x="320" y="177" fill="#173F7A" fontSize="24" fontWeight="800" letterSpacing="1.5">{assignedDate}</text>
         <text x="320" y="232" fontSize="18" fontWeight="400">Stand No. 5126 Nehanda</text>
         <text x="320" y="258" fontSize="18" fontWeight="400">Dzivarasekwa Ext, Harare</text>
         <text x="320" y="284" fontSize="18" fontWeight="400">Cell: 0775 603 206</text>
