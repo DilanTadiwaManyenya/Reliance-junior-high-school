@@ -8,6 +8,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
   const { profile } = useAuth()
   const manager = ['admin', 'principal'].includes(profile?.role)
   const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
+  const canManageJuniorAcademicSettings = profile?.role === 'admin' && ['all', 'junior'].includes(profile?.campus)
   const accountant = profile?.role === 'accountant'
   const juniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
   const teacherInSubjectWorkspace = profile?.role === 'teacher' && teacherWorkspace === 'subjects'
@@ -29,7 +30,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
       items: [
         { id: 'bulk-import', label: 'Bulk learner export', iconKey: 'roster', show: profile?.role === 'admin' },
         { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: isMainAdmin },
-        { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: isMainAdmin },
+        { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: canManageJuniorAcademicSettings },
         { id: 'classes', label: 'Classes', iconKey: 'staff', show: profile?.role === 'admin' },
       ].filter(i => i.show)
     },

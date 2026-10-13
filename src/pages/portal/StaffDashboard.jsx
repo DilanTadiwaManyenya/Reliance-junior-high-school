@@ -635,6 +635,7 @@ export default function StaffDashboard() {
   const isAdmin = profile?.role === "admin";
   const isAccountant = profile?.role === "accountant";
   const isMainAdmin = isAdmin && profile?.campus === "all";
+  const canManageJuniorAcademicSettings = isAdmin && ["all", "junior"].includes(profile?.campus);
   const adminCampusScope = isAdmin && ["junior", "senior"].includes(profile?.campus)
     ? profile.campus
     : null;
@@ -1407,8 +1408,8 @@ export default function StaffDashboard() {
         </div>
       </div>
     );
-  if (section === "grade-bands" && isMainAdmin)
-    return <div className="staff-content-area"><GradeBands /></div>;
+  if (section === "grade-bands" && canManageJuniorAcademicSettings)
+    return <div className="staff-content-area"><GradeBands campusScope={isMainAdmin ? "all" : "junior"} /></div>;
   if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
     return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : ""} onOpenProgress={student => { setProfileInitialTab(isTeacher ? "Summary" : "Academics"); setProfileStudent(student); }} /></div>;
   if (section === "coursework" && isTeacher)
