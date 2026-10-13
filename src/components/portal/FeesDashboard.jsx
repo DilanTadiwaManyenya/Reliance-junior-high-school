@@ -1033,16 +1033,9 @@ export default function FeesDashboard({
     {
       label: "Full payments",
       value: stats.full.length,
-      note: `${stats.full.length} student${stats.full.length === 1 ? "" : "s"} settled`,
+      note: `${stats.full.length} student${stats.full.length === 1 ? "" : "s"} settled · ${money(credits)} in credits`,
       icon: LuCircleCheck,
       tone: "success",
-    },
-    {
-      label: "Overpaid credits",
-      value: money(credits),
-      note: `${stats.credit.length} student${stats.credit.length === 1 ? "" : "s"} with a credit balance`,
-      icon: LuCircleCheck,
-      tone: "credit",
     },
     {
       label: "Partial payments",
@@ -1148,7 +1141,7 @@ export default function FeesDashboard({
                 <p>{card.label}</p>
                 <strong>{isLoading ? "—" : card.value}</strong>
                 <span>{isLoading ? "Loading summary…" : card.note}</span>
-                {actionable && !isLoading && (
+                {actionable && !isLoading && Number(card.value) > 0 && (
                   <button
                     type="button"
                     className="fees-kpi-link"
