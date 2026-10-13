@@ -50,7 +50,9 @@ export default function BulkLearnerExport({ supabase: provided, campusScope = 'a
   const visibleClasses = useMemo(() => isCampusScoped ? classes.filter(row => row.campus === campusScope) : classes, [classes, campusScope, isCampusScoped])
   const levels = useMemo(() => [...new Set(visibleClasses.map(row => row.class_level))], [visibleClasses])
   const streams = useMemo(() => [...new Set(visibleClasses.filter(row => row.class_level === level).map(row => row.class_stream).filter(Boolean))], [visibleClasses, level])
-  const availableScopes = isCampusScoped ? scopes.filter(option => option.id !== 'all') : scopes
+  const availableScopes = isCampusScoped
+    ? scopes.filter(option => option.id !== 'all' && !(campusScope === 'junior' && option.id === 'stream'))
+    : scopes
 
   useEffect(() => {
     if (!level && levels.length) setLevel(levels[0])
@@ -90,7 +92,7 @@ export default function BulkLearnerExport({ supabase: provided, campusScope = 'a
 
   return <section className="bulk-export">
     <div className="bulk-export-intro">
-      <div><p className="eyebrow">Printable learner register</p><h2>Build the learner export</h2><p>Select exactly who belongs in the register, review the live list, then print it.</p></div>
+      <div><p className="eyebrow">{isCampusScoped ? `${effectiveCampus === 'junior' ? 'Junior School' : 'Senior School'} · printable learner register` : 'Printable learner register'}</p><h2>Build the learner export</h2><p>{isCampusScoped ? `Choose a class or the whole ${effectiveCampus === 'junior' ? 'Junior' : 'Senior'} campus, review the live list, then print it.` : 'Select exactly who belongs in the register, review the live list, then print it.'}</p></div>
       {searched && <div className="bulk-export-count"><b>{learners.length}</b><span>Learners in this export</span></div>}
     </div>
 
