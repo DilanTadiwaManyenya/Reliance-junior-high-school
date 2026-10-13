@@ -1393,7 +1393,7 @@ export default function StaffDashboard() {
         </div>
       </div>
     );
-  if (section === "report-settings" && isMainAdmin)
+  if (section === "report-settings" && isAdmin)
     return (
       <div className="staff-content-area">
         <div className="dash-section">
@@ -1405,6 +1405,7 @@ export default function StaffDashboard() {
           </div>
           <ReportTermSettings
             supabase={supabase}
+            campusScope={adminCampusScope || "all"}
             onClose={() => setSection("dashboard")}
             onSaved={() => setNotice("Report settings saved.")}
           />
