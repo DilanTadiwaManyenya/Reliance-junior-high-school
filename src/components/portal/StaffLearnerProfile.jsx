@@ -67,6 +67,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
     let mounted = true;
     const load = async () => {
       const unavailableToTeacher = Promise.resolve({ data: [], error: null });
+      try {
       const results = await Promise.all([
         supabase
           .from("academic_records")
@@ -78,7 +79,9 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           .select("*")
           .eq("student_id", student.id)
           .order("created_at", { ascending: false }),
-        teacherView ? unavailableToTeacher : supabase
+        teacherView && !/^ECD [AB]$/i.test(student.class_level || "")
+          ? unavailableToTeacher
+          : supabase
           .from("junior_developmental_ratings")
           .select("*")
           .eq("student_id", student.id)
@@ -191,6 +194,17 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         subjectTeachers: subjectTeachers.data || [],
         classTeacher: classTeacher.data?.[0] || null,
       });
+      } catch (loadError) {
+        if (!mounted) return;
+        setState((current) => ({
+          ...current,
+          loading: false,
+          error:
+            loadError instanceof Error
+              ? loadError.message
+              : "The learner profile could not be loaded. Please try again.",
+        }));
+      }
     };
     load();
     return () => {
@@ -260,7 +274,6 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       )}
     </Card>
   );
-  const visibleTabs = teacherView ? ["Summary", "Attendance", "Course work"] : tabs;
   const summaryYear = String(new Date().getFullYear());
   const summaryTerm = currentTerm();
   const currentTermAcademics = state.academics.filter((row) => termNumber(row.term) === summaryTerm && String(row.year ?? (row.created_at ? new Date(row.created_at).getFullYear() : summaryYear)) === summaryYear);
@@ -268,6 +281,21 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
   const currentTermPassed = currentTermMarks.filter((mark) => mark >= 50).length;
   const currentTermAverage = currentTermMarks.length ? (currentTermMarks.reduce((total, mark) => total + mark, 0) / currentTermMarks.length).toFixed(1) : null;
   const currentTermFailed = currentTermMarks.filter((mark) => mark < 50).length;
+  const isEcdLearner = /^ECD [AB]$/i.test(student.class_level || "");
+  const ecdAreaCount = new Set(
+    state.juniorDevelopmentalRatings
+      .filter(
+        (row) =>
+          termNumber(row.term) === summaryTerm &&
+          String(row.year) === summaryYear,
+      )
+      .map((row) => row.development_area),
+  ).size;
+  const visibleTabs = teacherView
+    ? isEcdLearner
+      ? ["Summary", "Attendance"]
+      : ["Summary", "Attendance", "Course work"]
+    : tabs;
 
   return (
     <div className="staff-content-area learner-profile-page">
@@ -356,10 +384,12 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                 {state.fees.length === 1 ? "" : "s"} recorded
               </small>
             </Card>}
-            {teacherView && <Card><span>Passed</span><strong>{currentTermPassed}</strong><small>Current-term marks at 50% or above</small></Card>}
-            {teacherView && <Card><span>Failed</span><strong>{currentTermFailed}</strong><small>Current-term marks below 50%</small></Card>}
+            {teacherView && isEcdLearner && <Card><span>Development checklist</span><strong>{ecdAreaCount}</strong><small>Development areas recorded this term</small></Card>}
+            {teacherView && isEcdLearner && <Card><span>Checklist status</span><strong>{ecdAreaCount ? "Started" : "Not started"}</strong><small>{ecdAreaCount ? "Ratings can still be edited in the ECD markbook." : "Record one rating for every development area."}</small></Card>}
+            {teacherView && !isEcdLearner && <Card><span>Passed</span><strong>{currentTermPassed}</strong><small>Current-term marks at 50% or above</small></Card>}
+            {teacherView && !isEcdLearner && <Card><span>Failed</span><strong>{currentTermFailed}</strong><small>Current-term marks below 50%</small></Card>}
             {teacherView && <Card><span>Attendance</span><strong>{summary.rate}%</strong><small>{summary.present} present · {summary.absent} absent</small><button type="button" onClick={() => setActiveTab("Attendance")}>View attendance →</button></Card>}
-            {teacherView && <Card><span>Course work progress</span><strong>{state.coursework.length}</strong><small>{state.coursework.length === 1 ? "assessment mark recorded" : "assessment marks recorded"}</small><button type="button" onClick={() => setActiveTab("Course work")}>View course work →</button></Card>}
+            {teacherView && !isEcdLearner && <Card><span>Course work progress</span><strong>{state.coursework.length}</strong><small>{state.coursework.length === 1 ? "assessment mark recorded" : "assessment marks recorded"}</small><button type="button" onClick={() => setActiveTab("Course work")}>View course work →</button></Card>}
           </section>
           <section className="learner-profile-summary-grid">
             {!teacherView && <Card>
