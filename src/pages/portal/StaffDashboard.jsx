@@ -1365,6 +1365,7 @@ export default function StaffDashboard() {
           user={user}
           profile={profile}
           onOpenStudent={setProfileStudent}
+          onOpenPaymentHistory={(student) => { setProfileInitialTab("Fees"); setProfileStudent(student); }}
           onStudentAdded={loadStudents}
         />
       </div>
@@ -1381,6 +1382,7 @@ export default function StaffDashboard() {
           user={user}
           profile={profile}
           onOpenStudent={setProfileStudent}
+          onOpenPaymentHistory={(student) => { setProfileInitialTab("Fees"); setProfileStudent(student); }}
           onStudentAdded={loadStudents}
         />
       </div>

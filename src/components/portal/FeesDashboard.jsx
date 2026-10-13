@@ -8,12 +8,9 @@ import {
   LuCircleX,
   LuCreditCard,
   LuDownload,
-  LuEllipsisVertical,
   LuFilter,
-  LuHistory,
   LuPencil,
   LuSearch,
-  LuSend,
   LuWallet,
 } from "react-icons/lu";
 import PortalNotice from "./PortalNotice";
@@ -401,7 +398,6 @@ function FeeStructureModal({ mapping, onClose, onSave, saving }) {
 function MasterTable({
   students,
   onEdit,
-  onReminder,
   onHistory,
   onOpenStudent,
   onExport,
@@ -412,7 +408,6 @@ function MasterTable({
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [openAction, setOpenAction] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
@@ -647,41 +642,7 @@ function MasterTable({
                           >
                             View profile
                           </button>
-                          <div className="fee-action-menu">
-                            <button
-                              type="button"
-                              className="fee-action-trigger"
-                              aria-label={`More actions for ${student.full_name}`}
-                              aria-expanded={openAction === student.id}
-                              onClick={() =>
-                                setOpenAction(
-                                  openAction === student.id ? null : student.id,
-                                )
-                              }
-                            >
-                              <LuEllipsisVertical size={19} />
-                            </button>
-                            {openAction === student.id && (
-                              <div className="fee-action-popover">
-                                <button
-                                  onClick={() => {
-                                    onReminder(student);
-                                    setOpenAction(null);
-                                  }}
-                                >
-                                  <LuSend size={15} /> Send reminder
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    onHistory(student);
-                                    setOpenAction(null);
-                                  }}
-                                >
-                                  <LuHistory size={15} /> View history
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          <button type="button" className="fee-profile-button" onClick={() => onHistory(student)}>Payment history</button>
                         </div>
                       </td>
                     )}
@@ -756,6 +717,7 @@ export default function FeesDashboard({
   user,
   profile,
   onOpenStudent,
+  onOpenPaymentHistory,
   onStudentAdded,
 }) {
   const [feeRecords, setFeeRecords] = useState([]);
@@ -1110,12 +1072,7 @@ export default function FeesDashboard({
         <MasterTable
           students={enriched}
           onEdit={setEditTarget}
-          onReminder={(student) =>
-            setToast(`Reminder queued for ${student.full_name}`)
-          }
-          onHistory={(student) =>
-            setToast(`Payment history opened for ${student.full_name}`)
-          }
+          onHistory={onOpenPaymentHistory || onOpenStudent}
           onOpenStudent={onOpenStudent}
           onExport={exportReport}
           readOnly={readOnly}
