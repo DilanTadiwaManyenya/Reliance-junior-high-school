@@ -3772,6 +3772,23 @@
 .grade-entry-v2 {
   max-width: 1280px;
 }
+.grade-entry-loading {
+  display: grid;
+  gap: 12px;
+  min-height: 360px;
+  align-content: center;
+  padding: 42px;
+  border: 1px solid #dbe2ee;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fff, #f7faff);
+}
+.grade-entry-loading h1 { margin: 0; color: #172554; }
+.grade-entry-loading p:not(.eyebrow) { margin: 0; color: #64748b; }
+.grade-loading-skeleton { display: grid; gap: 10px; max-width: 680px; margin-top: 10px; }
+.grade-loading-skeleton i { display: block; height: 18px; border-radius: 999px; background: linear-gradient(90deg, #edf2f9 25%, #f8fafc 50%, #edf2f9 75%); background-size: 200% 100%; animation: grade-loading-shimmer 1.3s infinite; }
+.grade-loading-skeleton i:nth-child(2) { width: 78%; }
+.grade-loading-skeleton i:nth-child(3) { width: 56%; }
+@keyframes grade-loading-shimmer { to { background-position: -200% 0; } }
 .grade-workspace {
   display: grid;
   gap: 14px;
@@ -3786,6 +3803,9 @@
   background: #fff;
   box-shadow: 0 4px 14px rgba(26, 40, 71, 0.05);
 }
+.grade-scope { display: grid; align-content: center; gap: 2px; margin: 0; }
+.grade-scope small { color: #75829d; font-size: .76rem; font-weight: 700; }
+.markbook-scope-warning { padding: 12px 14px; border-left: 3px solid #b45309; border-radius: 8px; background: #fff7ed; color: #8a3f05; font-size: .88rem; font-weight: 700; }
 .grade-filterbar label,
 .grade-fields-v2 label {
   display: grid;
