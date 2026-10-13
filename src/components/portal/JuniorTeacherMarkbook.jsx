@@ -643,8 +643,11 @@ export default function JuniorTeacherMarkbook() {
 
   if (loading)
     return (
-      <section className="grade-entry-v2">
-        <p>Loading your Junior class…</p>
+      <section className="grade-entry-v2 junior-markbook-loading" aria-live="polite">
+        <span className="eyebrow">Junior class markbook</span>
+        <h1>Preparing your assigned class</h1>
+        <p>Loading learners and the correct report-book structure…</p>
+        <div aria-hidden="true"><i /><i /><i /></div>
       </section>
     );
   const markedCount = visible.filter((student) =>
