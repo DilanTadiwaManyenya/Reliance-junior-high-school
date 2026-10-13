@@ -40,10 +40,10 @@ export default function TeacherGradeEntryV2() {
 
   const subjectAssignments = useMemo(() => profile?.teacher_class_subject_assignments || [], [profile?.teacher_class_subject_assignments])
   const activeSubjectAssignments = useMemo(() => (
-    selectedSubject && selectedSubjectLevel
-      ? subjectAssignments.filter(assignment => assignment.subject === selectedSubject && assignment.class_level === selectedSubjectLevel)
-      : selectedSubjectAllocationId
-        ? subjectAssignments.filter(assignment => assignment.id === selectedSubjectAllocationId)
+    selectedSubjectAllocationId
+      ? subjectAssignments.filter(assignment => assignment.id === selectedSubjectAllocationId)
+      : selectedSubject && selectedSubjectLevel
+        ? subjectAssignments.filter(assignment => assignment.subject === selectedSubject && assignment.class_level === selectedSubjectLevel)
         : []
   ), [subjectAssignments, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId])
   const hasSubjectScope = Boolean(selectedSubject && selectedSubjectLevel && selectedSubjectAllocationId && activeSubjectAssignments.length)
