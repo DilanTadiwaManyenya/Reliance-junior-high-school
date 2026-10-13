@@ -2275,6 +2275,20 @@
   font-size: .83rem;
 }
 
+/* The class switcher belongs to learner and class work.  Context-only pages
+   (finance, staff, audit, settings) use the calmer account/header treatment. */
+.top-bar-user:has(.top-bar-class-control) {
+  min-width: 0;
+}
+
+.campus-junior .top-bar-sub {
+  color: #b22234;
+}
+
+.campus-junior .top-bar-avatar {
+  box-shadow: 0 0 0 4px #fdf0f2;
+}
+
 @media (max-width: 380px) {
   .top-bar-class-control {
     max-width: 39vw;

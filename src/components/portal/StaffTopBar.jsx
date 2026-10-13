@@ -69,6 +69,9 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
   const initials = (profile?.full_name || 'Portal User').split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase()
   const hasTeacherSubjectScope = profile?.role === 'teacher' && teacherWorkspace === 'subjects' && Boolean(selectedSubjectAllocationId)
+  const showClassControl = profile?.role === 'teacher'
+    ? teacherWorkspace !== 'subjects'
+    : ['dashboard', 'roster', 'entry', 'progress-reports', 'classes'].includes(section)
 
   return (
     <header className="staff-top-bar" role="banner">
@@ -122,7 +125,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             </div>
           )}
           {hasTeacherSubjectScope && <div className="teacher-subject-scope" aria-label="Active subject allocation"><span>Subject work</span><strong>{selectedSubject} · {selectedSubjectLevel}</strong></div>}
-          {!(profile?.role === 'teacher' && teacherWorkspace === 'subjects') && <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
+          {showClassControl && <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
             <ClassSelector 
               role={profile?.role} 
               assignedClasses={profile?.teacher_class_assignments || []} 
