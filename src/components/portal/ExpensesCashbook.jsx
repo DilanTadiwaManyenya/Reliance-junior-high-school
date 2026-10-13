@@ -6,6 +6,7 @@ const money = value => new Intl.NumberFormat('en-US', { style: 'currency', curre
 
 export default function ExpensesCashbook({ supabase, user, profile }) {
   const role = profile?.active_role ?? profile?.role
+  const campus = profile?.campus === 'senior' ? 'senior' : 'junior'
   const admin = role === 'admin'
   const readOnly = role === 'principal'
   const [rows, setRows] = useState([]); const [form, setForm] = useState(empty); const [message, setMessage] = useState(''); const [error, setError] = useState('')
@@ -19,7 +20,7 @@ export default function ExpensesCashbook({ supabase, user, profile }) {
     })
     return () => { active = false }
   }, [supabase])
-  const submit = async e => { e.preventDefault(); setError(''); setMessage(''); const { error } = await supabase.from('school_expenses').insert({ ...form, amount: Number(form.amount), entered_by: user.id }); if (error) return setError(error.message); logActivity(supabase, user, profile, { actionType: 'create', description: `Submitted ${form.category} expense`, targetTable: 'school_expenses' }); setForm(empty()); setMessage('Expense submitted for approval.'); load() }
+  const submit = async e => { e.preventDefault(); setError(''); setMessage(''); const { error } = await supabase.from('school_expenses').insert({ ...form, amount: Number(form.amount), entered_by: user.id, campus }); if (error) return setError(error.message); logActivity(supabase, user, profile, { actionType: 'create', description: `Submitted ${form.category} expense`, targetTable: 'school_expenses' }); setForm(empty()); setMessage('Expense submitted for approval.'); load() }
   const review = async (id, status) => { setError(''); const { error } = await supabase.rpc('review_school_expense', { p_expense_id: id, p_status: status }); if (error) return setError(error.message); logActivity(supabase, user, profile, { actionType: 'update', description: `${status === 'approved' ? 'Approved' : 'Rejected'} expense`, targetTable: 'school_expenses', targetId: id }); setMessage(`Expense ${status}.`); load() }
   const pending = rows.filter(row => row.status === 'pending').reduce((sum, row) => sum + Number(row.amount), 0)
   const approved = rows.filter(row => row.status === 'approved').reduce((sum, row) => sum + Number(row.amount), 0)
