@@ -11,3 +11,52 @@
 .junior-foundation-book-table tfoot th:last-child {
   display: none;
 }
+
+/* Official Junior School verification mark — keep the full stamp readable. */
+.junior-report-footer .junior-report-stamp {
+  min-width: 226px;
+  min-height: 142px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid #e4b8b8;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff 0%, #fff7f7 100%);
+  color: #9a1f28;
+  text-align: center;
+}
+
+.junior-report-footer .junior-report-stamp svg {
+  width: min(100%, 210px);
+  height: auto;
+  max-height: none;
+}
+
+.junior-report-footer .junior-report-stamp span {
+  margin: 7px 0 0;
+  color: #9a1f28;
+  font-size: .56rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .junior-report-footer .junior-report-stamp {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media print {
+  .junior-report-footer .junior-report-stamp {
+    min-width: 48mm;
+    min-height: 32mm;
+    padding: 2.5mm;
+    border-radius: 1.5mm;
+  }
+
+  .junior-report-footer .junior-report-stamp svg {
+    width: 43mm;
+  }
+}
