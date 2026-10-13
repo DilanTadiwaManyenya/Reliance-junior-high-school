@@ -1258,9 +1258,14 @@ export default function StaffDashboard() {
     selectedSubjectLevel &&
     selectedSubjectAllocationId,
   );
+  const activeClassScopeLabel = activeClassFilter.level
+    ? `${activeClassFilter.level}${activeClassFilter.stream ? ` · ${activeClassFilter.stream}` : " · all assigned streams"}`
+    : "";
   const teacherScopeLabel = hasTeacherSubjectScope
     ? `${selectedSubject} · ${selectedSubjectLevel}`
-    : "";
+    : isTeacher && activeClassScopeLabel
+      ? `${activeClassScopeLabel} · Class Work`
+      : "";
   const adminClassLevels = [
     ...new Set(schoolClasses.map((row) => row.class_level)),
   ];
@@ -1528,7 +1533,9 @@ export default function StaffDashboard() {
               <h1 className="dash-page-title">Learner Roster</h1>
               <p className="dash-page-sub">
                 {isTeacher
-                  ? "Mark today’s register, then open a learner for weekly and monthly attendance history."
+                  ? activeClassScopeLabel
+                    ? `Working in ${activeClassScopeLabel}. Mark today’s register, then open a learner for weekly and monthly attendance history.`
+                    : "Choose a class above, then mark today’s register or open a learner for attendance history."
                   : isCampusAdmin
                     ? `Manage learner records for the ${adminCampusScope === "junior" ? "Junior" : "Senior"} campus.`
                     : "All enrolled learners and records"}
@@ -1549,6 +1556,7 @@ export default function StaffDashboard() {
                   />
                 </label>
                 {isCampusAdmin && <span className="portal-scope-label">Campus locked to {adminCampusScope === "junior" ? "Junior School" : "Senior School"}</span>}
+                {isTeacher && activeClassScopeLabel && <span className="portal-scope-label">Class Work · {activeClassScopeLabel}</span>}
               </div>
               {loading ? (
                 <p className="muted">
