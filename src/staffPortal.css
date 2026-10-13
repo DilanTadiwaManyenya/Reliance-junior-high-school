@@ -2496,6 +2496,15 @@
 .junior-class-scope span { color: #6b7b98; font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .junior-class-scope strong { color: #162e62; }
 .junior-class-scope small { color: #5f7190; }
+.grade12-coursework-guidance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: stretch; gap: 1px; overflow: hidden; border: 1px solid #d5e1f1; border-radius: 14px; background: #d5e1f1; box-shadow: 0 8px 22px rgba(23, 43, 89, .05); }
+.grade12-coursework-guidance > div { display: grid; align-content: center; gap: 5px; min-height: 112px; padding: 16px 18px; background: #fff; }
+.grade12-coursework-guidance span { color: #a6302f; font-size: .68rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.grade12-coursework-guidance strong { color: #172b59; font-size: .88rem; line-height: 1.35; }
+.grade12-coursework-guidance small { color: #627494; font-size: .75rem; line-height: 1.45; }
+.grade12-coursework-guidance .btn { align-self: stretch; margin: 0; border: 0; border-radius: 0; padding: 0 22px; background: #eef5ff; color: #172b59; }
+.grade12-coursework-guidance .btn:hover { background: #dce9fa; }
+.grade12-coursework-card { border-color: #cfddec; }
+.grade12-coursework-card .portal-form > label small { display: block; max-width: 280px; margin-top: 6px; color: #627494; line-height: 1.35; }
 .junior-teacher-home { display: grid; gap: 22px; }
 .junior-teacher-home-hero { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 28px; border: 1px solid #d8e1f0; border-radius: 18px; background: linear-gradient(135deg, #ffffff 0%, #f3f7ff 100%); }
 .junior-teacher-home-hero h1 { margin: 4px 0 8px; color: #172e61; font-size: clamp(2rem, 4vw, 3rem); }
@@ -2552,7 +2561,7 @@
 .subject-allocation-action b { margin-left: 4px; font-size: 1rem; }
 .teacher-subject-context-list b { color: #1b2a56; }
 .teacher-subject-context p { margin: 0; color: #64748b; }
-@media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } .junior-class-scope { grid-template-columns: 1fr; gap: 4px; } .junior-teacher-home-hero, .junior-teacher-section-heading { align-items: stretch; flex-direction: column; } .junior-teacher-home-stats { grid-template-columns: 1fr; } .subject-allocation-grid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } .junior-class-scope { grid-template-columns: 1fr; gap: 4px; } .grade12-coursework-guidance { grid-template-columns: 1fr; } .grade12-coursework-guidance > div { min-height: auto; } .grade12-coursework-guidance .btn { min-height: 48px; padding: 12px 18px; } .junior-teacher-home-hero, .junior-teacher-section-heading { align-items: stretch; flex-direction: column; } .junior-teacher-home-stats { grid-template-columns: 1fr; } .subject-allocation-grid { grid-template-columns: 1fr; } }
 .staff-directory-table tbody tr.staff-directory-row-action {
   cursor: pointer;
 }
