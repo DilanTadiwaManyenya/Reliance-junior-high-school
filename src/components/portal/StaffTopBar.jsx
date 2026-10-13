@@ -56,10 +56,11 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
   const adminCampusScope = profile?.role === 'admin' && ['junior', 'senior'].includes(profile?.campus)
     ? profile.campus
     : null;
-  const visibleSchoolClasses = adminCampusScope
-    ? schoolClasses.filter((row) => row.campus === adminCampusScope)
+  const campusScope = ['junior', 'senior'].includes(profile?.campus) ? profile.campus : 'all'
+  const visibleSchoolClasses = campusScope !== 'all'
+    ? schoolClasses.filter((row) => row.campus === campusScope)
     : schoolClasses
-  const roleLabel = isMainAdmin ? 'Main Admin Portal' : {
+  const roleLabel = isMainAdmin ? 'Main Admin Portal' : adminCampusScope === 'junior' ? 'Junior Admin Portal' : adminCampusScope === 'senior' ? 'Senior Admin Portal' : {
     principal: 'Principal Portal',
     admin:     'Admin Portal',
     teacher:   'Teacher Portal',
@@ -128,6 +129,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
               allClasses={visibleSchoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '' }))}
               activeClassKey={activeClassKey} 
               onClassChange={handleClassChange} 
+              campusScope={campusScope}
             />
           </div>}
           {profile?.role === 'teacher' ? (

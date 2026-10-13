@@ -2258,6 +2258,23 @@
   }
 }
 
+.campus-context-lock {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  min-height: 24px;
+  color: #52627f;
+  font-size: .78rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.campus-context-lock strong {
+  color: #132c5d;
+  font-size: .83rem;
+}
+
 @media (max-width: 380px) {
   .top-bar-class-control {
     max-width: 39vw;

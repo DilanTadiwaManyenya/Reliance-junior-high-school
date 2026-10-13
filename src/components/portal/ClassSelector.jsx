@@ -34,9 +34,13 @@ export default function ClassSelector({
   activeClassKey, 
   onClassChange,
   showAllOption = true,
-  allOptionLabel = 'All classes'
+  allOptionLabel = 'All classes',
+  // Campus Administrators never choose a campus in this control. Their
+  // permitted campus is established by their profile and by Supabase RLS.
+  campusScope = 'all',
 }) {
   const isTeacher = role === 'teacher'
+  const isCampusLocked = ['junior', 'senior'].includes(campusScope)
 
   // Formatted teacher class options
   const teacherOptions = useMemo(() => {
@@ -77,7 +81,9 @@ export default function ClassSelector({
       }
     })
 
-    if (campusFilter === 'junior') {
+    const effectiveCampusFilter = isCampusLocked ? campusScope : campusFilter
+
+    if (effectiveCampusFilter === 'junior') {
       options = options.filter(o => {
         return o.level.includes('Grade') || o.level.includes('ECD')
       })
@@ -88,7 +94,7 @@ export default function ClassSelector({
     }
 
     return [...new Map(options.map(option => [option.key, option])).values()]
-  }, [isTeacher, allClasses, campusFilter])
+  }, [isTeacher, allClasses, campusFilter, campusScope, isCampusLocked])
 
   // Auto-initialize active selection if not set or invalid
   useEffect(() => {
@@ -177,20 +183,27 @@ export default function ClassSelector({
 
   return (
     <div className="admin-class-selector-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div className="campus-toggle" style={{ display: 'flex', gap: '10px', fontSize: '0.85rem' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <input type="radio" name="campusFilter" checked={campusFilter === 'all'} onChange={() => setCampusFilter('all')} />
-          All Campuses
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <input type="radio" name="campusFilter" checked={campusFilter === 'junior'} onChange={() => setCampusFilter('junior')} />
-          Junior
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <input type="radio" name="campusFilter" checked={campusFilter === 'senior'} onChange={() => setCampusFilter('senior')} />
-          Senior
-        </label>
-      </div>
+      {isCampusLocked ? (
+        <div className="campus-context-lock" aria-label={`Campus locked to ${campusScope} school`}>
+          <span>Campus</span>
+          <strong>{campusScope === 'junior' ? 'Junior School' : 'Senior School'}</strong>
+        </div>
+      ) : (
+        <div className="campus-toggle" style={{ display: 'flex', gap: '10px', fontSize: '0.85rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <input type="radio" name="campusFilter" checked={campusFilter === 'all'} onChange={() => setCampusFilter('all')} />
+            All Campuses
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <input type="radio" name="campusFilter" checked={campusFilter === 'junior'} onChange={() => setCampusFilter('junior')} />
+            Junior
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <input type="radio" name="campusFilter" checked={campusFilter === 'senior'} onChange={() => setCampusFilter('senior')} />
+            Senior
+          </label>
+        </div>
+      )}
       <div className="class-selector-bar admin-bar">
         <label htmlFor="admin-class-selector" className="class-switcher-label">
           Filter by class:
