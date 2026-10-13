@@ -22,10 +22,16 @@ export default function CourseWork() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const selectedAllocation = useMemo(() => allocations.find(allocation => allocation.id === selectedSubjectAllocationId)
-    || allocations.find(allocation => allocation.subject === selectedSubject && allocation.class_level === selectedSubjectLevel), [allocations, selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel])
-  const scopedAssessments = useMemo(() => assessments.filter(assessment => assessment.subject === selectedSubject && assessment.class_level === selectedSubjectLevel), [assessments, selectedSubject, selectedSubjectLevel])
-  const selectedAssessment = assessments.find(row => row.id === selected)
+  const selectedAllocation = useMemo(() => allocations.find(allocation => allocation.id === selectedSubjectAllocationId) || null, [allocations, selectedSubjectAllocationId])
+  const hasSubjectScope = Boolean(selectedAllocation && selectedSubject === selectedAllocation.subject && selectedSubjectLevel === selectedAllocation.class_level)
+  const scopeStream = selectedAllocation?.class_stream || ''
+  const scopeLabel = selectedAllocation ? `${selectedAllocation.subject} · ${selectedAllocation.class_level}${scopeStream ? ` · ${scopeStream}` : ' · all assigned streams'}` : ''
+  const scopedAssessments = useMemo(() => assessments.filter(assessment => (
+    assessment.subject === selectedSubject &&
+    assessment.class_level === selectedSubjectLevel &&
+    (assessment.class_stream || '') === scopeStream
+  )), [assessments, selectedSubject, selectedSubjectLevel, scopeStream])
+  const selectedAssessment = scopedAssessments.find(row => row.id === selected) || null
 
   const load = async () => {
     setLoading(true)
@@ -42,6 +48,11 @@ export default function CourseWork() {
 
   useEffect(() => { load() }, [supabase, user.id])
   useEffect(() => {
+    setSelected('')
+    setStudents([])
+    setMarks({})
+  }, [selectedSubjectAllocationId])
+  useEffect(() => {
     if (!selected) { setStudents([]); setMarks({}); return }
     Promise.all([
       supabase.rpc('coursework_learners', { requested_assessment_id: selected }),
@@ -55,15 +66,16 @@ export default function CourseWork() {
 
   const create = async event => {
     event.preventDefault(); setError(''); setNotice('')
-    if (!selectedAllocation) return setError('Return to Subject overview and choose an assigned subject and form.')
+    if (!hasSubjectScope) return setError('Return to Subject allocations and choose one of your current subject assignments.')
     if (!form.title.trim()) return setError('Enter an assessment title.')
+    if (!Number(form.total_marks) || Number(form.total_marks) < 1) return setError('Enter a total mark greater than zero.')
     setSaving(true)
     const { data, error: requestError } = await supabase.from('coursework_assessments').insert({
       teacher_id: user.id,
       campus: selectedAllocation.campus || profile?.campus || 'senior',
       class_level: selectedAllocation.class_level,
-      // A subject/form assessment deliberately spans every stream in the selected allocation.
-      class_stream: null,
+      // A stream allocation remains stream-specific; a whole-form allocation remains whole-form.
+      class_stream: selectedAllocation.class_stream || null,
       subject: selectedAllocation.subject,
       title: form.title.trim(),
       assessment_type: form.assessment_type,
@@ -75,7 +87,7 @@ export default function CourseWork() {
     setSaving(false)
     if (requestError) return setError(requestError.message)
     setAssessments(rows => [data, ...rows]); setSelected(data.id); setMarks({}); setForm(blankAssessment())
-    setNotice('Assessment created. Enter marks below, then save once.')
+    setNotice(`Assessment created for ${scopeLabel}. Enter marks below, then save once.`)
   }
 
   const saveMarks = async () => {
@@ -92,11 +104,13 @@ export default function CourseWork() {
 
   const completed = students.filter(student => marks[student.id] !== '' && marks[student.id] !== undefined).length
   return <section className="coursework-page">
-    <header className="grade-entry-heading"><p className="eyebrow">Subject workspace</p><h1>Course Work</h1><p>{selectedSubject && selectedSubjectLevel ? `${selectedSubject} · ${selectedSubjectLevel} — every learner in your assigned streams.` : 'Choose a subject and form from Subject overview first.'}</p></header>
+    <header className="grade-entry-heading"><p className="eyebrow">Subject workspace</p><h1>Course Work</h1><p>{hasSubjectScope ? `${scopeLabel} — only learners in this allocation can be assessed.` : 'Choose a subject allocation before creating or entering course work.'}</p></header>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}
     {loading && <PortalNotice>Loading your subject allocations…</PortalNotice>}
     {!loading && !allocations.length && <PortalNotice tone="error">No subject allocations are assigned to you yet. Ask the Main Admin to add your subject allocation.</PortalNotice>}
-    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label>Subject and form<input readOnly value={selectedAllocation ? `${selectedAllocation.subject} · ${selectedAllocation.class_level}` : ''} placeholder="Choose a subject and form" /></label><p className="muted" style={{ gridColumn: '1 / -1', margin: 0 }}>This assessment will include all learners in the streams assigned to you for this subject and form.</p><label>Assessment title<input required value={form.title} onChange={e => setForm(value => ({ ...value, title: e.target.value }))} placeholder="e.g. Week 4 fractions test" /></label><label>Type<select value={form.assessment_type} onChange={e => setForm(value => ({ ...value, assessment_type: e.target.value }))}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={e => setForm(value => ({ ...value, total_marks: e.target.value }))} /></label><label>Date<input required type="date" value={form.assessment_date} onChange={e => setForm(value => ({ ...value, assessment_date: e.target.value }))} /></label><Button type="submit" disabled={saving || !selectedAllocation}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
-    <Card><div className="coursework-heading"><div><h2>2. Enter marks</h2><p>Select an assessment for this subject and form to see marks entered and marks still missing.</p></div><label>Assessment<select value={selected} onChange={e => setSelected(e.target.value)}><option value="">Choose assessment</option>{scopedAssessments.map(row => <option key={row.id} value={row.id}>{row.title} · {row.assessment_date}</option>)}</select></label></div>{selectedAssessment && <><p className="muted">{completed}/{students.length} marks entered · Missing marks remain blank until saved.</p><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Class</th><th>Admission no.</th><th>Mark / {selectedAssessment.total_marks}</th><th>Status</th></tr></thead><tbody>{students.map(student => { const value = marks[student.id] ?? ''; return <tr key={student.id}><td><strong>{student.full_name}</strong></td><td>{student.class_level} {student.class_stream || ''}</td><td>{student.admission_number}</td><td><input aria-label={`Mark for ${student.full_name}`} type="number" min="0" max={selectedAssessment.total_marks} value={value} onChange={e => setMarks(current => ({ ...current, [student.id]: e.target.value }))} /></td><td><span className={`class-status ${value === '' ? 'is-inactive' : 'is-active'}`}>{value === '' ? 'Missing' : 'Entered'}</span></td></tr>})}</tbody></table></div><Button type="button" onClick={saveMarks} disabled={saving}>{saving ? 'Saving…' : `Save ${completed} marks`}</Button></>}</Card>
+    {!loading && !hasSubjectScope && <PortalNotice tone="error">This course-work link does not match one of your active allocations. Return to Subject allocations and select the class, subject, and stream again.</PortalNotice>}
+    {hasSubjectScope && <div className="coursework-scope"><span>Active allocation</span><strong>{scopeLabel}</strong><small>{scopeStream ? 'This assessment is restricted to the selected stream.' : 'This assessment covers the whole assigned form.'}</small></div>}
+    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label>Subject and form<input readOnly value={scopeLabel} placeholder="Choose a subject allocation" /></label><p className="muted" style={{ gridColumn: '1 / -1', margin: 0 }}>{scopeStream ? `This assessment will include only active learners in ${selectedAllocation?.class_level} · ${scopeStream}.` : 'This assessment will include every active learner in your whole-form allocation.'}</p><label>Assessment title<input required value={form.title} onChange={e => setForm(value => ({ ...value, title: e.target.value }))} placeholder="e.g. Week 4 fractions test" disabled={!hasSubjectScope} /></label><label>Type<select value={form.assessment_type} onChange={e => setForm(value => ({ ...value, assessment_type: e.target.value }))} disabled={!hasSubjectScope}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={e => setForm(value => ({ ...value, total_marks: e.target.value }))} disabled={!hasSubjectScope} /></label><label>Date<input required type="date" value={form.assessment_date} onChange={e => setForm(value => ({ ...value, assessment_date: e.target.value }))} disabled={!hasSubjectScope} /></label><Button type="submit" disabled={saving || !hasSubjectScope}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
+    <Card><div className="coursework-heading"><div><h2>2. Enter marks</h2><p>Select an assessment from this allocation to see marks entered and marks still missing.</p></div><label>Assessment<select value={selected} onChange={e => setSelected(e.target.value)} disabled={!hasSubjectScope}><option value="">Choose assessment</option>{scopedAssessments.map(row => <option key={row.id} value={row.id}>{row.title} · {row.assessment_date}</option>)}</select></label></div>{hasSubjectScope && !scopedAssessments.length && <p className="muted">No assessments have been created for this allocation yet.</p>}{selectedAssessment && <><p className="muted">{completed}/{students.length} marks entered · Missing marks remain blank until saved.</p><div className="portal-table-wrap"><table className="portal-table"><thead><tr><th>Learner</th><th>Class</th><th>Admission no.</th><th>Mark / {selectedAssessment.total_marks}</th><th>Status</th></tr></thead><tbody>{students.map(student => { const value = marks[student.id] ?? ''; return <tr key={student.id}><td><strong>{student.full_name}</strong></td><td>{student.class_level} {student.class_stream || ''}</td><td>{student.admission_number}</td><td><input aria-label={`Mark for ${student.full_name}`} type="number" min="0" max={selectedAssessment.total_marks} value={value} onChange={e => setMarks(current => ({ ...current, [student.id]: e.target.value }))} /></td><td><span className={`class-status ${value === '' ? 'is-inactive' : 'is-active'}`}>{value === '' ? 'Missing' : 'Entered'}</span></td></tr>})}</tbody></table></div><Button type="button" onClick={saveMarks} disabled={saving}>{saving ? 'Saving…' : `Save ${completed} marks`}</Button></>}</Card>
   </section>
 }
