@@ -11,7 +11,7 @@ const blankAssessment = () => ({ title: '', assessment_type: 'weekly', total_mar
 
 export default function JuniorCourseWork() {
   const { supabase, user, profile } = useAuth()
-  const { activeClassFilter, setActiveClassFilter, setActiveClassKey } = useSection()
+  const { activeClassFilter, setActiveClassFilter, setActiveClassKey, setSection } = useSection()
   const assignedClasses = useMemo(() => (profile?.teacher_class_assignments || [])
     .filter(assignment => /^Grade [1-7]$|^ECD [AB]$/.test(assignment.class_level))
     .map(assignment => ({
@@ -32,6 +32,7 @@ export default function JuniorCourseWork() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const reportBook = useMemo(() => getJuniorReportBook(classLevel), [classLevel])
+  const isEcd = reportBook?.type === 'developmental-ratings'
   const reportSubjects = reportBook?.subjects || []
   const subjects = useMemo(() => reportSubjects.length ? reportSubjects.map(item => item.subject) : (classLevel ? getSubjectsByGradeStream(classLevel, 'Blue') : []), [classLevel, reportSubjects])
   const components = reportSubjects.find(item => item.subject === subject)?.components || []
@@ -105,6 +106,7 @@ export default function JuniorCourseWork() {
     } else setNotice(`${rows.length} coursework mark${rows.length === 1 ? '' : 's'} saved.`)
   }
   const completed = students.filter(student => marks[student.id] !== '' && marks[student.id] !== undefined).length
+  if (isEcd) return <section className="coursework-page"><header className="grade-entry-heading"><p className="eyebrow">Junior class workspace</p><h1>ECD developmental record</h1><p>ECD learners are assessed through the developmental checklist, not subject coursework.</p></header><div className="junior-class-scope"><span>Working class</span><strong>{classScopeLabel}</strong><small>Record each learner’s 1–5 developmental ratings in the ECD markbook.</small></div><Card className="ecd-coursework-notice"><p className="eyebrow">ECD assessment</p><h2>Course Work is not used for ECD</h2><p>The ECD report book does not use Grade subjects or coursework marks. Use the developmental markbook to record the required ratings for every development area.</p><Button type="button" onClick={() => setSection('entry')}>Open developmental markbook</Button></Card></section>
   return <section className="coursework-page"><header className="grade-entry-heading"><p className="eyebrow">Junior class coursework</p><h1>Course Work</h1><p>Create coursework for any subject in your assigned Junior class, then enter marks for its learners.</p></header>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}{loading && <PortalNotice>Loading your Junior coursework…</PortalNotice>}{!loading && !assignedLevels.length && <PortalNotice tone="error">No Junior class has been assigned to your account yet. Ask the Main Admin to assign your class first.</PortalNotice>}
     {classLevel && <div className="junior-class-scope"><span>Working class</span><strong>{classScopeLabel}</strong><small>Only learners in this assigned Junior class can be included.</small></div>}

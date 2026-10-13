@@ -11,6 +11,8 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
   const canManageJuniorAcademicSettings = profile?.role === 'admin' && ['all', 'junior'].includes(profile?.campus)
   const accountant = profile?.role === 'accountant'
   const juniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
+  const juniorAssignments = profile?.teacher_class_assignments || []
+  const ecdOnlyJuniorTeacher = juniorTeacher && juniorAssignments.length > 0 && juniorAssignments.every(assignment => /^ECD [AB]$/.test(assignment.class_level))
   const teacherInSubjectWorkspace = profile?.role === 'teacher' && teacherWorkspace === 'subjects'
   
   const groups = [
@@ -20,7 +22,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
         { id: 'dashboard', label: juniorTeacher ? 'My class' : 'Class overview', iconKey: 'dashboard', show: !teacherInSubjectWorkspace },
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: profile?.role !== 'teacher' || !teacherInSubjectWorkspace },
         { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || teacherInSubjectWorkspace || juniorTeacher },
-        { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: teacherInSubjectWorkspace || juniorTeacher },
+        { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: teacherInSubjectWorkspace || (juniorTeacher && !ecdOnlyJuniorTeacher) },
         { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'accountant'].includes(profile?.role) },
         { id: 'settings', label: 'Account settings', iconKey: 'staff', show: true }
       ].filter(i => i.show)

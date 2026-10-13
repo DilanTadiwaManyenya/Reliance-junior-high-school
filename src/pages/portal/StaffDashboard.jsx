@@ -255,6 +255,7 @@ function JuniorTeacherHome({ students, loading, setSection, profile }) {
     .map((assignment) => [`${assignment.class_level}:${assignment.class_stream || ""}`, assignment]))
     .values()];
   const activeLearners = students.filter((student) => student.status === "active");
+  const ecdOnlyTeacher = classes.length > 0 && classes.every((assignment) => /^ECD [AB]$/.test(assignment.class_level));
 
   return (
     <section className="junior-teacher-home">
@@ -262,7 +263,7 @@ function JuniorTeacherHome({ students, loading, setSection, profile }) {
         <div>
           <p className="eyebrow">Junior School · class teacher workspace</p>
           <h1>My class</h1>
-          <p>Work with the learners in your assigned class. Attendance, Markbook and Course Work all stay inside this class scope.</p>
+          <p>{ecdOnlyTeacher ? "Work with the learners in your assigned ECD class. Attendance and the developmental markbook stay inside this class scope." : "Work with the learners in your assigned class. Attendance, Markbook and Course Work all stay inside this class scope."}</p>
         </div>
         <div className="junior-teacher-home-actions">
           <Button variant="secondary" onClick={() => setSection("roster")}>Take attendance</Button>
@@ -272,10 +273,10 @@ function JuniorTeacherHome({ students, loading, setSection, profile }) {
       <div className="junior-teacher-home-stats">
         <article><span>Assigned classes</span><strong>{classes.length}</strong><small>Junior class scope{classes.length === 1 ? "" : "s"}</small></article>
         <article><span>Active learners</span><strong>{loading ? "—" : activeLearners.length}</strong><small>{loading ? "Loading class list" : "ready for attendance and marking"}</small></article>
-        <article><span>Working tools</span><strong>3</strong><small>Attendance · Markbook · Course Work</small></article>
+        <article><span>Working tools</span><strong>{ecdOnlyTeacher ? "2" : "3"}</strong><small>{ecdOnlyTeacher ? "Attendance · Developmental markbook" : "Attendance · Markbook · Course Work"}</small></article>
       </div>
       <section className="junior-teacher-class-list">
-        <div className="junior-teacher-section-heading"><div><p className="eyebrow">Your teaching access</p><h2>Assigned classes</h2></div><Button variant="secondary" onClick={() => setSection("coursework")}>Course Work</Button></div>
+        <div className="junior-teacher-section-heading"><div><p className="eyebrow">Your teaching access</p><h2>Assigned classes</h2></div>{!ecdOnlyTeacher && <Button variant="secondary" onClick={() => setSection("coursework")}>Course Work</Button>}</div>
         {classes.length ? <div className="junior-teacher-class-grid">{classes.map((assignment) => {
           const classLearners = activeLearners.filter((student) => student.class_level === assignment.class_level && (student.class_stream || "") === (assignment.class_stream || ""));
           const label = `${assignment.class_level}${assignment.class_stream ? ` · ${assignment.class_stream}` : ""}`;

@@ -4005,6 +4005,18 @@
 .ecd-rating-row label:hover { background: #eef2ff; }
 .ecd-rating-row label.is-selected { background: #e0e7ff; box-shadow: inset 0 0 0 1px #6366f1; }
 .ecd-rating-row input { width: 17px; height: 17px; accent-color: #4f46e5; cursor: pointer; }
+.ecd-coursework-notice {
+  max-width: 680px;
+  display: grid;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid #c7d9ef;
+  background: linear-gradient(135deg, #f8fbff, #edf5ff);
+}
+.ecd-coursework-notice .eyebrow { margin: 0; }
+.ecd-coursework-notice h2 { margin: 0; color: #172554; }
+.ecd-coursework-notice p:not(.eyebrow) { margin: 0; max-width: 58ch; color: #526581; line-height: 1.65; }
+.ecd-coursework-notice .btn { justify-self: start; }
 .grade-info {
   display: inline-grid;
   place-items: center;
