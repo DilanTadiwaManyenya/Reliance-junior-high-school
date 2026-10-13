@@ -2568,6 +2568,14 @@
 .subject-allocation-detail { align-self: center; color: #60708f; font-size: .82rem; font-weight: 700; text-align: right; }
 .subject-allocation-action { grid-column: 1 / -1; align-self: end; margin-top: 7px; color: #a6302f; font-size: .88rem; font-weight: 800; }
 .subject-allocation-action b { margin-left: 4px; font-size: 1rem; }
+.subject-allocation-metric { color: #1b2a56; font-size: .82rem; font-weight: 700; }
+.subject-allocation-metric b { color: #a6302f; font-size: 1.05rem; }
+.subject-allocation-workspace-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.subject-allocation-workspace-actions button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: 10px; cursor: pointer; font: 800 .9rem var(--font-ui, inherit); }
+.subject-allocation-workspace-actions .button-primary { border: 1px solid #a6302f; background: #a6302f; color: #fff; }
+.subject-allocation-workspace-actions .button-primary:hover { background: #852522; }
+.subject-allocation-workspace-actions .button-secondary { border: 1px solid #1b2a56; background: #fff; color: #1b2a56; }
+.subject-allocation-workspace-actions .button-secondary:hover { background: #f4f7fc; }
 .teacher-subject-context-list b { color: #1b2a56; }
 .teacher-subject-context p { margin: 0; color: #64748b; }
 @media (max-width: 700px) { .coursework-heading { align-items: stretch; flex-direction: column; } .coursework-heading label { min-width: 0; } .junior-class-scope { grid-template-columns: 1fr; gap: 4px; } .grade12-coursework-guidance { grid-template-columns: 1fr; } .grade12-coursework-guidance > div { min-height: auto; } .grade12-coursework-guidance .btn { min-height: 48px; padding: 12px 18px; } .junior-teacher-home-hero, .junior-teacher-section-heading { align-items: stretch; flex-direction: column; } .junior-teacher-home-stats { grid-template-columns: 1fr; } .subject-allocation-grid { grid-template-columns: 1fr; } }
