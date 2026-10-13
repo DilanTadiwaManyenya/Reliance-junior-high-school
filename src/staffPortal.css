@@ -3959,9 +3959,29 @@
   color: #1e3a66;
   font-size: .78rem;
 }
+.component-total-grid > div > small { grid-column: 1 / -1; margin-top: -4px; color: #64748b; font-size: .66rem; line-height: 1.35; }
+.component-total-grid > div.is-project { border-color: #bcd5fb; background: linear-gradient(135deg, #f5f9ff, #eaf2ff); }
+.component-total-grid > div.is-project > strong { color: #1d4ed8; }
+.component-total-grid > div.is-project input[readonly] { background: #e6edf8; color: #475569; cursor: not-allowed; }
 .component-total-grid label { font-size: .64rem; }
 .component-total-grid input { min-height: 38px; }
 .component-total-grid + .paper-total-note { display: none; }
+.grade12-markbook-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin: 14px 0;
+  border: 1px solid #d5e1f1;
+  border-radius: 12px;
+  background: #d5e1f1;
+}
+.grade12-markbook-summary > div { display: grid; gap: 4px; min-height: 93px; padding: 14px 16px; background: #fff; }
+.grade12-markbook-summary span { color: #a6302f; font-size: .64rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.grade12-markbook-summary strong { color: #172554; font-size: .95rem; line-height: 1.25; }
+.grade12-markbook-summary small { color: #64748b; font-size: .7rem; line-height: 1.35; }
+.grade12-markbook-summary .is-saved { background: #f0fdf4; }
+.grade12-markbook-summary .is-saved span { color: #15803d; }
 .ecd-checklist-summary {
   grid-column: 1 / -1;
   display: grid;
@@ -4184,6 +4204,7 @@
   .private-mark-record .btn.subtle { justify-self: start; }
   .private-mark-table { grid-template-columns: 1fr auto; }
   .private-mark-table span:nth-child(2) { display: none; }
+  .grade12-markbook-summary { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) {
   .grade-filterbar {

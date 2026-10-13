@@ -52,6 +52,7 @@ export default function JuniorTeacherMarkbook() {
   const [form, setForm] = useState(blank);
   const [ecdRatings, setEcdRatings] = useState({});
   const [recordId, setRecordId] = useState("");
+  const [savedComponentCount, setSavedComponentCount] = useState(0);
   const [markedStudentIds, setMarkedStudentIds] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
   const [loadingRecord, setLoadingRecord] = useState(false);
@@ -98,6 +99,10 @@ export default function JuniorTeacherMarkbook() {
         total + Number(form.componentScores[component]?.score || 0),
       0,
     );
+  const gradeOneTwoProject = form.componentScores.Project || {};
+  const gradeOneTwoEntryComplete =
+    !isGradeOneTwo ||
+    (components.length > 0 && savedComponentCount === components.length);
   const visible = useMemo(
     () => students.filter((student) => student.class_level === classLevel),
     [students, classLevel],
@@ -202,6 +207,7 @@ export default function JuniorTeacherMarkbook() {
   useEffect(() => {
     setStudentId("");
     setRecordId("");
+    setSavedComponentCount(0);
     setMarkedStudentIds(new Set());
     setEcdRatings({});
     setShowRecordedMarks(false);
@@ -210,6 +216,7 @@ export default function JuniorTeacherMarkbook() {
 
   useEffect(() => {
     setRecordId("");
+    setSavedComponentCount(0);
     setShowRecordedMarks(false);
     setForm((value) => ({
       ...value,
@@ -333,6 +340,7 @@ export default function JuniorTeacherMarkbook() {
             ? data?.[0]?.id || ""
             : data?.id || "",
       );
+      setSavedComponentCount(isGradeOneTwo ? (data || []).length : 0);
       setShowRecordedMarks(false);
       setForm((value) =>
         isEcd
@@ -628,6 +636,7 @@ export default function JuniorTeacherMarkbook() {
         ? data?.[0]?.id || recordId
         : data?.id || recordId,
     );
+    if (isGradeOneTwo) setSavedComponentCount(components.length);
     setMarkedStudentIds((current) => new Set([...current, learner.id]));
     setNotice(recordId ? `${activeItem} updated.` : `${activeItem} saved.`);
   };
@@ -775,13 +784,23 @@ export default function JuniorTeacherMarkbook() {
           </div>
         )}
         {learner && isGradeOneTwo && (
-          <p
-            className={`paper-total-note grade-one-two-total ${gradeOneTwoAssessmentPossible === 50 ? "ready" : ""}`}
-          >
-            Assessment components:{" "}
-            <strong>{gradeOneTwoAssessmentPossible}/50</strong>. Project is a
-            separate mark out of 20 and is not part of this total.
-          </p>
+          <section className="grade12-markbook-summary" aria-label="Grade 1 and 2 report entry summary">
+            <div>
+              <span>Assessment components</span>
+              <strong>{gradeOneTwoAssessmentScore}/{gradeOneTwoAssessmentPossible || "—"}</strong>
+              <small>Possible marks must total 50.</small>
+            </div>
+            <div>
+              <span>Separate project</span>
+              <strong>{gradeOneTwoProject.score || "—"}/20</strong>
+              <small>It is recorded but never added to the 50.</small>
+            </div>
+            <div className={gradeOneTwoEntryComplete ? "is-saved" : ""}>
+              <span>Saved status</span>
+              <strong>{gradeOneTwoEntryComplete ? "All components saved" : recordId ? "Continue saved entry" : "Not saved yet"}</strong>
+              <small>{gradeOneTwoEntryComplete ? "You can safely correct this entry below." : "Every component must be saved together."}</small>
+            </div>
+          </section>
         )}
         {learner && isGradeThreeSeven && (
           <section className="project-entry-card">
@@ -815,7 +834,7 @@ export default function JuniorTeacherMarkbook() {
             <header className="grade-form-card-heading">
               <div>
                 <h2>
-                  {recordId ? "Edit saved entry" : "New report-book entry"}
+                  {recordId ? gradeOneTwoEntryComplete ? "Edit saved entry" : "Complete saved entry" : "New report-book entry"}
                 </h2>
                 <p>
                   {isEcd
@@ -982,8 +1001,9 @@ export default function JuniorTeacherMarkbook() {
                   </label>
                   <div className="component-total-grid">
                     {components.map((component) => (
-                      <div key={component}>
+                      <div key={component} className={component === "Project" ? "is-project" : ""}>
                         <strong>{component}</strong>
+                        {component === "Project" && <small>Separate from the 50-mark assessment.</small>}
                         <label>
                           Score
                           <input
@@ -1016,8 +1036,10 @@ export default function JuniorTeacherMarkbook() {
                             required
                             type="number"
                             min="1"
+                            max={component === "Project" ? "20" : undefined}
+                            readOnly={component === "Project"}
                             value={
-                              form.componentScores[component]?.possible || ""
+                              component === "Project" ? "20" : form.componentScores[component]?.possible || ""
                             }
                             onChange={(event) =>
                               setForm((value) => ({
@@ -1045,7 +1067,7 @@ export default function JuniorTeacherMarkbook() {
                       {gradeOneTwoAssessmentPossible}
                       /50
                     </strong>
-                    . There is no grade or unit for Grade 1 and Grade 2.
+                    . Project is separate out of 20. There is no grade or unit for Grade 1 and Grade 2.
                   </p>
                 </>
               ) : (
@@ -1112,7 +1134,7 @@ export default function JuniorTeacherMarkbook() {
                         ? "Both paper marks will be saved together."
                         : "Set the two possible marks to a combined total of 100."
                       : isGradeOneTwo
-                        ? "Save all subject components together once their possible marks total 50."
+                        ? "Save all subject components together once assessment possible marks total 50. Project stays separate out of 20."
                         : "Enter a mark and save."}
               </p>
               <div className="grade-action-buttons">
@@ -1133,8 +1155,10 @@ export default function JuniorTeacherMarkbook() {
                 >
                   {saving
                     ? "Saving…"
-                    : recordId
+                    : recordId && gradeOneTwoEntryComplete
                       ? "Update entry"
+                      : recordId
+                        ? "Complete entry"
                       : "Save entry"}
                 </button>
               </div>
@@ -1156,9 +1180,11 @@ export default function JuniorTeacherMarkbook() {
             </header>
             <p>
               {learner
-                ? recordId
-                  ? "Saved entry can be edited at any time."
-                  : "No entry saved for this learner yet."
+                  ? recordId
+                    ? gradeOneTwoEntryComplete
+                      ? "Saved entry can be edited at any time."
+                      : "A partial entry exists. Complete every component before it is counted."
+                    : "No entry saved for this learner yet."
                 : "Select a learner to enter a report-book value."}
             </p>
           </aside>
@@ -1172,7 +1198,7 @@ export default function JuniorTeacherMarkbook() {
           >
             <div>
               <span>Confidential teacher record</span>
-              <strong>Saved marks only</strong>
+              <strong>{gradeOneTwoEntryComplete ? "Saved marks only" : "Partial saved marks"}</strong>
               <small>
                 Hover to reveal on a computer, or tap the button on a phone.
                 Grades and units are not shown.
