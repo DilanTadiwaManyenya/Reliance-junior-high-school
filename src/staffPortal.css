@@ -2304,6 +2304,16 @@
   white-space: nowrap;
 }
 
+.accountant-learner-profiles { display: grid; gap: 18px; }
+.accountant-profile-filters { display: grid; grid-template-columns: minmax(180px, .45fr) minmax(240px, 1fr); gap: 16px; align-items: end; }
+.accountant-profile-filters label { display: grid; gap: 7px; color: #344054; font-size: .8rem; font-weight: 800; }
+.accountant-profile-filters select, .accountant-profile-filters input { min-height: 42px; }
+.accountant-profile-count { margin: 14px 0 8px; }
+@media (max-width: 640px) {
+  .accountant-profile-filters { grid-template-columns: 1fr; gap: 12px; }
+  .accountant-profile-table th:nth-child(2), .accountant-profile-table td:nth-child(2), .accountant-profile-table th:nth-child(4), .accountant-profile-table td:nth-child(4) { display: none; }
+}
+
 .portal-form-title {
   align-items: flex-start;
 }

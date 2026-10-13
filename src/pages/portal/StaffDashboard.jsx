@@ -21,6 +21,7 @@ import ActivityLog from "../../components/portal/ActivityLog";
 import ClassManager from "../../components/portal/ClassManager";
 import TeacherAttendanceHistory from "../../components/portal/TeacherAttendanceHistory";
 import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
+import AccountantLearnerProfiles from "../../components/portal/AccountantLearnerProfiles";
 import { logActivity } from "../../lib/logActivity";
 import BulkLearnerExport from "../../components/portal/BulkLearnerExport";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
@@ -1330,12 +1331,24 @@ export default function StaffDashboard() {
       />
     );
 
+  if (section === "learner-profiles" && accountant)
+    return (
+      <div className="staff-content-area">
+        <AccountantLearnerProfiles
+          students={filteredStudents}
+          campus={profile?.campus || "junior"}
+          onOpenProfile={setProfileStudent}
+        />
+      </div>
+    );
+
   /* Accountant: show fees dashboard */
   if (accountant)
     return (
       <div className="staff-content-area">
         <nav className="shop-accountant-nav" aria-label="Accountant workspace">
           <button aria-current="page">Finance</button>
+          <button onClick={() => setSection("learner-profiles")}>Learner profiles</button>
           <button onClick={() => setSection("expenses")}>
             Expenses & Cashbook
           </button>

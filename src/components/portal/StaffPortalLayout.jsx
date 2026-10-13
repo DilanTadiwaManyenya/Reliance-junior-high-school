@@ -61,7 +61,7 @@ export default function StaffPortalLayout() {
     admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'activity'] },
     teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'subject-allocations', 'roster', 'entry', 'coursework', 'settings'] },
-    accountant: { defaultSection: 'fees',      allowed: ['fees', 'expenses', 'inventory', 'progress-reports'] },
+    accountant: { defaultSection: 'fees',      allowed: ['fees', 'learner-profiles', 'expenses', 'inventory', 'progress-reports'] },
   }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
   const isJuniorTeacher = role === 'teacher' && profile?.campus === 'junior'
   const section = requestedSection && sectionConfig.allowed.includes(requestedSection) && !(isJuniorTeacher && requestedSection === 'subject-allocations')
