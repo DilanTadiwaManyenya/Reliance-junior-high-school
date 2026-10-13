@@ -9,9 +9,13 @@ const blank = () => ({ subject: '', component: '', developmentArea: '', score: '
 
 export default function JuniorTeacherMarkbook() {
   const { supabase, profile, user } = useAuth()
-  const assignedLevels = useMemo(() => [...new Set((profile?.teacher_class_assignments || [])
+  const assignedClasses = useMemo(() => (profile?.teacher_class_assignments || [])
     .filter(assignment => /^Grade [1-7]$|^ECD [AB]$/.test(assignment.class_level))
-    .map(assignment => assignment.class_level))], [profile?.teacher_class_assignments])
+    .map(assignment => ({
+      level: assignment.class_level,
+      stream: assignment.class_stream || '',
+    })), [profile?.teacher_class_assignments])
+  const assignedLevels = useMemo(() => [...new Set(assignedClasses.map(assignment => assignment.level))], [assignedClasses])
   const [classLevel, setClassLevel] = useState('')
   const [students, setStudents] = useState([])
   const [studentId, setStudentId] = useState('')
@@ -54,14 +58,14 @@ export default function JuniorTeacherMarkbook() {
 
   useEffect(() => {
     let active = true
-    supabase.from('students').select('id,full_name,admission_number,class_level,class_stream,status').eq('status', 'active').order('full_name').then(({ data, error: requestError }) => {
+    supabase.from('students').select('id,full_name,admission_number,class_level,class_stream,status').eq('status', 'active').eq('campus', 'junior').order('full_name').then(({ data, error: requestError }) => {
       if (!active) return
-      setStudents((data || []).filter(student => assignedLevels.includes(student.class_level)))
+      setStudents((data || []).filter(student => assignedClasses.some(assignment => assignment.level === student.class_level && assignment.stream === (student.class_stream || ''))))
       setError(requestError ? 'Unable to load learners in your assigned Junior class.' : '')
       setLoading(false)
     })
     return () => { active = false }
-  }, [supabase, assignedLevels.join('|')])
+  }, [supabase, assignedClasses.map(assignment => `${assignment.level}:${assignment.stream}`).join('|')])
 
   useEffect(() => {
     setStudentId(''); setRecordId(''); setMarkedStudentIds(new Set()); setEcdRatings({}); setShowRecordedMarks(false)
