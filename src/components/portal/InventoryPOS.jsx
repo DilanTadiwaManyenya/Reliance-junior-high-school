@@ -35,6 +35,7 @@ const blank = {
   name: "",
   sku: "",
   category: "Uniforms",
+  campus: "",
   selling_price: "",
   cost_price: "",
   quantity_on_hand: "0",
@@ -167,7 +168,9 @@ function exportCSV(rows, filename) {
 }
 export default function InventoryPOS({ supabase, user, profile }) {
   const role = profile?.active_role ?? profile?.role;
-  const admin = role === "admin";
+  // Stock belongs to the school as a whole. Campus administrators do not
+  // manage products: only the Main Admin may create and receive stock.
+  const admin = role === "admin" && profile?.campus === "all";
   const access = admin || role === "accountant";
   const storageKey = `reliance-shop:${user.id}`;
   const [tab, setTab] = useState("overview");
@@ -619,8 +622,12 @@ export default function InventoryPOS({ supabase, user, profile }) {
         cost_price: Number(form.cost_price),
         reorder_level: Number(form.reorder_level),
         ...(form.id ? { active: Boolean(form.active) } : {}),
+        ...(!form.id ? { campus: form.campus } : {}),
       };
       if (!payload.name) throw new Error("Enter a product name.");
+      if (!form.id && !["junior", "senior"].includes(payload.campus)) {
+        throw new Error("Choose the campus that will own this stock.");
+      }
       const result = form.id
         ? await supabase
             .from("inventory_products")
@@ -690,7 +697,11 @@ export default function InventoryPOS({ supabase, user, profile }) {
       </header>
       <nav className="shop-tabs" aria-label="Shop sections">
         {tabs
-          .filter(([id]) => admin || !["logs", "settings"].includes(id))
+          .filter(([id]) =>
+            admin
+              ? id !== "pos"
+              : !["logs", "settings"].includes(id),
+          )
           .map(([id, label, Icon]) => (
             <button
               key={id}
@@ -756,14 +767,21 @@ export default function InventoryPOS({ supabase, user, profile }) {
           </section>
           <div className="shop-columns shop-overview-columns">
             <article className="shop-panel">
-              <h2><ShoppingCart size={18} /> Ready for the next sale</h2>
+              <h2><ShoppingCart size={18} /> {admin ? "Sales oversight" : "Ready for the next sale"}</h2>
               <p>
-                Browse the catalogue, collect payment and issue a receipt.
-                Inventory updates automatically when a sale completes.
+                {admin
+                  ? "Review receipts and sales performance. Campus accountants operate the point of sale."
+                  : "Browse the catalogue, collect payment and issue a receipt. Inventory updates automatically when a sale completes."}
               </p>
-              <button className="primary" onClick={() => setTab("pos")}>
-                <ShoppingCart size={18} /> Open point of sale
-              </button>
+              {admin ? (
+                <button className="primary" onClick={() => setTab("sales")}>
+                  <ReceiptText size={18} /> Review sales & receipts
+                </button>
+              ) : (
+                <button className="primary" onClick={() => setTab("pos")}>
+                  <ShoppingCart size={18} /> Open point of sale
+                </button>
+              )}
               <h3>Recent transactions</h3>
               {sales.slice(0, 5).map((s) => (
                 <button
@@ -1481,6 +1499,20 @@ export default function InventoryPOS({ supabase, user, profile }) {
                   />
                 </label>
               ))}
+              <label>
+                Campus
+                <select
+                  required
+                  disabled={Boolean(form.id)}
+                  value={form.campus || ""}
+                  onChange={(e) => setForm({ ...form, campus: e.target.value })}
+                >
+                  <option value="">Choose campus</option>
+                  <option value="junior">Junior School</option>
+                  <option value="senior">Senior School</option>
+                </select>
+                {form.id && <small>Campus is locked after stock is created.</small>}
+              </label>
               {form.id && (
                 <label className="shop-checkbox">
                   <input
