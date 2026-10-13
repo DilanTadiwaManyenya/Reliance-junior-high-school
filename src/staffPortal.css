@@ -3854,6 +3854,7 @@
 }
 .component-total-grid label { font-size: .64rem; }
 .component-total-grid input { min-height: 38px; }
+.component-total-grid + .paper-total-note { display: none; }
 .ecd-rating-grid {
   grid-column: 1 / -1;
   overflow: auto;
