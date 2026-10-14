@@ -314,6 +314,7 @@ function DashboardHome({
   const isTeacher = role === "teacher";
   const teacherInSubjectWorkspace = isTeacher && teacherWorkspace === "subjects";
   const isCampusAdmin = ["junior", "senior"].includes(campusScope);
+  const isMainAdmin = !isTeacher && campusScope === "all";
   const campusName = campusScope === "junior" ? "Junior Campus" : campusScope === "senior" ? "Senior Campus" : "School";
   const active = students.filter(
     (student) => student.status === "active",
@@ -329,12 +330,13 @@ function DashboardHome({
   });
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState("");
-  const title = isTeacher ? "Teaching dashboard" : isCampusAdmin ? `${campusName} dashboard` : "School dashboard";
+  const [overviewRefreshKey, setOverviewRefreshKey] = useState(0);
+  const title = isTeacher ? "Teaching dashboard" : isCampusAdmin ? `${campusName} dashboard` : "School command centre";
   const subtitle = isTeacher
     ? teacherScopeLabel
       ? `${teacherScopeLabel}. Learners, attendance, and actions follow this active workspace.`
       : "Your learner records and marking workspace"
-    : isCampusAdmin ? `A clear overview of ${campusName.toLowerCase()} learners and operations.` : "A clear overview of learners and school operations";
+    : isCampusAdmin ? `A clear overview of ${campusName.toLowerCase()} learners and operations.` : "School-wide oversight across Junior and Senior, with the right next action always close by.";
   const actionLabel = isTeacher
     ? teacherInSubjectWorkspace
       ? "Open subject allocations"
@@ -348,27 +350,43 @@ function DashboardHome({
       setOverviewLoading(true);
       setOverviewError("");
       const year = new Date().getFullYear();
+      const scopedLearnerIds = students.map((student) => student.id);
+      const hasLearnersInScope = scopedLearnerIds.length > 0;
       const [attendanceResult, parentResult, feesResult] = await Promise.all([
-        supabase
-          .from("attendance")
-          .select("date, status, student_id")
-          .order("date", { ascending: true }),
+        hasLearnersInScope
+          ? supabase
+              .from("attendance")
+              .select("date, status, student_id")
+              .in("student_id", scopedLearnerIds)
+              .order("date", { ascending: true })
+          : Promise.resolve({ data: [], error: null }),
         isTeacher
           ? Promise.resolve({ data: null })
-          : supabase
+          : hasLearnersInScope
+            ? supabase
               .from("parent_student")
               .select("id", { count: "exact", head: true })
-              .not("verified_at", "is", null),
+              .in("student_id", scopedLearnerIds)
+              .not("verified_at", "is", null)
+            : Promise.resolve({ count: 0, error: null }),
         isTeacher
           ? Promise.resolve({ data: null })
-          : supabase
+          : hasLearnersInScope
+            ? supabase
               .from("fee_balances")
               .select("amount_paid")
-              .eq("academic_year", year),
+              .eq("academic_year", year)
+              .in("student_id", scopedLearnerIds)
+            : Promise.resolve({ data: [], error: null }),
       ]);
       if (!mounted) return;
-      if (attendanceResult.error)
-        setOverviewError("Attendance summary could not be loaded. Open the learner roster to continue working.");
+      const unavailable = [
+        attendanceResult.error && "attendance",
+        parentResult.error && "parent links",
+        feesResult.error && "fee summary",
+      ].filter(Boolean);
+      if (unavailable.length)
+        setOverviewError(`Unable to load ${unavailable.join(", ")}. You can retry this dashboard or continue to the relevant workspace.`);
       const months = Array.from({ length: 6 }, (_, index) => {
         const date = new Date(year, new Date().getMonth() - 5 + index, 1);
         return {
@@ -406,7 +424,7 @@ function DashboardHome({
     return () => {
       mounted = false;
     };
-  }, [isTeacher, supabase, students]);
+  }, [isTeacher, supabase, students, overviewRefreshKey]);
 
   const harareDateParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Africa/Harare",
@@ -416,7 +434,7 @@ function DashboardHome({
   }).formatToParts(new Date());
   const todayDate = `${harareDateParts.find((part) => part.type === "year")?.value}-${harareDateParts.find((part) => part.type === "month")?.value}-${harareDateParts.find((part) => part.type === "day")?.value}`;
   const todayBreakdown = Object.entries(
-    students.reduce((acc, student) => {
+    students.filter((student) => student.status === "active").reduce((acc, student) => {
       const record = overview.rawAttendance?.find(
         (r) => r.student_id === student.id && r.date === todayDate,
       );
@@ -460,10 +478,17 @@ function DashboardHome({
       <div className="dash-page-header">
         <div>
           <p className="dash-kicker">
-            {isTeacher ? "Teaching workspace" : isCampusAdmin ? `${campusName} overview` : "School overview"}
+            {isTeacher ? "Teaching workspace" : isCampusAdmin ? `${campusName} overview` : "Main Admin · all-school oversight"}
           </p>
           <h1 className="dash-page-title">{title}</h1>
           <p className="dash-page-sub">{subtitle}</p>
+          {!isTeacher && (
+            <div className="dash-command-scope">
+              <span>Current scope</span>
+              <strong>{isMainAdmin ? "All school" : campusName}</strong>
+              <small>{isMainAdmin ? "Junior + Senior" : "Campus-only data"}</small>
+            </div>
+          )}
         </div>
         <div className="dashboard-header-controls">
           <Button
@@ -473,6 +498,8 @@ function DashboardHome({
           >
             {actionLabel}
           </Button>
+          {!isTeacher && <Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection("classes")}>Open classes</Button>}
+          {!isTeacher && <Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection("fees")}>Review fees</Button>}
         </div>
       </div>
 
@@ -602,11 +629,11 @@ function DashboardHome({
             }}
           >
             {overviewLoading ? (
-              <p className="muted">Loading today’s attendance…</p>
+              <div className="dash-attendance-state"><strong>Checking today’s register…</strong><span>Loading attendance for the current scope.</span></div>
             ) : overviewError ? (
-              <p className="muted">{overviewError}</p>
+              <div className="dash-attendance-state is-error"><strong>Dashboard data needs attention</strong><span>{overviewError}</span><button type="button" onClick={() => setOverviewRefreshKey((value) => value + 1)}>Retry dashboard</button></div>
             ) : todayBreakdown.length === 0 ? (
-              <p className="muted">No classes to display</p>
+              <div className="dash-attendance-state"><strong>No active learners in this scope</strong><span>Add learners or change the campus and class scope to review today’s attendance.</span></div>
             ) : (
               todayBreakdown.map(([className, counts]) => (
                 <div

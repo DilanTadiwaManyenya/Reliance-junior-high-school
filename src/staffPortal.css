@@ -1624,7 +1624,47 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
+.dash-command-scope {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 13px;
+  padding: 7px 10px;
+  border: 1px solid #d6e0ef;
+  border-radius: 9px;
+  background: #f8faff;
+  color: #52627f;
+  font-size: .78rem;
+}
+.dash-command-scope span { text-transform: uppercase; letter-spacing: .06em; font-size: .68rem; font-weight: 800; }
+.dash-command-scope strong { color: #1b2a56; }
+.dash-command-scope small { color: #74829a; }
+.dash-attendance-state {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  color: #52627f;
+  font-size: .85rem;
+}
+.dash-attendance-state strong { color: #1b2a56; }
+.dash-attendance-state.is-error { color: #a4232a; }
+.dash-attendance-state.is-error strong { color: #9d1d26; }
+.dash-attendance-state button {
+  width: fit-content;
+  margin-top: 5px;
+  padding: 6px 9px;
+  border: 1px solid #bd3038;
+  border-radius: 6px;
+  background: #fff;
+  color: #a4232a;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.dash-attendance-state button:hover { background: #fff2f2; }
 .dashboard-header-controls .class-selector-bar {
   margin: 0;
 }
