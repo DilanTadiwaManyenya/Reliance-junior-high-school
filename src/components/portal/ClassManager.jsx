@@ -14,6 +14,19 @@ const blankLearner = {
 };
 const classLabel = (row) =>
   `${row.class_level}${row.class_stream ? ` · ${row.class_stream}` : ""}`;
+const classLevelRank = (level) => {
+  const normalized = String(level || "").trim().toLowerCase();
+  if (normalized === "ecd a") return 1;
+  if (normalized === "ecd b") return 2;
+  const grade = normalized.match(/^grade\s*(\d+)/);
+  if (grade) return 100 + Number(grade[1]);
+  const form = normalized.match(/^form\s*(\d+)/);
+  if (form) return 200 + Number(form[1]);
+  if (normalized.startsWith("lower six")) return 300;
+  if (normalized.startsWith("upper six")) return 301;
+  return 999;
+};
+const compareClassLevels = (left, right) => classLevelRank(left) - classLevelRank(right) || String(left).localeCompare(String(right));
 
 export default function ClassManager({ supabase, onChanged, campusScope = "all" }) {
   const location = useLocation();
@@ -52,6 +65,7 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
   const workspaceStudents = selectedStream
     ? students.filter((row) =>
         row.class_level === selectedStream.class_level &&
+        row.campus === selectedStream.campus &&
         (row.class_stream || "") === (selectedStream.class_stream || ""),
       )
     : [];
@@ -67,7 +81,7 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
       existing.rows.push(row);
       levels.set(row.class_level, existing);
       return levels;
-    }, new Map()).values()),
+    }, new Map()).values()).sort((left, right) => compareClassLevels(left.level, right.level)),
   }));
   const classStudents = useMemo(
     () =>
@@ -610,6 +624,20 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
             </div>
             <div className="portal-action-row"><span className="class-manager-count">{displayedClasses.length} {showInactive ? 'total' : 'active'}</span><Button type="button" variant="secondary" onClick={() => setShowInactive((value) => !value)}>{showInactive ? 'Hide inactive' : 'Show inactive'}</Button></div>
           </div>
+          <section className="class-campus-overview" aria-label="Browse classes by campus, level and stream">
+            {classLevelGroups.map((group) => (
+              <article key={group.id} className={`class-campus-overview-card is-${group.id}`}>
+                <header>
+                  <span>{group.id === "junior" ? "Junior School" : "Senior School"}</span>
+                  <strong>{group.levels.length} class level{group.levels.length === 1 ? "" : "s"}</strong>
+                </header>
+                <p>{group.id === "junior" ? "Choose a grade to open its complete class workspace." : "Choose a form, then select the stream to manage."}</p>
+                <div>
+                  {group.levels.map(({ level, rows }) => <button type="button" key={level} onClick={() => openClassPage(rows[0])}><strong>{level}</strong><small>{group.id === "junior" ? "Whole grade" : `${rows.length} stream${rows.length === 1 ? "" : "s"}`}</small><span>Open →</span></button>)}
+                </div>
+              </article>
+            ))}
+          </section>
           <div className="portal-table-wrap">
             <table className="portal-table class-manager-table">
               <thead>
