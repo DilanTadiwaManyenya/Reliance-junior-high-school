@@ -408,6 +408,7 @@ function MasterTable({
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [campusFilter, setCampusFilter] = useState(campusScope || "all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -419,6 +420,11 @@ function MasterTable({
     }
   }, [quickStatus]);
 
+  useEffect(() => {
+    setCampusFilter(campusScope || "all");
+    setPage(1);
+  }, [campusScope]);
+
   const filtered = useMemo(
     () =>
       students.filter(
@@ -426,9 +432,10 @@ function MasterTable({
           `${student.full_name} ${student.admission_number} ${student.class_level} ${student.status === "active" ? "enrolled active" : "left school inactive"}`
             .toLowerCase()
             .includes(query.toLowerCase()) &&
-          (statusFilter === "all" || student.category === statusFilter),
+          (statusFilter === "all" || student.category === statusFilter) &&
+          (campusFilter === "all" || student.campus === campusFilter),
       ),
-    [students, query, statusFilter],
+    [students, query, statusFilter, campusFilter],
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -515,6 +522,20 @@ function MasterTable({
             <option value="unpaid">Unpaid</option>
           </select>
         </label>
+        {!campusScope && <label className="fees-select-label">
+          Campus
+          <select
+            value={campusFilter}
+            onChange={(event) => {
+              setCampusFilter(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">All school</option>
+            <option value="junior">Junior School</option>
+            <option value="senior">Senior School</option>
+          </select>
+        </label>}
       </div>
       {selected.length > 0 && (
         <div className="fees-bulk-toolbar" role="status">
@@ -641,11 +662,10 @@ function MasterTable({
                           <button
                             type="button"
                             className="fee-profile-button"
-                            onClick={() => onOpenStudent?.(student)}
+                            onClick={() => onHistory(student)}
                           >
-                            View profile
+                            Open account
                           </button>
-                          <button type="button" className="fee-profile-button" onClick={() => onHistory(student)}>Payment history</button>
                         </div>
                       </td>
                     )}
@@ -935,7 +955,7 @@ export default function FeesDashboard({
       .join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    link.download = `fees-report-${term.toLowerCase().replace(" ", "-")}-${year}.csv`;
+    link.download = `fees-report-${campusScope || "all-school"}-${term.toLowerCase().replace(" ", "-")}-${year}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -976,7 +996,7 @@ export default function FeesDashboard({
       <header className="fees-page-header">
         <div>
           <p className="fees-kicker">
-            {campusScope ? `${scopeLabel} finance` : "Finance"} · {term} {year}
+            {campusScope ? `${scopeLabel} finance` : "Main Admin · all-school finance"} · {term} {year}
           </p>
           <h1>Fees tracking</h1>
           <p>
