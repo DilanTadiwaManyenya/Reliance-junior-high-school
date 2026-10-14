@@ -54,6 +54,7 @@ export default function ClassSelector({
   }, [isTeacher, assignedClasses])
 
   const [campusFilter, setCampusFilter] = useState('all')
+  const displayCampusFilter = isCampusLocked ? campusScope : campusFilter
 
   // Formatted admin class options
   const adminOptions = useMemo(() => {
@@ -78,23 +79,20 @@ export default function ClassSelector({
         label: `${level} ${stream || ''}`.trim(),
         level,
         stream,
+        campus: c?.campus || null,
       }
     })
 
-    const effectiveCampusFilter = isCampusLocked ? campusScope : campusFilter
+    const effectiveCampusFilter = displayCampusFilter
 
     if (effectiveCampusFilter === 'junior') {
-      options = options.filter(o => {
-        return o.level.includes('Grade') || o.level.includes('ECD')
-      })
-    } else if (campusFilter === 'senior') {
-      options = options.filter(o => {
-        return o.level.includes('Form') || o.level.includes('Six')
-      })
+      options = options.filter(o => o.campus ? o.campus === 'junior' : (o.level.includes('Grade') || o.level.includes('ECD')))
+    } else if (effectiveCampusFilter === 'senior') {
+      options = options.filter(o => o.campus ? o.campus === 'senior' : (o.level.includes('Form') || o.level.includes('Six')))
     }
 
     return [...new Map(options.map(option => [option.key, option])).values()]
-  }, [isTeacher, allClasses, campusFilter, campusScope, isCampusLocked])
+  }, [isTeacher, allClasses, campusFilter, campusScope, isCampusLocked, displayCampusFilter])
 
   // Auto-initialize active selection if not set or invalid
   useEffect(() => {
@@ -135,9 +133,16 @@ export default function ClassSelector({
     }
   }, [isTeacher, teacherOptions, adminOptions, campusFilter])
 
+  const handleCampusChange = (nextCampus) => {
+    setCampusFilter(nextCampus)
+    sessionStorage.setItem(SESSION_KEY, 'ALL')
+    onClassChange('ALL')
+  }
+
   const handleSelect = (key) => {
     sessionStorage.setItem(SESSION_KEY, key)
     const opt = teacherOptions.find(o => o.key === key) || adminOptions.find(o => o.key === key)
+    if (!isTeacher && opt?.campus && !isCampusLocked && campusFilter !== opt.campus) setCampusFilter(opt.campus)
     onClassChange(key, opt)
   }
 
@@ -182,31 +187,23 @@ export default function ClassSelector({
   }
 
   return (
-    <div className="admin-class-selector-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div className="admin-class-selector-container">
       {isCampusLocked ? (
         <div className="campus-context-lock" aria-label={`Campus locked to ${campusScope} school`}>
           <span>Campus</span>
           <strong>{campusScope === 'junior' ? 'Junior School' : 'Senior School'}</strong>
         </div>
       ) : (
-        <div className="campus-toggle" style={{ display: 'flex', gap: '10px', fontSize: '0.85rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <input type="radio" name="campusFilter" checked={campusFilter === 'all'} onChange={() => setCampusFilter('all')} />
-            All Campuses
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <input type="radio" name="campusFilter" checked={campusFilter === 'junior'} onChange={() => setCampusFilter('junior')} />
-            Junior
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <input type="radio" name="campusFilter" checked={campusFilter === 'senior'} onChange={() => setCampusFilter('senior')} />
-            Senior
-          </label>
+        <div className="campus-toggle" aria-label="Campus scope">
+          <span>Campus</span>
+          <button type="button" className={campusFilter === 'all' ? 'is-active' : ''} onClick={() => handleCampusChange('all')}>All school</button>
+          <button type="button" className={campusFilter === 'junior' ? 'is-active' : ''} onClick={() => handleCampusChange('junior')}>Junior</button>
+          <button type="button" className={campusFilter === 'senior' ? 'is-active' : ''} onClick={() => handleCampusChange('senior')}>Senior</button>
         </div>
       )}
       <div className="class-selector-bar admin-bar">
         <label htmlFor="admin-class-selector" className="class-switcher-label">
-          Filter by class:
+          Class scope
         </label>
         <select
           id="admin-class-selector"
@@ -217,7 +214,7 @@ export default function ClassSelector({
           {showAllOption && <option value="ALL">{allOptionLabel}</option>}
           {adminOptions.map((opt) => (
             <option key={opt.key} value={opt.key}>
-              {opt.label}
+              {displayCampusFilter === 'all' && opt.campus ? `${opt.label} · ${opt.campus === 'junior' ? 'Junior' : 'Senior'}` : opt.label}
             </option>
           ))}
         </select>

@@ -145,7 +145,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             <ClassSelector 
               role={profile?.role} 
               assignedClasses={teacherClassOptions}
-              allClasses={visibleSchoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '' }))}
+              allClasses={visibleSchoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '', campus: row.campus || '' }))}
               activeClassKey={activeClassKey} 
               onClassChange={handleClassChange} 
               campusScope={campusScope}

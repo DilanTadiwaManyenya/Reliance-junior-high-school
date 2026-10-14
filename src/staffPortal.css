@@ -2275,6 +2275,41 @@
   font-size: .83rem;
 }
 
+.admin-class-selector-container {
+  display: grid;
+  gap: 7px;
+}
+
+.campus-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: #52627f;
+  font-size: .76rem;
+  font-weight: 800;
+}
+
+.campus-toggle > span { margin-right: 3px; text-transform: uppercase; letter-spacing: .06em; }
+
+.campus-toggle button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid #d4dfed;
+  border-radius: 999px;
+  background: #fff;
+  color: #40506f;
+  cursor: pointer;
+  font: inherit;
+}
+
+.campus-toggle button:hover { border-color: #1b2a56; color: #1b2a56; }
+.campus-toggle button.is-active { border-color: #1b2a56; background: #1b2a56; color: #fff; }
+
+.admin-class-selector-container .class-selector-bar { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.admin-class-selector-container .class-switcher-label { color: #52627f; font-size: .76rem; font-weight: 800; white-space: nowrap; }
+.admin-class-selector-container .class-switcher-select { min-width: 168px; }
+
 /* The class switcher belongs to learner and class work.  Context-only pages
    (finance, staff, audit, settings) use the calmer account/header treatment. */
 .top-bar-user:has(.top-bar-class-control) {
