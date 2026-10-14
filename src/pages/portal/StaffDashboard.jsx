@@ -1371,14 +1371,20 @@ export default function StaffDashboard() {
   const adminClassLevels = [
     ...new Set(schoolClasses.map((row) => row.class_level)),
   ];
-  const streamsForAdminLevel = (level) => [
-    ...new Set([
-      ...schoolClasses
-        .filter((row) => row.class_level === level)
-        .map((row) => row.class_stream)
-        .filter(Boolean),
-    ]),
-  ];
+  const streamsForAdminLevel = (level) => {
+    const recordedStreams = schoolClasses
+      .filter((row) => row.class_level === level)
+      .map((row) => row.class_stream)
+      .filter(Boolean);
+    const establishedStreams = /^Form [1-4]$/.test(level)
+      ? ["Blue", "Green", "White", "Red", "Purple"]
+      : ["Lower Six", "Upper Six"].includes(level)
+        ? ["Arts", "Commercials", "Sciences"]
+        : [];
+    // Class records can be added after staffing. Keep the allocation selector
+    // usable for the confirmed Senior stream structure in that short gap.
+    return [...new Set([...recordedStreams, ...establishedStreams])];
+  };
   const subjectOptionsForLevel = (level, campus) => {
     if (!level) return [];
     if (campus !== "senior") return getSubjectsByGradeStream(level, "Blue");
