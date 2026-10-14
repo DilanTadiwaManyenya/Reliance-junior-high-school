@@ -823,6 +823,8 @@ export default function StaffDashboard() {
   const [attendanceStudent, setAttendanceStudent] = useState(null);
   const [profileStudent, setProfileStudent] = useState(null);
   const [profileInitialTab, setProfileInitialTab] = useState("Summary");
+  const [profileOrigin, setProfileOrigin] = useState({ section: "roster", label: "Back to learner register" });
+  const [progressQuery, setProgressQuery] = useState("");
 
   const selected = students.find((row) => row.id === selectedId);
   const staffCategoryCounts = useMemo(() => ({
@@ -847,6 +849,18 @@ export default function StaffDashboard() {
   const showError = (value) => {
     setNotice("");
     setError(value);
+  };
+
+  const openLearnerProfile = (student, { initialTab = "Summary", origin = section } = {}) => {
+    const originLabels = {
+      roster: "Back to learner register",
+      "progress-reports": "Back to academic progress",
+      fees: "Back to finance",
+      "learner-profiles": "Back to learner profiles",
+    };
+    setProfileOrigin({ section: origin, label: originLabels[origin] || "Back to learner register" });
+    setProfileInitialTab(initialTab);
+    setProfileStudent(student);
   };
 
   const ensureAdminRole = async () => {
@@ -1453,9 +1467,9 @@ export default function StaffDashboard() {
         teacherView={isTeacher}
         canManageReports={manager}
         initialTab={profileInitialTab}
-        backLabel={isTeacher ? (teacherWorkspace === "subjects" ? "Back to subject learners" : "Back to class learners") : "Back to learner register"}
+        backLabel={isTeacher ? (teacherWorkspace === "subjects" ? "Back to subject learners" : "Back to class learners") : profileOrigin.label}
         teacherScopeLabel={isTeacher ? teacherScopeLabel : ""}
-        onBack={() => { setProfileStudent(null); setProfileInitialTab("Summary"); }}
+        onBack={() => { setProfileStudent(null); setProfileInitialTab("Summary"); setSection(profileOrigin.section); }}
       />
     );
 
@@ -1465,7 +1479,7 @@ export default function StaffDashboard() {
         <AccountantLearnerProfiles
           students={filteredStudents}
           campus={profile?.campus || "junior"}
-          onOpenProfile={setProfileStudent}
+          onOpenProfile={(student) => openLearnerProfile(student, { origin: "learner-profiles" })}
         />
       </div>
     );
@@ -1492,8 +1506,8 @@ export default function StaffDashboard() {
           supabase={supabase}
           user={user}
           profile={profile}
-          onOpenStudent={setProfileStudent}
-          onOpenPaymentHistory={(student) => { setProfileInitialTab("Fees"); setProfileStudent(student); }}
+          onOpenStudent={(student) => openLearnerProfile(student, { origin: "fees" })}
+          onOpenPaymentHistory={(student) => openLearnerProfile(student, { initialTab: "Fees", origin: "fees" })}
           onStudentAdded={loadStudents}
         />
       </div>
@@ -1509,8 +1523,8 @@ export default function StaffDashboard() {
           supabase={supabase}
           user={user}
           profile={profile}
-          onOpenStudent={setProfileStudent}
-          onOpenPaymentHistory={(student) => { setProfileInitialTab("Fees"); setProfileStudent(student); }}
+          onOpenStudent={(student) => openLearnerProfile(student, { origin: "fees" })}
+          onOpenPaymentHistory={(student) => openLearnerProfile(student, { initialTab: "Fees", origin: "fees" })}
           onStudentAdded={loadStudents}
         />
       </div>
@@ -1558,7 +1572,7 @@ export default function StaffDashboard() {
   if (section === "grade-bands" && canManageJuniorAcademicSettings)
     return <div className="staff-content-area"><GradeBands campusScope={isMainAdmin ? "all" : "junior"} /></div>;
   if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
-    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : ""} onOpenProgress={student => { setProfileInitialTab(isTeacher ? "Summary" : "Academics"); setProfileStudent(student); }} /></div>;
+    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : adminCampusScope ? `${adminCampusScope === "junior" ? "Junior" : "Senior"} School` : "All school"} query={progressQuery} onQueryChange={setProgressQuery} onOpenProgress={student => openLearnerProfile(student, { initialTab: isTeacher ? "Summary" : "Academics", origin: "progress-reports" })} /></div>;
   if (section === "coursework" && isTeacher)
     return <div className="staff-content-area">{isJuniorTeacher ? <JuniorCourseWork /> : <CourseWork />}</div>;
   if (section === "classes" && isAdmin)
@@ -1672,7 +1686,7 @@ export default function StaffDashboard() {
                               <button
                                 type="button"
                                 className="roster-learner-link"
-                                onClick={() => setProfileStudent(row)}
+                                onClick={() => openLearnerProfile(row, { origin: "roster" })}
                                 aria-label={`Open learner profile for ${row.full_name}`}
                               >
                                 {row.full_name}
@@ -1681,7 +1695,7 @@ export default function StaffDashboard() {
                               <button
                                 type="button"
                                 className="roster-learner-link"
-                                onClick={() => setProfileStudent(row)}
+                                onClick={() => openLearnerProfile(row, { origin: "roster" })}
                                 aria-label={`Open profile for ${row.full_name}`}
                               >
                                 {row.full_name}
