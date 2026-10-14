@@ -766,6 +766,9 @@ export default function StaffDashboard() {
   const adminCampusScope = isAdmin && ["junior", "senior"].includes(profile?.campus)
     ? profile.campus
     : null;
+  const managerCampusScope = !isMainAdmin && ["junior", "senior"].includes(profile?.campus)
+    ? profile.campus
+    : null;
   const isCampusAdmin = Boolean(adminCampusScope);
   const accountant = profile?.role === "accountant";
   const canViewLearnerProfile = manager || accountant;
@@ -1540,7 +1543,7 @@ export default function StaffDashboard() {
   if (section === "activity" && manager)
     return (
       <div className="staff-content-area">
-        <ActivityLog campusScope={adminCampusScope} />
+        <ActivityLog campusScope={managerCampusScope} />
       </div>
     );
   if (section === "bulk-import" && isAdmin)
@@ -2219,9 +2222,9 @@ export default function StaffDashboard() {
         <div className="dash-section staff-management-page">
           <div className="dash-page-header">
             <div>
-              <p className="eyebrow">{isMainAdmin ? "School administration" : `${adminCampusScope === "junior" ? "Junior" : "Senior"} campus administration`}</p>
+              <p className="eyebrow">{isMainAdmin ? "School administration" : `${managerCampusScope === "junior" ? "Junior" : "Senior"} campus administration`}</p>
               <h1 className="dash-page-title">Staff Management</h1>
-              <p className="dash-page-sub">{isMainAdmin ? "Create and manage staff accounts across Reliance Learning Centre." : `Manage non-admin staff accounts and assignments for the ${adminCampusScope} campus only.`}</p>
+              <p className="dash-page-sub">{isMainAdmin ? "Create and manage staff accounts across Reliance Learning Centre." : `Manage non-admin staff accounts and assignments for the ${managerCampusScope} campus only.`}</p>
               {isAdmin && (
                 <Button type="button" onClick={openStaffCreateModal}>
                   + Add Staff Member
