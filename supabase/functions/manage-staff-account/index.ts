@@ -105,8 +105,7 @@ Deno.serve(async (request) => {
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
     if (!isMainAdmin && campus !== caller.campus) throw new Error('Campus Admins cannot move staff to another campus.')
     if (campus === 'junior' && classSubjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')
-    if (target.role === 'teacher' && !classAssignments.length) throw new Error('Assign at least one class to a teacher.')
-    if (target.role === 'teacher' && campus === 'senior' && !classStream) throw new Error('Choose a stream for a Senior teacher.')
+    if (target.role === 'teacher' && classAssignments.length && campus === 'senior' && !classStream) throw new Error('Choose a stream when assigning a Senior class teacher.')
     if (target.role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) {
       throw new Error('Each selected class must belong to the selected campus.')
     }
@@ -151,16 +150,18 @@ Deno.serve(async (request) => {
         .delete()
         .eq('teacher_id', userId)
       if (removeAssignmentsError) throw removeAssignmentsError
-      const { error: assignmentsError } = await admin
-        .from('teacher_class_assignments')
-        .insert(classAssignments.map((class_level: string) => ({
-          teacher_id: userId,
-          class_level,
-          // The assignment table's legacy column is NOT NULL; Junior uses an empty stream.
-          class_stream: classStream,
-          campus,
-        })))
-      if (assignmentsError) throw assignmentsError
+      if (classAssignments.length) {
+        const { error: assignmentsError } = await admin
+          .from('teacher_class_assignments')
+          .insert(classAssignments.map((class_level: string) => ({
+            teacher_id: userId,
+            class_level,
+            // The assignment table's legacy column is NOT NULL; Junior uses an empty stream.
+            class_stream: classStream,
+            campus,
+          })))
+        if (assignmentsError) throw assignmentsError
+      }
 
       // Keep the new precise allocations and the established report-card
       // subject table in sync while older portal pages transition to it.

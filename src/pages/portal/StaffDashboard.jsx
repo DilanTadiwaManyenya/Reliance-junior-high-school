@@ -1211,7 +1211,7 @@ export default function StaffDashboard() {
   const addSubjectAllocation = () => {
     const subject = staffEditor.subjectName.trim();
     const classLevel = staffEditor.subjectLevel;
-    const classStream = "";
+    const classStream = staffEditor.subjectStream;
     if (!subject || !classLevel) {
       showError("Choose a form and subject before adding the subject allocation.");
       return;
@@ -1221,12 +1221,13 @@ export default function StaffDashboard() {
       && assignment.class_level === classLevel
       && (assignment.class_stream || "") === classStream,
     );
-    if (exists) return showError("That subject is already allocated to this teacher for the selected form.");
+    if (exists) return showError("That subject is already allocated to this teacher for the selected class scope.");
     setError("");
     setStaffEditor((value) => ({
       ...value,
       subjectAssignments: [...value.subjectAssignments, { subject, class_level: classLevel, class_stream: classStream, campus: value.campus }],
       subjectName: "",
+      subjectStream: "",
     }));
   };
 
@@ -2328,9 +2329,9 @@ export default function StaffDashboard() {
                   {staffForm.role === "teacher" && (
                     <>
                       <fieldset style={{ gridColumn: "1 / -1" }}>
-                        <legend>Class assignments</legend>
+                        <legend>Class-teacher responsibility <span className="muted">(optional)</span></legend>
                         <p className="muted" style={{ marginTop: 0 }}>
-                          Select every class this teacher teaches. One teacher can be assigned to more than one class.
+                          Select a class only when this teacher is the class teacher. Subject-only teachers can be created without a class assignment.
                         </p>
                         {adminClassLevels.filter((level) => staffForm.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => (
                           <label key={level} style={{ display: "inline-flex", marginRight: "12px", gap: "6px" }}>
@@ -2356,15 +2357,14 @@ export default function StaffDashboard() {
                         <p className="muted" style={{ marginBottom: 0 }}>
                           {staffForm.classAssignments.length
                             ? `${staffForm.classAssignments.length} class${staffForm.classAssignments.length === 1 ? "" : "es"} selected.`
-                            : "Select at least one class to create a teacher account."}
+                            : "No class teacher assignment — this teacher can still be given subject allocations later."}
                         </p>
                       </fieldset>
-                      {staffForm.campus === "senior" ? (
+                      {staffForm.campus === "senior" && staffForm.classAssignments.length ? (
                         <label>
-                          Class stream
+                          Class-teacher stream
                           <select
                             required
-                            disabled={!staffForm.classAssignments.length}
                             value={staffForm.classStream}
                             onChange={(e) =>
                               setStaffForm((x) => ({ ...x, classStream: e.target.value }))
@@ -2378,7 +2378,7 @@ export default function StaffDashboard() {
                         </label>
                       ) : (
                         <p className="muted" style={{ alignSelf: "end" }}>
-                          Junior classes currently do not use streams.
+                          {staffForm.campus === "junior" ? "Junior classes currently do not use streams." : "Select a class above to assign its stream."}
                         </p>
                       )}
                       {staffForm.campus === "senior" ? <fieldset style={{ gridColumn: "1 / -1" }}>
@@ -2488,22 +2488,22 @@ export default function StaffDashboard() {
                         ))}
                         </> : <>
                           <p className="muted" style={{ marginTop: 0 }}>
-                            Senior subject allocations apply to the whole form and every active stream. Class-teacher responsibility remains controlled by the Classes tab.
+                            Assign a subject to the whole form or choose one stream. Class-teacher responsibility remains optional and is controlled by the Classes tab.
                           </p>
                           <div className="portal-form" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", alignItems: "end" }}>
                             <label>Class<select value={staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectLevel: e.target.value, subjectStream: "" }))}><option value="">Choose class</option>{adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
+                            <label>Stream<select value={staffEditor.subjectStream} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">Whole form · all streams</option>{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream}</option>)}</select></label>
                             <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{subjectOptionsForLevel(staffEditor.subjectLevel, staffEditor.campus).map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
                             <Button type="button" onClick={addSubjectAllocation}>Add subject</Button>
                           </div>
-                          {staffEditor.subjectAssignments.length ? <div className="allocation-chip-list">{staffEditor.subjectAssignments.map((assignment, index) => <span className="allocation-chip" key={`${assignment.subject}-${assignment.class_level}-${assignment.class_stream}-${index}`}>{assignment.subject} · {assignment.class_level} · Whole form<button type="button" aria-label={`Remove ${assignment.subject} from ${assignment.class_level}`} onClick={() => setStaffEditor((value) => ({ ...value, subjectAssignments: value.subjectAssignments.filter((_, position) => position !== index) }))}>×</button></span>)}</div> : <p className="muted">No subjects allocated yet.</p>}
+                          {staffEditor.subjectAssignments.length ? <div className="allocation-chip-list">{staffEditor.subjectAssignments.map((assignment, index) => <span className="allocation-chip" key={`${assignment.subject}-${assignment.class_level}-${assignment.class_stream}-${index}`}>{assignment.subject} · {assignment.class_level} · {assignment.class_stream || "Whole form"}<button type="button" aria-label={`Remove ${assignment.subject} from ${assignment.class_level}`} onClick={() => setStaffEditor((value) => ({ ...value, subjectAssignments: value.subjectAssignments.filter((_, position) => position !== index) }))}>×</button></span>)}</div> : <p className="muted">No subjects allocated yet.</p>}
                         </>}
                       </fieldset>
-                      {staffEditor.campus === "senior" ? (
+                      {staffEditor.campus === "senior" && staffEditor.classAssignments.length ? (
                         <label>
-                          Class stream
+                          Class-teacher stream
                           <select
                             required
-                            disabled={!staffEditor.classAssignments.length}
                             value={staffEditor.classStream}
                             onChange={(e) => setStaffEditor((value) => ({ ...value, classStream: e.target.value }))}
                           >
@@ -2512,7 +2512,7 @@ export default function StaffDashboard() {
                           </select>
                         </label>
                       ) : (
-                        <p className="muted">Junior classes do not require a stream.</p>
+                        <p className="muted">{staffEditor.campus === "junior" ? "Junior classes do not require a stream." : "No class-teacher stream is needed until a class is selected."}</p>
                       )}
                     </>
                   )}

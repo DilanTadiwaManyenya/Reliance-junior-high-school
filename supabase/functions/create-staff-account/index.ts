@@ -66,7 +66,7 @@ Deno.serve(async request => {
       throw new Error('Campus Admins can create only teachers or accountants in their own campus.')
     }
     if (campus === 'junior' && subjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')
-    if (role === 'teacher' && (!classAssignments.length || (campus === 'senior' && !classStream))) throw new Error('Teachers require a class level; Senior teachers also require a stream.')
+    if (role === 'teacher' && classAssignments.length && campus === 'senior' && !classStream) throw new Error('Choose a stream when assigning a Senior class teacher.')
     if (role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) throw new Error('Each selected teacher class must belong to the selected campus.')
     if (role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ subject, class_level, class_stream: '' }))))
 
@@ -86,8 +86,10 @@ Deno.serve(async request => {
     const account = await admin.from('staff_accounts').upsert({ user_id: createdUserId, role, phone_number: phone, name: fullName, class_assigned: classAssigned, campus, created_by: user.id }, { onConflict: 'user_id' })
     if (account.error) throw account.error
     if (role === 'teacher') {
-      const assignment = await admin.from('teacher_class_assignments').insert(classAssignments.map((level: string) => ({ teacher_id: createdUserId, class_level: level, class_stream: classStream, campus })))
-      if (assignment.error) throw assignment.error
+      if (classAssignments.length) {
+        const assignment = await admin.from('teacher_class_assignments').insert(classAssignments.map((level: string) => ({ teacher_id: createdUserId, class_level: level, class_stream: classStream, campus })))
+        if (assignment.error) throw assignment.error
+      }
       if (subjectAssignments.length) {
         const classSubject = await admin.from('teacher_class_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ teacher_id: createdUserId, class_level, class_stream: '', subject, campus }))))
         if (classSubject.error) throw classSubject.error
