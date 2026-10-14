@@ -33,10 +33,16 @@ import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
 const workingNameFor = (legalFullName, workingTitle) => {
   const names = String(legalFullName || "").trim().split(/\s+/).filter(Boolean);
-  return names.length ? `${workingTitle === "Ms" ? "Ms" : "Mr"} ${names[names.length - 1]}` : "";
+  const title = workingTitle === "Mrs" ? "Mrs" : workingTitle === "Ms" ? "Ms" : "Mr";
+  return names.length ? `${title} ${names[names.length - 1]}` : "";
 };
 
-const inferredWorkingTitle = (name) => /^ms\.?\s/i.test(String(name || "")) ? "Ms" : "Mr";
+const inferredWorkingTitle = (name) => {
+  const workingName = String(name || "");
+  if (/^mrs\.?\s/i.test(workingName)) return "Mrs";
+  if (/^ms\.?\s/i.test(workingName)) return "Ms";
+  return "Mr";
+};
 
 function StaffSubjectAssignments({ staff }) {
   if (staff.role !== "teacher") return "—";
@@ -800,7 +806,7 @@ export default function StaffDashboard() {
     deactivated: staff.filter((row) => row.portal_access_enabled === false).length,
   }), [staff]);
   const visibleStaff = staff.filter((row) => {
-    const matchesSearch = [row.full_name, row.phone, row.role].some((value) =>
+    const matchesSearch = [row.full_name, row.legal_full_name, row.phone, row.role].some((value) =>
       value?.toLowerCase().includes(staffQuery.toLowerCase()),
     );
     const matchesCampus = staffCampusFilter === "all" || row.campus === staffCampusFilter;
@@ -2202,6 +2208,7 @@ export default function StaffDashboard() {
                     <select value={staffForm.workingTitle} onChange={(e) => setStaffForm((x) => ({ ...x, workingTitle: e.target.value }))}>
                       <option value="Mr">Mr</option>
                       <option value="Ms">Ms</option>
+                      <option value="Mrs">Mrs</option>
                     </select>
                   </label>
                   <p className="muted" style={{ gridColumn: "1 / -1", marginTop: 0 }}>
@@ -2365,6 +2372,7 @@ export default function StaffDashboard() {
                     <select value={staffEditor.workingTitle} onChange={(e) => setStaffEditor((value) => ({ ...value, workingTitle: e.target.value }))}>
                       <option value="Mr">Mr</option>
                       <option value="Ms">Ms</option>
+                      <option value="Mrs">Mrs</option>
                     </select>
                   </label>
                   <p className="muted" style={{ gridColumn: "1 / -1", marginTop: 0 }}>
@@ -2656,7 +2664,8 @@ export default function StaffDashboard() {
                             </span>
                             <div>
                               <strong>{row.full_name}</strong>
-                              {isAdmin && (!row.legal_full_name || !row.signature_initials) && <small className="muted">Identity needs verification</small>}
+                              {isAdmin && row.legal_full_name && <small className="muted">Legal name: {row.legal_full_name}</small>}
+                              {isAdmin && (!row.legal_full_name || !row.signature_initials) && <small className="muted">Legal full name needed</small>}
                             </div>
                           </div>
                         </td>
@@ -2695,7 +2704,7 @@ export default function StaffDashboard() {
                           <td>
                             <div className="portal-action-row">
                               <Button className="staff-reset-button" variant="secondary" onClick={(event) => { event.stopPropagation(); openStaffEditor(row); }}>
-                                Manage
+                                {row.legal_full_name ? "Manage" : "Add full name"}
                               </Button>
                               <Button className="staff-reset-button" variant="secondary" onClick={(event) => { event.stopPropagation(); openResetModal(row); }}>
                                 Credentials

@@ -10,7 +10,7 @@ const headers = {
 const reply = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), { status, headers })
 
-const workingTitles = new Set(['Mr', 'Ms'])
+const workingTitles = new Set(['Mr', 'Ms', 'Mrs'])
 const workingName = (legalFullName: string, workingTitle: string) => {
   const names = legalFullName.trim().split(/\s+/).filter(Boolean)
   return `${workingTitle} ${names.at(-1) ?? ''}`.trim()
@@ -101,7 +101,7 @@ Deno.serve(async (request) => {
       : []
     if (!fullName) throw new Error('Enter the staff member’s full name.')
     if (legalFullName && legalFullName.split(/\s+/).filter(Boolean).length < 2) throw new Error('Enter the staff member’s full legal name.')
-    if (legalFullName && !workingTitles.has(workingTitle)) throw new Error('Choose Mr or Ms for the working name.')
+    if (legalFullName && !workingTitles.has(workingTitle)) throw new Error('Choose Mr, Ms, or Mrs for the working name.')
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
     if (!isMainAdmin && campus !== caller.campus) throw new Error('Campus Admins cannot move staff to another campus.')
     if (campus === 'junior' && classSubjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')

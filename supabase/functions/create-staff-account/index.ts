@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
 const roles = new Set(['admin', 'principal', 'teacher', 'accountant'])
-const workingTitles = new Set(['Mr', 'Ms'])
+const workingTitles = new Set(['Mr', 'Ms', 'Mrs'])
 const normalizePhone = (value: unknown) => {
   const digits = String(value ?? '').replace(/\D/g, '')
   if (digits.startsWith('0')) return `+263${digits.slice(1)}`
@@ -56,7 +56,7 @@ Deno.serve(async request => {
     const subjectAssignments = Array.isArray(input.subjectAssignments) ? [...new Set(input.subjectAssignments.map(String).map(value => value.trim()).filter(Boolean))] : []
 
     if (legalFullName.split(/\s+/).filter(Boolean).length < 2) throw new Error('Enter the staff member’s full legal name.')
-    if (!workingTitles.has(workingTitle)) throw new Error('Choose Mr or Ms for the working name.')
+    if (!workingTitles.has(workingTitle)) throw new Error('Choose Mr, Ms, or Mrs for the working name.')
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error('Enter a valid international phone number.')
     if (password.length < 8) throw new Error('The password must be at least 8 characters.')
     if (!roles.has(role)) throw new Error('Choose a valid staff role.')
