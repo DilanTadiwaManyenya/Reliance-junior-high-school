@@ -13,7 +13,9 @@ const humanActivity = row => {
 }
 export default function ActivityLog({ campusScope = null }) {
   const { supabase } = useAuth(); const [tab, setTab] = useState('staff'); const [rows, setRows] = useState([]); const [query, setQuery] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(true)
-  useEffect(() => { let active = true; (async () => { setLoading(true); let request = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(500); if (from) request = request.gte('created_at', `${from}T00:00:00`); if (to) request = request.lte('created_at', `${to}T23:59:59.999`); const { data, error: loadError } = await request; if (!active) return; setRows(data ?? []); setError(loadError?.message ?? ''); setLoading(false) })(); return () => { active = false } }, [supabase, from, to])
+  const scopeName = campusScope ? `${campusScope[0].toUpperCase()}${campusScope.slice(1)} campus` : 'All school'
+  const scopeDescription = campusScope ? `Your audit scope is locked to ${scopeName}. Records outside this campus are not available.` : 'Review school-wide portal events and quickly trace who did what.'
+  useEffect(() => { let active = true; (async () => { setLoading(true); let request = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(500); if (from) request = request.gte('created_at', `${from}T00:00:00`); if (to) request = request.lte('created_at', `${to}T23:59:59.999`); const { data, error: loadError } = await request; if (!active) return; setRows(data ?? []); setError(loadError?.message ?? ''); setLoading(false) })(); return () => { active = false } }, [supabase, from, to, campusScope])
   const shown = useMemo(() => rows.filter(row => tabs[tab].includes(row.actor_role) && `${row.metadata?.actor_name ?? ''} ${row.description ?? ''}`.toLowerCase().includes(query.toLowerCase())), [rows, tab, query])
   const clearFilters = () => { setQuery(''); setFrom(''); setTo('') }
   const hasFilters = Boolean(query || from || to)
@@ -22,16 +24,16 @@ export default function ActivityLog({ campusScope = null }) {
       <div>
         <span className="activity-log-eyebrow"><CalendarDays size={15} aria-hidden="true" /> Portal oversight</span>
         <h1 className="dash-page-title">Activity log</h1>
-        <p className="dash-page-sub">Review {campusScope ? `${campusScope} campus` : 'school-wide'} portal events and quickly trace who did what.</p>
+        <p className="dash-page-sub">{scopeDescription}</p>
       </div>
-      <div className="activity-log-total" aria-label={`${shown.length} events shown`}><UsersRound size={18} aria-hidden="true" /><span><strong>{loading ? '—' : shown.length}</strong> events shown</span></div>
+      <div className="activity-log-total" aria-label={`${shown.length} events shown in ${scopeName}`}><UsersRound size={18} aria-hidden="true" /><span><strong>{loading ? '—' : shown.length}</strong> events shown<small>{scopeName}</small></span></div>
     </div>
     <div className="portal-workspace">
       <div className="card activity-log-card">
         <div className="activity-log-card-top">
           <div>
             <h2>Activity feed</h2>
-            <p>Choose a group, then refine the results below.</p>
+            <p>Choose a group, then refine events you are permitted to view.</p>
           </div>
           <div role="tablist" aria-label="Activity group" className="activity-log-tabs">
             {Object.keys(tabs).map(key => <button key={key} role="tab" aria-selected={tab === key} className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>{key[0].toUpperCase() + key.slice(1)}</button>)}

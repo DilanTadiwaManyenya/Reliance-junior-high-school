@@ -984,6 +984,13 @@
 .activity-log-total { display: inline-flex; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid #dce4f0; border-radius: 12px; background: #fff; color: #64748b; box-shadow: 0 3px 10px rgba(28, 47, 82, .04); font-size: .78rem; }
 .activity-log-total svg { color: #b12b37; }
 .activity-log-total strong { color: #172b59; font-size: .95rem; }
+.activity-log-total span { display: grid; gap: 2px; }
+.activity-log-total small { color: #718096; font-size: .67rem; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+.staff-management-authority { display: grid; gap: 4px; margin: 0 0 18px; padding: 15px 18px; border: 1px solid #d7e2f0; border-radius: 12px; background: #f7faff; color: #4c5e7d; font-size: .83rem; line-height: 1.45; }
+.staff-management-authority strong { color: #172b59; font-size: .88rem; }
+.staff-management-authority.is-main { border-color: #cdddf5; background: linear-gradient(120deg, #f7faff, #fff); }
+.staff-management-authority.is-campus { border-color: #f0d8db; background: #fff9f9; }
+.staff-management-authority.is-campus strong { color: #9d2732; }
 .activity-log-card { overflow: hidden; border: 1px solid #e0e7f0; border-radius: 16px; background: #fff; box-shadow: 0 12px 30px rgba(24, 42, 78, .06); }
 .activity-log-card-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 26px; border-bottom: 1px solid #e8edf4; background: linear-gradient(120deg, #fff 0%, #f8faff 100%); }
 .activity-log-card-top h2 { margin: 0 0 4px; color: #172b59; font-family: var(--font-ui); font-size: 1.05rem; font-weight: 800; }
