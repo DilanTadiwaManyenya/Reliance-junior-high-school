@@ -1,0 +1,39 @@
+/* Report printing is independent of the bulk-export visibility rules. */
+@media print {
+  @page { size: A4 portrait; margin: 6mm; }
+  body.printing-academic-report [data-report-print-ancestor] {
+    display: block !important;
+    position: static !important;
+    transform: none !important;
+    opacity: 1 !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+  body.printing-academic-report [data-report-print-ancestor] > :not([data-report-print-ancestor]):not([data-print-report]) {
+    display: none !important;
+  }
+  body.printing-academic-report [data-print-report],
+  body.printing-academic-report [data-print-report] * { visibility: visible !important; }
+  body.printing-academic-report [data-print-report] {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  body.printing-academic-report [data-print-report] .no-print { display: none !important; }
+}

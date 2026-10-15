@@ -1,3 +1,4 @@
+import { useReportPrint } from '../../utils/reportPrint'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { calculateGrade } from '../../utils/GradeCalculator'
 import { getJuniorReportBook } from '../../utils/CurriculumData'
@@ -13,6 +14,7 @@ const termValue = value => String(value ?? '').replace(/^term\s*/i, '')
 const rowYear = row => String(row.year ?? new Date(row.created_at || Date.now()).getFullYear())
 
 export default function JuniorReportBook({ student, componentMarks = [], developmentalRatings = [], reportComments = [], classTeacher, juniorReportSummary, attendance = [], fees = [], report = {}, reportFees = [], adminAccess = false, supabase, onReportCommentSaved }) {
+  useReportPrint('junior-report-book')
   const { profile, user, supabase: authSupabase } = useAuth()
   const blueprint = getJuniorReportBook(student.class_level)
   const source = blueprint?.type === 'developmental-ratings' ? developmentalRatings : componentMarks
@@ -95,3 +97,4 @@ export default function JuniorReportBook({ student, componentMarks = [], develop
     <footer className="junior-report-footer"><div><p><b>Next term begins on:</b> {date(nextTermBegins)}</p><p><b>Next term fees:</b> {nextTermFee == null ? 'To be confirmed' : money(nextTermFee)}</p><p><b>Parent / guardian’s signature:</b> ............................................................................................................................</p><small>This report is issued without alterations.</small></div><aside className="junior-report-stamp"><JuniorPrincipalStamp date={classTeacher?.assigned_at} width={210} /><span>Junior School principal stamp</span></aside></footer>
   </section>
 }
+

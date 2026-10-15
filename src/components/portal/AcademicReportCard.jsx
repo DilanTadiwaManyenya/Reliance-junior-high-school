@@ -1,3 +1,4 @@
+import { useReportPrint } from '../../utils/reportPrint'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isSeniorLevel } from '../../data/classOptions'
 import { calculateGrade } from '../../utils/GradeCalculator'
@@ -30,6 +31,7 @@ function StudentIdentity({ student }) {
 }
 
 export default function AcademicReportCard({ student, academics = [], juniorComponentMarks = [], juniorDevelopmentalRatings = [], reportComments = [], classTeacher, juniorReportSummary, attendance = [], behavior = [], sports = [], awards = [], fees = [], subjects = [], subjectTeachers = [], report = {}, reportFees = [], nextTermFee, adminAccess = false, supabase, onReportCommentSaved }) {
+  useReportPrint('academic-report-card')
   const isSenior = isSeniorLevel(student.class_level) || /^Form\s/i.test(student.class_level || '')
   // Junior report books use the supplied Junior School crest. It is kept
   // independent of portal-navigation branding so the printed report uses the
@@ -95,3 +97,4 @@ export default function AcademicReportCard({ student, academics = [], juniorComp
     <footer className="report-next"><span><b>Next Term Begins On:</b> {date(nextTermBeginsOn)}</span><span><b>Next Term Fees:</b> {configuredNextTermFee != null ? money(configuredNextTermFee) : 'To be confirmed'}</span></footer>
   </section>
 }
+
