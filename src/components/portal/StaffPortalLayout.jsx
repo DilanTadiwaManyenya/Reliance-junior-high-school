@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import PortalSidebar from './PortalSidebar'
+import AccountantWorkspaceNav from './AccountantWorkspaceNav'
 import StaffTopBar from './StaffTopBar'
 import { useAuth } from '../../context/useAuth'
 import { useModalFocus } from '../../hooks/useModalFocus'
@@ -200,6 +201,7 @@ function StaffPortalWorkspace() {
         >
           {role === 'teacher' && !['dashboard', 'subject-allocations', 'coursework'].includes(section) && <div className="teacher-workspace-return"><button type="button" className="btn secondary" onClick={() => isJuniorTeacher || teacherWorkspace === 'classes' ? changeSection('dashboard') : clearSubjectGroup()}>{isJuniorTeacher ? '← My class' : teacherWorkspace === 'subjects' ? '← Subject allocations' : '← Class work'}</button></div>}
           {role !== 'teacher' && section !== sectionConfig.defaultSection && <div className="staff-workspace-return"><button type="button" className="btn secondary" onClick={goBack}>← Back</button></div>}
+          {role === 'accountant' && <AccountantWorkspaceNav section={section} onChange={changeSection} />}
           <Outlet />
         </motion.main>
 

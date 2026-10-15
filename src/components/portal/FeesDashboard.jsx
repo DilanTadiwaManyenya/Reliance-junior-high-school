@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuBuilding2,
   LuChevronLeft,
@@ -14,6 +14,7 @@ import {
   LuWallet,
 } from "react-icons/lu";
 import PortalNotice from "./PortalNotice";
+import { useModalFocus } from "../../hooks/useModalFocus";
 import ReportTermSettings from "./ReportTermSettings";
 import { getFeeAmount } from "../../lib/FeeStructure";
 import { logActivity } from "../../lib/logActivity";
@@ -63,6 +64,8 @@ const statusMeta = {
 };
 
 function PaymentModal({ student, onClose, onSave, saving }) {
+  const modalRef = useRef(null);
+  useModalFocus(true, modalRef, onClose);
   const [amountReceived, setAmountReceived] = useState("");
   const [paidOn, setPaidOn] = useState(new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -79,7 +82,7 @@ function PaymentModal({ student, onClose, onSave, saving }) {
       onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <form
-        className="fee-modal"
+        ref={modalRef} tabIndex={-1} className="fee-modal"
         onSubmit={(event) => {
           event.preventDefault();
           onSave(student, {
@@ -185,6 +188,8 @@ function PaymentModal({ student, onClose, onSave, saving }) {
 }
 
 function EnrolmentModal({ supabase, onClose, onSaved, classLevels, streamsForLevel }) {
+  const modalRef = useRef(null);
+  useModalFocus(true, modalRef, onClose);
   const [form, setForm] = useState({
     full_name: "",
     date_of_birth: "",
@@ -222,7 +227,7 @@ function EnrolmentModal({ supabase, onClose, onSaved, classLevels, streamsForLev
       aria-labelledby="enrolment-dialog-title"
       onClick={(event) => event.target === event.currentTarget && onClose()}
     >
-      <form className="fee-modal" onSubmit={submit}>
+      <form ref={modalRef} tabIndex={-1} className="fee-modal" onSubmit={submit}>
         <div className="fee-modal-head">
           <div>
             <p className="fee-modal-eyebrow">Learner enrolment</p>
@@ -326,6 +331,8 @@ function EnrolmentModal({ supabase, onClose, onSaved, classLevels, streamsForLev
 }
 
 function FeeStructureModal({ mapping, onClose, onSave, saving }) {
+  const modalRef = useRef(null);
+  useModalFocus(true, modalRef, onClose);
   const [bands, setBands] = useState([...mapping]);
 
   const updateBand = (id, amount) => {
@@ -341,10 +348,11 @@ function FeeStructureModal({ mapping, onClose, onSave, saving }) {
       className="fee-modal-overlay"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="fee-structure-dialog-title"
       onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <form
-        className="fee-modal"
+        ref={modalRef} tabIndex={-1} className="fee-modal"
         onSubmit={(event) => {
           event.preventDefault();
           onSave(bands);
@@ -353,10 +361,10 @@ function FeeStructureModal({ mapping, onClose, onSave, saving }) {
         <div className="fee-modal-head">
           <div>
             <p className="fee-modal-eyebrow">School Settings</p>
-            <h2>Fee Structure</h2>
+            <h2 id="fee-structure-dialog-title">Fee Structure</h2>
             <p>Update total term fees for each class band.</p>
           </div>
-          <button type="button" className="fee-icon-button" onClick={onClose}>
+          <button type="button" className="fee-icon-button" onClick={onClose} aria-label="Close fee structure dialog">
             ×
           </button>
         </div>

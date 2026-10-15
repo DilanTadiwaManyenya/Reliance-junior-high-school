@@ -24,6 +24,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import "./inventory.css";
+import { useModalFocus } from "../../hooks/useModalFocus";
 import { logActivity } from "../../lib/logActivity";
 import PasswordInput from "../ui/PasswordInput";
 
@@ -231,39 +232,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const [notice, setNotice] = useState("");
   const lock = useRef(false);
   const modalOpen = !!form || !!receipt;
-  useEffect(() => {
-    if (!modalOpen) return;
-    const previous = document.activeElement;
-    const dialog = document.querySelector(".shop-dialog");
-    const controls = () => [
-      ...dialog.querySelectorAll(
-        "button:not(:disabled), input:not(:disabled), select:not(:disabled)",
-      ),
-    ];
-    controls()[0]?.focus();
-    const onKey = (event) => {
-      if (event.key === "Escape" && !busy) {
-        setForm(null);
-        setReceipt(null);
-      }
-      if (event.key !== "Tab") return;
-      const elements = controls();
-      const first = elements[0];
-      const last = elements.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    };
-    dialog.addEventListener("keydown", onKey);
-    return () => {
-      dialog.removeEventListener("keydown", onKey);
-      previous?.focus();
-    };
-  }, [modalOpen, busy]);
+  const dialogRef = useRef(null);
+  useModalFocus(modalOpen, dialogRef, () => {
+    if (!busy) { setForm(null); setReceipt(null); }
+  });
   const load = useCallback(async () => {
     if (!access) return;
     setLoading(true);
@@ -1454,7 +1426,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
       {form && (
         <div className="shop-overlay">
           <form
-            className="shop-dialog"
+            ref={dialogRef} tabIndex={-1} className="shop-dialog"
             role="dialog"
             aria-modal="true"
             aria-label="Product editor"
@@ -1542,7 +1514,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
       {receipt && (
         <div className="shop-overlay">
           <article
-            className="shop-dialog shop-receipt"
+            ref={dialogRef} tabIndex={-1} className="shop-dialog shop-receipt"
             role="dialog"
             aria-modal="true"
             aria-label="Sale receipt"

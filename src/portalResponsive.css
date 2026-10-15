@@ -25,7 +25,7 @@
   .staff-shell:not(.no-sidebar), .staff-shell.sidebar-collapsed:not(.no-sidebar) { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'topbar' 'main'; }
   .staff-shell .desktop-toggle { display: none !important; }
   .staff-shell .mobile-toggle { display: flex !important; }
-  .staff-shell .sidebar-wrapper { position: fixed; top: var(--topbar-height); left: -300px; width: min(280px, calc(100vw - 44px)); height: calc(100dvh - var(--topbar-height)); z-index: 120; visibility: hidden; transition: left .2s ease, visibility .2s; }
+  .staff-shell .sidebar-wrapper { position: fixed; top: var(--topbar-height); left: -300px; width: min(280px, calc(100vw - 44px)); height: calc(100vh - var(--topbar-height)); height: calc(100dvh - var(--topbar-height)); z-index: 120; visibility: hidden; transition: left .2s ease, visibility .2s; }
   .staff-shell .sidebar-wrapper.mobile-open { left: 0; visibility: visible; }
   .staff-shell .portal-sidebar { width: 100% !important; height: 100%; overflow-y: auto; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
   .staff-shell :is(.sidebar-nav-label, .sidebar-nav-heading) { display: block !important; }
@@ -39,8 +39,44 @@
   .staff-shell :is(.staff-main,.staff-content-area,.portal-workspace,.dash-section) { min-width: 0; }
   .staff-content-area > *, .portal-workspace > * { min-width: 0; max-width: 100%; }
   .staff-shell :is(.portal-table-wrap,.fee-table-wrap,.shop-table,.report-table-wrap), .portal-content .report-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
-  .slideover { height: 100dvh; max-height: 100dvh; }
+  .slideover { height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; }
   .slideover-header > div { min-width: 0; overflow-wrap: anywhere; }
   .slideover-close { flex: 0 0 44px; width: 44px; }
   .slideover-body { min-height: 0; overflow-y: auto; }
+}
+
+.accountant-workspace-nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 18px clamp(14px, 2vw, 28px) 0; }
+.accountant-workspace-nav button { min-height: 44px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #1b2a56; font: inherit; font-weight: 700; }
+.accountant-workspace-nav button[aria-current="page"] { border-color: #1b2a56; background: #1b2a56; color: #fff; }
+.accountant-learner-profiles { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.accountant-learner-profiles > * { min-width: 0; max-width: 100%; }
+.fee-modal-overlay { z-index: 300; }
+.fee-modal-overlay .fee-modal, .shop-overlay .shop-dialog { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+.fee-modal-overlay .fee-modal-head > div { min-width: 0; overflow-wrap: anywhere; }
+.fee-modal-overlay .fee-icon-button { flex: 0 0 44px; width: 44px; min-height: 44px; }
+@media screen and (max-width: 900px) {
+  .accountant-workspace-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .accountant-workspace-nav button { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .accountant-profile-filters { grid-template-columns: minmax(0, 1fr); }
+  .accountant-learner-profiles :is(input,select) { width: 100%; }
+  .fee-pagination button { width: 44px; min-width: 44px; min-height: 44px; }
+  .fee-row-actions, .staff-directory-tabs { flex-wrap: wrap; }
+  .staff-shell .shop-panel button { min-height: 44px; }
+  .shop-receipts-layout, .shop-operational-grid, .shop-profit-layout { grid-template-columns: minmax(0, 1fr); }
+  .shop-app, .shop-app > *, .shop-panel, .report-policy-workspace { min-width: 0; max-width: 100%; }
+}
+@media screen and (max-width: 600px) {
+  .fee-modal-overlay, .shop-overlay { padding: 12px; align-items: center; }
+  .fee-modal-overlay .fee-modal, .shop-overlay .shop-dialog { width: 100%; max-width: 100%; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 16px; }
+  .fee-modal-overlay .fee-modal-fields, .shop-dialog .shop-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .fee-modal-overlay .fee-modal-actions { position: sticky; bottom: -16px; display: flex; flex-wrap: wrap; gap: 8px; padding-block: 12px max(12px, env(safe-area-inset-bottom)); background: #fff; z-index: 2; }
+  .fee-modal-overlay .fee-modal-actions .fee-button { flex: 1 1 130px; min-height: 44px; white-space: normal; }
+  .shop-dialog .shop-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .shop-dialog .shop-actions button { flex: 1 1 130px; min-height: 44px; }
+  .report-policy-workspace { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .report-policy-workspace > * { min-width: 0; }
+}
+
+@media print {
+  .accountant-workspace-nav, .staff-workspace-return, .teacher-workspace-return, .portal-drawer-close { display: none !important; }
 }

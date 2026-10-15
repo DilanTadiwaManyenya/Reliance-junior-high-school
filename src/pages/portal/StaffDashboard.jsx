@@ -1451,15 +1451,7 @@ export default function StaffDashboard() {
   if (section === "inventory" && (isMainAdmin || accountant))
     return (
       <div className="staff-content-area">
-        {accountant && (
-          <nav
-            className="shop-accountant-nav"
-            aria-label="Accountant workspace"
-          >
-            <button onClick={() => setSection("fees")}>Finance</button>
-            <button aria-current="page">Inventory & POS</button>
-          </nav>
-        )}
+
         <InventoryPOS
           key={`${user.id}:${shopRole}`}
           supabase={supabase}
@@ -1504,22 +1496,12 @@ export default function StaffDashboard() {
       </div>
     );
 
+  if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
+    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : managerCampusScope ? `${managerCampusScope === "junior" ? "Junior" : "Senior"} School` : "All school"} query={progressQuery} onQueryChange={setProgressQuery} onOpenProgress={student => openLearnerProfile(student, { initialTab: isTeacher ? "Summary" : "Academics", origin: "progress-reports" })} /></div>;
   /* Accountant: show fees dashboard */
   if (accountant)
     return (
       <div className="staff-content-area">
-        <nav className="shop-accountant-nav" aria-label="Accountant workspace">
-          <button aria-current="page">Finance</button>
-          <button onClick={() => setSection("learner-profiles")}>Learner profiles</button>
-          <button onClick={() => setSection("expenses")}>
-            Expenses & Cashbook
-          </button>
-          {["admin", "accountant"].includes(shopRole) && (
-            <button onClick={() => setSection("inventory")}>
-              Inventory & POS
-            </button>
-          )}
-        </nav>
         <FeesDashboard
           students={filteredStudents}
           loading={loading}
@@ -1591,8 +1573,6 @@ export default function StaffDashboard() {
     );
   if (section === "grade-bands" && canManageJuniorAcademicSettings)
     return <div className="staff-content-area"><GradeBands campusScope={isMainAdmin ? "all" : "junior"} /></div>;
-  if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
-    return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : adminCampusScope ? `${adminCampusScope === "junior" ? "Junior" : "Senior"} School` : "All school"} query={progressQuery} onQueryChange={setProgressQuery} onOpenProgress={student => openLearnerProfile(student, { initialTab: isTeacher ? "Summary" : "Academics", origin: "progress-reports" })} /></div>;
   if (section === "coursework" && isTeacher)
     return <div className="staff-content-area">{isJuniorTeacher ? <JuniorCourseWork /> : <CourseWork />}</div>;
   if (section === "classes" && isAdmin)
