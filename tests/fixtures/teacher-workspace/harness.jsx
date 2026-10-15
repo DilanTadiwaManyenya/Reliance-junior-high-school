@@ -15,6 +15,7 @@ import '../../../src/designRefinement.css'
 import '../../../src/mobileUX.css'
 import '../../../src/parentPortal.css'
 import '../../../src/teacherWorkspace.css'
+import '../../../src/portalResponsive.css'
 
 const params = new URLSearchParams(location.search)
 const campus = params.get('campus') || 'senior'

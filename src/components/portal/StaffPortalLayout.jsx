@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import PortalSidebar from './PortalSidebar'
 import StaffTopBar from './StaffTopBar'
 import { useAuth } from '../../context/useAuth'
+import { useModalFocus } from '../../hooks/useModalFocus'
 import { logActivity } from '../../lib/logActivity'
 
 /* ── Section context shared with child pages ─────────────────────── */
@@ -86,7 +87,10 @@ function StaffPortalWorkspace() {
 
   const toggleCollapse = () => setCollapsed(c => !c)
   const toggleMobile   = () => setMobileOpen(o => !o)
-  const closeMobile    = () => setMobileOpen(false)
+  const closeMobile = () => setMobileOpen(false)
+  const drawerRef = useRef(null)
+  useModalFocus(mobileOpen, drawerRef, closeMobile)
+  const hasClassControl = role === 'teacher' ? teacherWorkspace !== 'subjects' : role !== 'accountant' && ['dashboard', 'roster', 'entry', 'progress-reports', 'classes'].includes(section)
   const navigateToSection = (nextSection, nextWorkspace = teacherWorkspace, nextAllocationId = selectedSubjectAllocationId, nextSubject = selectedSubject, nextLevel = selectedSubjectLevel, nextSubjectStream = selectedSubjectClassStream) => {
     if (!sectionConfig.allowed.includes(nextSection)) return
     const nextSearch = new URLSearchParams()
@@ -139,12 +143,13 @@ function StaffPortalWorkspace() {
 
   return (
     <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, isJuniorTeacher, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
-      <div data-role={role} data-workspace={teacherWorkspace} data-section={section} data-multiple-roles={roles.length > 1} className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
+      <div data-class-control={hasClassControl} data-role={role} data-workspace={teacherWorkspace} data-section={section} data-multiple-roles={roles.length > 1} className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}
         <StaffTopBar
           onToggleSidebar={toggleCollapse}
           onToggleMobile={toggleMobile}
+          mobileOpen={mobileOpen}
         />
 
         {/* ── Mobile overlay backdrop ─────────────── */}
@@ -166,6 +171,12 @@ function StaffPortalWorkspace() {
         <AnimatePresence>
           {role !== 'accountant' && (
             <motion.div
+              ref={drawerRef}
+              id="staff-portal-navigation"
+              role={mobileOpen ? 'dialog' : undefined}
+              aria-modal={mobileOpen || undefined}
+              aria-label={mobileOpen ? 'Portal navigation' : undefined}
+              tabIndex={-1}
               className={`sidebar-wrapper${mobileOpen ? ' mobile-open' : ''}`}
               initial={false}
             >
@@ -188,6 +199,7 @@ function StaffPortalWorkspace() {
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {role === 'teacher' && !['dashboard', 'subject-allocations', 'coursework'].includes(section) && <div className="teacher-workspace-return"><button type="button" className="btn secondary" onClick={() => isJuniorTeacher || teacherWorkspace === 'classes' ? changeSection('dashboard') : clearSubjectGroup()}>{isJuniorTeacher ? '← My class' : teacherWorkspace === 'subjects' ? '← Subject allocations' : '← Class work'}</button></div>}
+          {role !== 'teacher' && section !== sectionConfig.defaultSection && <div className="staff-workspace-return"><button type="button" className="btn secondary" onClick={goBack}>← Back</button></div>}
           <Outlet />
         </motion.main>
 

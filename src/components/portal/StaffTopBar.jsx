@@ -25,7 +25,7 @@ const LogoutIcon = () => (
   </svg>
 )
 
-export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
+export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpen = false }) {
   const { profile, activeRole, signOut, supabase } = useAuth()
   const navigate = useNavigate()
   const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, clearSubjectGroup } = useSection()
@@ -86,7 +86,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
         assignment,
       ])).values()]
     : profile?.teacher_class_assignments || []
-  const showClassControl = activeRole === 'teacher'
+  const showClassControl = activeRole === 'accountant' ? false : activeRole === 'teacher'
     ? teacherWorkspace !== 'subjects'
     : ['dashboard', 'roster', 'entry', 'progress-reports', 'classes'].includes(section)
 
@@ -111,6 +111,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
             className="top-bar-toggle mobile-toggle"
             onClick={onToggleMobile}
             aria-label="Open navigation menu"
+            aria-expanded={mobileOpen}
+            aria-controls="staff-portal-navigation"
           >
             <MenuIcon />
           </button>
@@ -133,6 +135,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
         </div>
       </div>
 
+      <span className="staff-mobile-title">{roleLabel}</span>
       {/* ── Right: user info + logout ──────── */}
         <div className="top-bar-user">
           {activeRole === 'teacher' && profile?.campus !== 'junior' && (

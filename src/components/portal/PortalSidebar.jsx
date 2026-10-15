@@ -55,6 +55,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
 
   return (
     <aside className={`portal-sidebar sidebar-navigation-only sidebar-navy-gold${collapsed ? ' collapsed' : ''}`} aria-label="Sidebar navigation">
+      <button type="button" className="portal-drawer-close" onClick={onClose} aria-label="Close navigation menu">×</button>
       <nav className="sidebar-nav" aria-label="Main navigation">
         {groups.map((group, index) => (
           <React.Fragment key={index}>

@@ -1,0 +1,46 @@
+/* Shared portal corrections; table interiors scroll without widening a page. */
+.staff-mobile-title, .staff-workspace-return, .portal-drawer-close { display: none; }
+
+@media screen and (max-width: 1200px) {
+  .staff-shell:not([data-role="teacher"]) { --topbar-height: 64px; }
+  .staff-shell:not([data-role="teacher"])[data-class-control="true"][data-multiple-roles="true"] { --topbar-height: 116px; }
+  .staff-shell:not([data-role="teacher"]) .staff-top-bar { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; grid-template-rows: 44px; grid-auto-rows: 44px; gap: 8px; height: var(--topbar-height); padding: 8px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left)); }
+  .staff-shell:not([data-role="teacher"]) .top-bar-left { grid-area: 1 / 1; }
+  .staff-shell:not([data-role="teacher"]) .top-bar-user { display: contents; }
+  .staff-shell:not([data-role="teacher"]) :is(.top-bar-brand, .top-bar-avatar, .top-bar-user-info, .top-bar-site-link, .top-bar-logout span) { display: none !important; }
+  .staff-shell .top-bar-toggle, .staff-shell .top-bar-logout { width: 44px; height: 44px; min-height: 44px; margin: 0; }
+  .staff-shell:not([data-role="teacher"]) .top-bar-logout { grid-area: 1 / 3; }
+  .staff-shell:not([data-role="teacher"]) .top-bar-class-control { grid-area: 1 / 2; width: 100%; max-width: none; min-width: 0; margin: 0 !important; }
+  .staff-shell:not([data-role="teacher"]) .top-bar-class-control :is(.class-selector-bar, .class-switcher-select) { width: 100%; min-width: 0; min-height: 44px; }
+  .staff-shell:not([data-role="teacher"]) :is(.class-switcher-label, .campus-toggle, .campus-context-lock) { display: none; }
+  .staff-shell:not([data-role="teacher"]) .top-bar-role-switcher { grid-area: 1 / 2; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; font-size: .8rem; min-width: 0; }
+  .staff-shell:not([data-role="teacher"])[data-class-control="true"] .top-bar-role-switcher { grid-area: 2 / 1 / auto / -1; }
+  .staff-shell:not([data-role="teacher"]) .top-bar-role-switcher select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; background: #fff; font-size: 1rem; }
+  .staff-shell:not([data-role="teacher"])[data-class-control="false"][data-multiple-roles="false"] .staff-mobile-title { display: block; grid-area: 1 / 2; color: #1b2a56; font-weight: 800; font-size: .9rem; overflow-wrap: anywhere; }
+  .staff-shell[data-role="accountant"] .staff-mobile-title, .staff-shell[data-role="accountant"] .top-bar-role-switcher { grid-column: 1 / 3 !important; }
+  .staff-shell:not([data-role="teacher"]) .top-bar-back { display: none !important; }
+  .staff-workspace-return { display: block; padding: 16px clamp(14px, 2vw, 28px) 0; }
+}
+@media screen and (max-width: 900px) {
+  .staff-shell:not(.no-sidebar), .staff-shell.sidebar-collapsed:not(.no-sidebar) { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'topbar' 'main'; }
+  .staff-shell .desktop-toggle { display: none !important; }
+  .staff-shell .mobile-toggle { display: flex !important; }
+  .staff-shell .sidebar-wrapper { position: fixed; top: var(--topbar-height); left: -300px; width: min(280px, calc(100vw - 44px)); height: calc(100dvh - var(--topbar-height)); z-index: 120; visibility: hidden; transition: left .2s ease, visibility .2s; }
+  .staff-shell .sidebar-wrapper.mobile-open { left: 0; visibility: visible; }
+  .staff-shell .portal-sidebar { width: 100% !important; height: 100%; overflow-y: auto; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .staff-shell :is(.sidebar-nav-label, .sidebar-nav-heading) { display: block !important; }
+  .staff-shell .sidebar-nav-item { justify-content: flex-start; min-height: 44px; }
+  .staff-shell .sidebar-overlay { position: fixed; inset: var(--topbar-height) 0 0; display: block; z-index: 110; touch-action: none; }
+  .portal-drawer-close { display: block; margin: 10px 12px 0 auto; width: 44px; height: 44px; border: 1px solid #ffffff66; border-radius: 8px; background: transparent; color: #fff; font-size: 1.5rem; }
+  .portal-shell :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+  .staff-shell :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]) { min-width: 0; max-width: 100%; min-height: 44px; font-size: 1rem; }
+  .portal-shell :is(button,.btn), .staff-shell :is(button,.btn) { min-height: 44px; }
+  .portal-shell fieldset, .staff-shell fieldset { min-width: 0; }
+  .staff-shell :is(.staff-main,.staff-content-area,.portal-workspace,.dash-section) { min-width: 0; }
+  .staff-content-area > *, .portal-workspace > * { min-width: 0; max-width: 100%; }
+  .staff-shell :is(.portal-table-wrap,.fee-table-wrap,.shop-table,.report-table-wrap), .portal-content .report-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+  .slideover { height: 100dvh; max-height: 100dvh; }
+  .slideover-header > div { min-width: 0; overflow-wrap: anywhere; }
+  .slideover-close { flex: 0 0 44px; width: 44px; }
+  .slideover-body { min-height: 0; overflow-y: auto; }
+}
