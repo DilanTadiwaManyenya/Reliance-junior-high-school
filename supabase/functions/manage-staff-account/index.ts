@@ -105,7 +105,6 @@ Deno.serve(async (request) => {
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
     if (!isMainAdmin && campus !== caller.campus) throw new Error('Campus Admins cannot move staff to another campus.')
     if (campus === 'junior' && classSubjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')
-    if (target.role === 'teacher' && classAssignments.length && campus === 'senior' && !classStream) throw new Error('Choose a stream when assigning a Senior class teacher.')
     if (target.role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) {
       throw new Error('Each selected class must belong to the selected campus.')
     }

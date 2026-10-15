@@ -66,7 +66,6 @@ Deno.serve(async request => {
       throw new Error('Campus Admins can create only teachers or accountants in their own campus.')
     }
     if (campus === 'junior' && subjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')
-    if (role === 'teacher' && classAssignments.length && campus === 'senior' && !classStream) throw new Error('Choose a stream when assigning a Senior class teacher.')
     if (role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) throw new Error('Each selected teacher class must belong to the selected campus.')
     if (role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ subject, class_level, class_stream: '' }))))
 

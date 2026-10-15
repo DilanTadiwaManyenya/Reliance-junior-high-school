@@ -1372,13 +1372,14 @@ export default function StaffDashboard() {
     ...new Set(schoolClasses.map((row) => row.class_level)),
   ];
   const streamsForAdminLevel = (level) => {
+    const normalizedLevel = String(level ?? "").trim().toLowerCase().replace(/\s+/g, " ");
     const recordedStreams = schoolClasses
-      .filter((row) => row.class_level === level)
+      .filter((row) => String(row.class_level ?? "").trim().toLowerCase().replace(/\s+/g, " ") === normalizedLevel)
       .map((row) => row.class_stream)
       .filter(Boolean);
-    const establishedStreams = /^Form [1-4]$/.test(level)
+    const establishedStreams = /^form [1-4]$/.test(normalizedLevel)
       ? ["Blue", "Green", "White", "Red", "Purple"]
-      : ["Lower Six", "Upper Six"].includes(level)
+      : ["lower six", "upper six", "lower 6", "upper 6", "form 5", "form 6", "form5", "form6"].includes(normalizedLevel)
         ? ["Arts", "Commercials", "Sciences"]
         : [];
     // Class records can be added after staffing. Keep the allocation selector
@@ -2368,17 +2369,16 @@ export default function StaffDashboard() {
                       </fieldset>
                       {staffForm.campus === "senior" && staffForm.classAssignments.length ? (
                         <label>
-                          Class-teacher stream
+                          Class-teacher scope
                           <select
-                            required
                             value={staffForm.classStream}
                             onChange={(e) =>
                               setStaffForm((x) => ({ ...x, classStream: e.target.value }))
                             }
                           >
-                            <option value="">Choose class stream</option>
+                            <option value="">Whole form · all streams</option>
                             {streamsForAdminLevel(staffForm.classLevel).map((stream) => (
-                              <option key={stream}>{stream}</option>
+                              <option key={stream} value={stream}>{stream} only</option>
                             ))}
                           </select>
                         </label>
@@ -2494,11 +2494,11 @@ export default function StaffDashboard() {
                         ))}
                         </> : <>
                           <p className="muted" style={{ marginTop: 0 }}>
-                            Assign a subject to the whole form or choose one stream. Class-teacher responsibility remains optional and is controlled by the Classes tab.
+                            Choose the whole form or one stream for every subject allocation. Class-teacher responsibility remains optional and is controlled by the Classes tab.
                           </p>
                           <div className="portal-form" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", alignItems: "end" }}>
                             <label>Class<select value={staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectLevel: e.target.value, subjectStream: "" }))}><option value="">Choose class</option>{adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
-                            <label>Stream<select value={staffEditor.subjectStream} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">Whole form · all streams</option>{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream}</option>)}</select></label>
+                            <label>Teaching scope<select value={staffEditor.subjectStream} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">Whole form · all streams</option>{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream} only</option>)}</select></label>
                             <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{subjectOptionsForLevel(staffEditor.subjectLevel, staffEditor.campus).map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
                             <Button type="button" onClick={addSubjectAllocation}>Add subject</Button>
                           </div>
@@ -2507,14 +2507,13 @@ export default function StaffDashboard() {
                       </fieldset>
                       {staffEditor.campus === "senior" && staffEditor.classAssignments.length ? (
                         <label>
-                          Class-teacher stream
+                          Class-teacher scope
                           <select
-                            required
                             value={staffEditor.classStream}
                             onChange={(e) => setStaffEditor((value) => ({ ...value, classStream: e.target.value }))}
                           >
-                            <option value="">Choose class stream</option>
-                            {streamsForAdminLevel(staffEditor.classAssignments[0] || "").map((stream) => <option key={stream}>{stream}</option>)}
+                            <option value="">Whole form · all streams</option>
+                            {streamsForAdminLevel(staffEditor.classAssignments[0] || "").map((stream) => <option key={stream} value={stream}>{stream} only</option>)}
                           </select>
                         </label>
                       ) : (
