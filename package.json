@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:shop": "node --test tests/shop-database.test.mjs"
+    "test:shop": "node --test tests/shop-database.test.mjs",
+    "test:portal": "node --test tests/portal-profile.test.mjs tests/portal-render.test.mjs tests/teacher-access.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

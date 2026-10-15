@@ -755,8 +755,9 @@ export default function FeesDashboard({
   const [showEnrolmentModal, setShowEnrolmentModal] = useState(false);
   const [toast, setToast] = useState("");
   const [quickStatus, setQuickStatus] = useState("");
-  const readOnly = profile?.role === "principal";
-  const isMainAdmin = profile?.role === "admin" && profile?.campus === "all";
+  const role = profile?.active_role ?? profile?.role;
+  const readOnly = role === "principal";
+  const isMainAdmin = role === "admin" && profile?.campus === "all";
   const campusScope = ["junior", "senior"].includes(profile?.campus) && !isMainAdmin;
   const scopeLabel = profile?.campus === "junior" ? "Junior School" : "Senior School";
   const { levels: registryLevels, streamsForLevel } = useSchoolClasses(supabase);

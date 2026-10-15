@@ -51,6 +51,11 @@ const classParentSearch = (search) => {
 }
 
 export default function StaffPortalLayout() {
+  const { activeRole } = useAuth()
+  return <StaffPortalWorkspace key={activeRole} />
+}
+
+function StaffPortalWorkspace() {
   const { profile, user, supabase } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -134,7 +139,7 @@ export default function StaffPortalLayout() {
 
   return (
     <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, isJuniorTeacher, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
-      <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${profile?.role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
+      <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}
         <StaffTopBar
@@ -144,7 +149,7 @@ export default function StaffPortalLayout() {
 
         {/* ── Mobile overlay backdrop ─────────────── */}
         <AnimatePresence>
-          {mobileOpen && profile?.role !== 'accountant' && (
+          {mobileOpen && role !== 'accountant' && (
             <motion.div
               className="sidebar-overlay"
               initial={{ opacity: 0 }}
@@ -159,7 +164,7 @@ export default function StaffPortalLayout() {
 
         {/* ── Sidebar ────────────────────────────── */}
         <AnimatePresence>
-          {profile?.role !== 'accountant' && (
+          {role !== 'accountant' && (
             <motion.div
               className={`sidebar-wrapper${mobileOpen ? ' mobile-open' : ''}`}
               initial={false}

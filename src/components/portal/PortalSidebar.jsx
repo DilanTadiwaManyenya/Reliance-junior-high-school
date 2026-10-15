@@ -5,42 +5,42 @@ const Icon = ({ d, size = 20 }) => <svg width={size} height={size} viewBox="0 0 
 const icons = { dashboard: ['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10'], roster: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', entry: ['M12 20h9', 'M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z'], fees: ['M12 1v22', 'M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'], staff: ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M23 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75', 'M9 7m-4 0a4 4 0 1 0 8 0 4 4 0 1 0-8 0'] }
 function NavItem({ item, active, onClick, collapsed }) { return <button className={`sidebar-nav-item${active ? ' active' : ''}`} onClick={() => onClick(item.id)} title={item.label} aria-label={item.label} aria-current={active ? 'page' : undefined}><span className="sidebar-nav-icon"><Icon d={icons[item.iconKey]} /></span>{!collapsed && <span className="sidebar-nav-label">{item.label}</span>}</button> }
 export default function PortalSidebar({ section, setSection, teacherWorkspace, collapsed, onClose }) {
-  const { profile } = useAuth()
-  const manager = ['admin', 'principal'].includes(profile?.role)
-  const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
-  const canManageJuniorAcademicSettings = profile?.role === 'admin' && ['all', 'junior'].includes(profile?.campus)
-  const accountant = profile?.role === 'accountant'
-  const juniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
+  const { profile, activeRole } = useAuth()
+  const manager = ['admin', 'principal'].includes(activeRole)
+  const isMainAdmin = activeRole === 'admin' && profile?.campus === 'all'
+  const canManageJuniorAcademicSettings = activeRole === 'admin' && ['all', 'junior'].includes(profile?.campus)
+  const accountant = activeRole === 'accountant'
+  const juniorTeacher = activeRole === 'teacher' && profile?.campus === 'junior'
   const juniorAssignments = profile?.teacher_class_assignments || []
   const ecdOnlyJuniorTeacher = juniorTeacher && juniorAssignments.length > 0 && juniorAssignments.every(assignment => /^ECD [AB]$/.test(assignment.class_level))
-  const teacherInSubjectWorkspace = profile?.role === 'teacher' && teacherWorkspace === 'subjects'
+  const teacherInSubjectWorkspace = activeRole === 'teacher' && teacherWorkspace === 'subjects'
   
   const groups = [
     {
       title: 'Workspace',
       items: [
         { id: 'dashboard', label: juniorTeacher ? 'My class' : 'Class overview', iconKey: 'dashboard', show: !teacherInSubjectWorkspace },
-        { id: 'roster', label: 'Learners', iconKey: 'roster', show: profile?.role !== 'teacher' || !teacherInSubjectWorkspace },
-        { id: 'entry', label: profile?.role === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: profile?.role === 'admin' || teacherInSubjectWorkspace || juniorTeacher },
+        { id: 'roster', label: 'Learners', iconKey: 'roster', show: activeRole !== 'teacher' || !teacherInSubjectWorkspace },
+        { id: 'entry', label: activeRole === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: activeRole === 'admin' || teacherInSubjectWorkspace || juniorTeacher },
         { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: teacherInSubjectWorkspace || (juniorTeacher && !ecdOnlyJuniorTeacher) },
-        { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'accountant'].includes(profile?.role) },
+        { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'accountant'].includes(activeRole) },
         { id: 'settings', label: 'Account settings', iconKey: 'staff', show: true }
       ].filter(i => i.show)
     },
     {
       title: 'Academic services',
       items: [
-        { id: 'bulk-import', label: 'Bulk learner export', iconKey: 'roster', show: profile?.role === 'admin' },
-        { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: profile?.role === 'admin' },
+        { id: 'bulk-import', label: 'Bulk learner export', iconKey: 'roster', show: activeRole === 'admin' },
+        { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: activeRole === 'admin' },
         { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: canManageJuniorAcademicSettings },
-        { id: 'classes', label: 'Classes', iconKey: 'staff', show: profile?.role === 'admin' },
+        { id: 'classes', label: 'Classes', iconKey: 'staff', show: activeRole === 'admin' },
       ].filter(i => i.show)
     },
     {
       title: 'Finance',
       items: [
-        { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || profile?.role === 'accountant' },
-        { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: isMainAdmin || profile?.role === 'principal' || accountant },
+        { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || activeRole === 'accountant' },
+        { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: isMainAdmin || activeRole === 'principal' || accountant },
         { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: isMainAdmin || accountant },
       ].filter(i => i.show)
     },

@@ -1,1 +1,27 @@
-import { useEffect } from 'react'; import { useNavigate } from 'react-router-dom'; import { useAuth } from '../../context/useAuth'; const labels={admin:'Admin',principal:'Principal',teacher:'Teacher',accountant:'Accountant'}; const paths={admin:'/portal/staff',principal:'/portal/staff',teacher:'/portal/teacher',accountant:'/portal/accountant'}; export default function RoleSwitcher(){const {roles,activeRole,setActiveRole}=useAuth();const navigate=useNavigate();useEffect(()=>{const saved=sessionStorage.getItem('reliance-active-role');if(saved&&roles.includes(saved)&&saved!==activeRole)setActiveRole(saved).then(()=>navigate(paths[saved]||'/portal/dashboard'));},[]);if(roles.length<2)return null;return <label className="top-bar-role-switcher">Viewing as: <select value={activeRole||''} onChange={async e=>{const role=e.target.value;await setActiveRole(role);sessionStorage.setItem('reliance-active-role',role);navigate(paths[role]||'/portal/dashboard')}}>{roles.map(role=><option key={role} value={role}>{labels[role]||role}</option>)}</select></label>}
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/useAuth'
+import { portalDestinationForRole } from '../../lib/portalRedirect'
+
+const labels = { admin: 'Admin', principal: 'Principal', teacher: 'Teacher', accountant: 'Accountant' }
+
+export default function RoleSwitcher() {
+  const { roles, activeRole, setActiveRole } = useAuth()
+  const navigate = useNavigate()
+  const [switching, setSwitching] = useState(false)
+  const [error, setError] = useState('')
+  if (roles.length < 2) return null
+
+  const changeRole = async event => {
+    const role = event.target.value
+    setSwitching(true)
+    setError('')
+    try {
+      await setActiveRole(role)
+      navigate(portalDestinationForRole(role) || '/portal/dashboard')
+    } catch {
+      setError('We could not switch roles. Please try again.')
+    } finally { setSwitching(false) }
+  }
+  return <label className="top-bar-role-switcher">Viewing as: <select value={activeRole || ''} disabled={switching} onChange={changeRole}>{roles.map(role => <option key={role} value={role}>{labels[role] || role}</option>)}</select>{error && <span role="alert">{error}</span>}</label>
+}

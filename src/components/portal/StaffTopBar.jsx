@@ -1,3 +1,4 @@
+import RoleSwitcher from './RoleSwitcher'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
 import ClassSelector, { parseClassKey } from './ClassSelector'
@@ -25,7 +26,7 @@ const LogoutIcon = () => (
 )
 
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
-  const { profile, signOut, supabase } = useAuth()
+  const { profile, activeRole, signOut, supabase } = useAuth()
   const navigate = useNavigate()
   const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, clearSubjectGroup } = useSection()
   const { classes: schoolClasses } = useSchoolClasses(supabase)
@@ -51,9 +52,9 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
     }
   }
 
-  const isMainAdmin = profile?.role === 'admin' && profile?.campus === 'all'
-  const isJuniorTeacher = profile?.role === 'teacher' && profile?.campus === 'junior'
-  const adminCampusScope = profile?.role === 'admin' && ['junior', 'senior'].includes(profile?.campus)
+  const isMainAdmin = activeRole === 'admin' && profile?.campus === 'all'
+  const isJuniorTeacher = activeRole === 'teacher' && profile?.campus === 'junior'
+  const adminCampusScope = activeRole === 'admin' && ['junior', 'senior'].includes(profile?.campus)
     ? profile.campus
     : null;
   const campusScope = ['junior', 'senior'].includes(profile?.campus) ? profile.campus : 'all'
@@ -65,15 +66,15 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
     admin:     'Admin Portal',
     teacher:   'Teacher Portal',
     accountant:'Accountant Portal',
-  }[profile?.role] ?? 'Staff Portal'
+  }[activeRole] ?? 'Staff Portal'
 
   const initials = (profile?.full_name || 'Portal User').split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase()
-  const hasTeacherSubjectScope = profile?.role === 'teacher' && teacherWorkspace === 'subjects' && Boolean(selectedSubjectAllocationId)
+  const hasTeacherSubjectScope = activeRole === 'teacher' && teacherWorkspace === 'subjects' && Boolean(selectedSubjectAllocationId)
   // A Senior teacher can be allocated a form through either a class-teacher
   // assignment or a subject allocation. Class Work must offer every distinct
   // assigned form; Subject Work continues to use its own subject allocation
   // scope and is deliberately not mixed into this switcher.
-  const teacherClassOptions = profile?.role === 'teacher' && !isJuniorTeacher
+  const teacherClassOptions = activeRole === 'teacher' && !isJuniorTeacher
     ? [...new Map([
         ...(profile?.teacher_class_assignments || []),
         ...(profile?.teacher_class_subject_assignments || []).map(assignment => ({
@@ -85,7 +86,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
         assignment,
       ])).values()]
     : profile?.teacher_class_assignments || []
-  const showClassControl = profile?.role === 'teacher'
+  const showClassControl = activeRole === 'teacher'
     ? teacherWorkspace !== 'subjects'
     : ['dashboard', 'roster', 'entry', 'progress-reports', 'classes'].includes(section)
 
@@ -94,7 +95,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
       {/* ── Left: toggle + brand ───────────── */}
       <div className="top-bar-left">
         {/* Desktop collapse toggle */}
-        {profile?.role !== 'accountant' && (
+        {activeRole !== 'accountant' && (
           <button
             className="top-bar-toggle desktop-toggle"
             onClick={onToggleSidebar}
@@ -105,7 +106,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
           </button>
         )}
         {/* Mobile hamburger */}
-        {profile?.role !== 'accountant' && (
+        {activeRole !== 'accountant' && (
           <button
             className="top-bar-toggle mobile-toggle"
             onClick={onToggleMobile}
@@ -134,7 +135,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
 
       {/* ── Right: user info + logout ──────── */}
         <div className="top-bar-user">
-          {profile?.role === 'teacher' && profile?.campus !== 'junior' && (
+          {activeRole === 'teacher' && profile?.campus !== 'junior' && (
             <div className="teacher-workspace-switch" aria-label="Teacher workspace">
               <button type="button" className={teacherWorkspace === 'classes' ? 'active' : ''} onClick={() => setTeacherWorkspace('classes')}>Class work</button>
               <button type="button" className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subject work</button>
@@ -143,7 +144,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
           {hasTeacherSubjectScope && <div className="teacher-subject-scope" aria-label="Active subject allocation"><span>Subject work</span><strong>{selectedSubject} · {selectedSubjectLevel}</strong></div>}
           {showClassControl && <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
             <ClassSelector 
-              role={profile?.role} 
+              role={activeRole}
               assignedClasses={teacherClassOptions}
               allClasses={visibleSchoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '', campus: row.campus || '' }))}
               activeClassKey={activeClassKey} 
@@ -151,7 +152,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
               campusScope={campusScope}
             />
           </div>}
-          {profile?.role === 'teacher' ? (
+          {activeRole === 'teacher' ? (
             isJuniorTeacher ? (
               section !== 'dashboard' && <button className="top-bar-back" onClick={() => setSection('dashboard')} title="Return to your class workspace">← My class</button>
             ) : (
@@ -161,11 +162,12 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile }) {
           ) : (
             <button className="top-bar-back" onClick={goBack} disabled={!canGoBack} title={canGoBack ? 'Return to the previous portal page' : 'You are already at the portal home'}>← Back</button>
           )}
+          <RoleSwitcher />
           <PortalSiteExitLink className="top-bar-site-link">← Website</PortalSiteExitLink>
           <div className="top-bar-avatar" aria-hidden="true">{initials}</div>
         <div className="top-bar-user-info">
           <span className="top-bar-username">{profile?.full_name || 'Portal User'}</span>
-          <span className="top-bar-role-badge">{isMainAdmin ? 'Main Admin' : profile?.role || 'staff'}</span>
+          <span className="top-bar-role-badge">{isMainAdmin ? 'Main Admin' : activeRole || 'staff'}</span>
         </div>
         <button className="top-bar-logout" onClick={handleLogout} title="Log out">
           <LogoutIcon />
