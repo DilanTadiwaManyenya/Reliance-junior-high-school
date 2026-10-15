@@ -76,3 +76,84 @@
   .coursework-page .portal-form .btn { grid-column: 1 / -1; width: 100%; }
   .coursework-page .grade12-coursework-guidance { grid-template-columns: minmax(0, 1fr); }
 }
+
+.coursework-marks { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.coursework-marks-progress { margin: 0; color: #64748b; line-height: 1.5; }
+.coursework-table-caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.coursework-marks-table th[scope="row"] { background: transparent; color: #172554; font-size: .9rem; text-transform: none; letter-spacing: normal; }
+.coursework-page .coursework-marks-table input { min-height: 46px; font-size: 1rem; }
+.coursework-save-actions { display: flex; justify-content: flex-end; }
+.coursework-save-actions .btn { min-height: 46px; }
+
+@media (max-width: 600px) {
+  /* Each learner keeps identity, mark and status together on a phone. */
+  .coursework-marks-wrap { overflow: visible; margin: 0; border-radius: 0; }
+  .coursework-marks-wrap::after { display: none; }
+  .coursework-page .coursework-marks-table { display: block; min-width: 0; width: 100%; }
+  .coursework-marks-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .coursework-marks-table tbody { display: grid; gap: 12px; }
+  .coursework-marks-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #dce5f0;
+    border-radius: 12px;
+    background: #f8faff;
+  }
+  .coursework-marks-table :is(th[scope="row"], td) { display: block; min-width: 0; padding: 0; border: 0; background: transparent; overflow-wrap: anywhere; }
+  .coursework-marks-table .coursework-learner-name { grid-column: 1 / -1; font-size: 1rem; line-height: 1.45; white-space: normal; }
+  .coursework-marks-table td::before { content: attr(data-label); display: block; margin-bottom: 5px; color: #64748b; font-size: .72rem; font-weight: 700; }
+  .coursework-page .coursework-marks-table input { width: 100%; min-width: 0; max-width: none; background: #fff; }
+  .coursework-learner-status .class-status { display: inline-flex; align-items: center; min-height: 46px; }
+  .coursework-save-actions .btn { width: 100%; }
+}
+
+/* Shared teacher workspace containment, including class and subject landing pages. */
+.staff-shell[data-role="teacher"] :is(.staff-main, .staff-content-area, .staff-content-area > *) { min-width: 0; }
+.junior-teacher-home, .subject-workspace-landing { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.junior-teacher-class-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.coursework-back, .teacher-workspace-return { display: none; }
+
+@media (max-width: 1200px) {
+  .staff-shell[data-role="teacher"] { --topbar-height: 64px; }
+  .staff-shell[data-role="teacher"].campus-senior[data-workspace="classes"],
+  .staff-shell[data-role="teacher"][data-multiple-roles="true"] { --topbar-height: 116px; }
+  .staff-shell[data-role="teacher"].campus-senior[data-workspace="classes"][data-multiple-roles="true"] { --topbar-height: 168px; }
+  .staff-shell[data-role="teacher"] .staff-top-bar {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    grid-template-rows: 44px;
+    grid-auto-rows: 44px;
+    height: var(--topbar-height);
+    gap: 8px;
+    padding: 8px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left));
+  }
+  .staff-shell[data-role="teacher"] :is(.top-bar-brand, .top-bar-avatar, .top-bar-user-info, .top-bar-site-link, .top-bar-logout span) { display: none !important; }
+  .staff-shell[data-role="teacher"] .top-bar-left { grid-area: 1 / 1; }
+  .staff-shell[data-role="teacher"] .top-bar-user { display: contents; }
+  .staff-shell[data-role="teacher"] :is(.top-bar-toggle, .top-bar-logout) { width: 44px; height: 44px; min-height: 44px; margin: 0; }
+  .staff-shell[data-role="teacher"] .top-bar-logout { grid-area: 1 / 3; }
+  .staff-shell[data-role="teacher"] .teacher-workspace-switch,
+  .staff-shell[data-role="teacher"] .top-bar-class-control { grid-area: 1 / 2; width: 100%; min-width: 0; max-width: none; margin: 0 !important; }
+  .staff-shell[data-role="teacher"] .teacher-workspace-switch button { flex: 1; min-width: 0; min-height: 44px; padding: 6px; font-size: .75rem; }
+  .staff-shell[data-role="teacher"].campus-senior .top-bar-class-control { grid-area: 2 / 1 / auto / -1; }
+  .staff-shell[data-role="teacher"] .top-bar-class-control :is(.class-selector-bar, .class-switcher-select) { width: 100%; min-height: 44px; }
+  .staff-shell[data-role="teacher"] .top-bar-class-control .class-label { display: none; }
+  .staff-shell[data-role="teacher"] .top-bar-class-control .class-badge-active { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .staff-shell[data-role="teacher"] .top-bar-role-switcher { grid-area: 2 / 1 / auto / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; font-size: .8rem; }
+  .staff-shell[data-role="teacher"].campus-senior[data-workspace="classes"] .top-bar-role-switcher { grid-row: 3; }
+  .staff-shell[data-role="teacher"] .top-bar-role-switcher select { width: 100%; min-width: 0; min-height: 44px; padding: 8px; font: inherit; font-size: 1rem; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; }
+  .staff-shell[data-role="teacher"] .junior-teacher-home-hero,
+  .staff-shell[data-role="teacher"] .junior-teacher-class-list { padding: 16px; }
+  .staff-shell[data-role="teacher"] .junior-teacher-home-actions .btn { width: 100%; min-height: 44px; }
+  .staff-shell[data-role="teacher"] .junior-teacher-class-grid button { min-height: 44px; }
+  .staff-shell[data-role="teacher"] .subject-workspace-landing { padding: 0; }
+  .staff-shell[data-role="teacher"] .subject-allocation-grid > * { min-width: 0; overflow-wrap: anywhere; }
+  .staff-shell[data-role="teacher"] .top-bar-back { display: none !important; }
+  .teacher-workspace-return { display: block; padding: 16px clamp(14px, 2vw, 28px) 0; }
+  .teacher-workspace-return .btn { min-height: 44px; white-space: normal; }
+  /* Keep return navigation in the page flow instead of covering mark inputs. */
+  .staff-shell[data-role="teacher"][data-section="coursework"] .top-bar-back { display: none !important; }
+  .coursework-page .coursework-back { display: inline-flex; min-height: 44px; margin-bottom: 16px; white-space: normal; }
+}

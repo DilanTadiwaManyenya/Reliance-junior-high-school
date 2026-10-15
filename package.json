@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:shop": "node --test tests/shop-database.test.mjs",
+    "test:teacher-mobile": "node tests/teacher-mobile.browser.mjs",
     "test:portal": "node --test tests/portal-profile.test.mjs tests/portal-render.test.mjs tests/teacher-access.test.mjs"
   },
   "dependencies": {

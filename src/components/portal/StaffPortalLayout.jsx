@@ -56,7 +56,7 @@ export default function StaffPortalLayout() {
 }
 
 function StaffPortalWorkspace() {
-  const { profile, user, supabase } = useAuth()
+  const { profile, user, supabase, roles } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const role = profile?.active_role ?? profile?.role
@@ -139,7 +139,7 @@ function StaffPortalWorkspace() {
 
   return (
     <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, isJuniorTeacher, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
-      <div className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
+      <div data-role={role} data-workspace={teacherWorkspace} data-section={section} data-multiple-roles={roles.length > 1} className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}
         <StaffTopBar
@@ -187,6 +187,7 @@ function StaffPortalWorkspace() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
+          {role === 'teacher' && !['dashboard', 'subject-allocations', 'coursework'].includes(section) && <div className="teacher-workspace-return"><button type="button" className="btn secondary" onClick={() => isJuniorTeacher || teacherWorkspace === 'classes' ? changeSection('dashboard') : clearSubjectGroup()}>{isJuniorTeacher ? '← My class' : teacherWorkspace === 'subjects' ? '← Subject allocations' : '← Class work'}</button></div>}
           <Outlet />
         </motion.main>
 
