@@ -37,3 +37,63 @@
   }
   body.printing-academic-report [data-print-report] .no-print { display: none !important; }
 }
+
+/* Physical page dimensions prevent phone breakpoints from narrowing the PDF. */
+@media print {
+  body.printing-academic-report [data-print-report].report-card {
+    width: 198mm !important;
+    zoom: var(--report-print-scale, 1) !important;
+    font-size: 8pt !important;
+    color: #111827 !important;
+    background: white !important;
+  }
+  body.printing-academic-report [data-print-report] * { box-sizing: border-box; }
+  body.printing-academic-report .report-card .junior-report-section,
+  body.printing-academic-report .report-card .portal-table-wrap { overflow: visible !important; }
+  body.printing-academic-report .report-card table { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; }
+  body.printing-academic-report .report-card th,
+  body.printing-academic-report .report-card td { overflow-wrap: anywhere !important; white-space: normal !important; }
+  body.printing-academic-report .junior-report-book .junior-report-table { font-size: 7pt !important; }
+  body.printing-academic-report .junior-report-book .junior-report-table th { font-size: 6.5pt !important; }
+  body.printing-academic-report .junior-report-book .junior-report-table td,
+  body.printing-academic-report .junior-report-book .junior-report-table th { padding: 1mm !important; line-height: 1.15 !important; }
+  body.printing-academic-report .junior-report-meta { grid-template-columns: repeat(3,minmax(0,1fr)) !important; font-size: 7pt !important; }
+  body.printing-academic-report .junior-report-comments,
+  body.printing-academic-report .junior-report-footer { font-size: 7pt !important; overflow-wrap: anywhere; }
+  body.printing-academic-report .junior-report-footer { flex-direction: row !important; }
+  body.printing-academic-report .junior-report-footer > div { min-width: 0; }
+  body.printing-academic-report .report-card-meta { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+  body.printing-academic-report .report-next { flex-direction: row !important; }
+  body.printing-academic-report .report-learner-summary,
+  body.printing-academic-report .report-office-stamp { display: block !important; }
+}
+@page academic-report { size: A4 portrait; margin: 6mm; }
+@media print {
+  body.printing-academic-report [data-report-print-ancestor],
+  body.printing-academic-report [data-print-report] { page: academic-report !important; }
+}
+@media print {
+  body.printing-academic-report .junior-foundation-book-table th:nth-child(1) { width: 17%; }
+  body.printing-academic-report .junior-foundation-book-table th:nth-child(2) { width: 14%; }
+  body.printing-academic-report .junior-foundation-book-table th:nth-child(3),
+  body.printing-academic-report .junior-foundation-book-table th:nth-child(4),
+  body.printing-academic-report .junior-foundation-book-table th:nth-child(5) { width: 9%; }
+  body.printing-academic-report .junior-foundation-book-table th:nth-child(6) { width: 42%; }
+}
+@media print {
+  body.printing-academic-report .report-card .report-next { display: flex !important; }
+  body.printing-academic-report .report-card .report-header-aside { display: grid !important; grid-template-columns: 1fr 34mm !important; width: 100% !important; margin: 2mm 0 !important; }
+  body.printing-academic-report .report-card .report-student-identification { width: auto !important; min-height: 0 !important; background: white !important; }
+  body.printing-academic-report .report-card .report-student-id,
+  body.printing-academic-report .report-card .report-student-id *,
+  body.printing-academic-report .report-card .report-card-meta,
+  body.printing-academic-report .report-card .report-card-meta *,
+  body.printing-academic-report .report-card .report-next * { color: #111827 !important; }
+  body.printing-academic-report .report-card .report-table th:nth-child(1) { width: 20% !important; }
+  body.printing-academic-report .report-card .report-table th:nth-child(2),
+  body.printing-academic-report .report-card .report-table th:nth-child(3) { width: 8% !important; }
+  body.printing-academic-report .report-card .report-table th:nth-child(4) { width: 7% !important; }
+  body.printing-academic-report .report-card .report-table th:nth-child(5) { width: 33% !important; }
+  body.printing-academic-report .report-card .report-table th:nth-child(6) { width: 16% !important; }
+  body.printing-academic-report .report-card .report-table th:nth-child(7) { width: 8% !important; }
+}
