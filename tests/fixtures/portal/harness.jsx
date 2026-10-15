@@ -1,3 +1,4 @@
+import { getJuniorReportBook, getSubjectsByGradeStream } from '../../../src/utils/CurriculumData'
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, useLocation } from 'react-router-dom'
@@ -14,6 +15,7 @@ import '../../../src/parentPortal.css'
 import '../../../src/teacherWorkspace.css'
 import '../../../src/portalResponsive.css'
 import '../../../src/parentResponsive.css'
+import '../../../src/reportPrint.css'
 
 const params = new URLSearchParams(location.search)
 const role = params.get('role') || 'admin'
@@ -48,6 +50,15 @@ const db = {
   school_expenses: [{ id: 'expense', expense_date: today, category: 'Stationery', description: 'Classroom books and materials for the new school term', supplier: 'Example supplier', amount: 40, status: 'pending', campus: 'senior', created_at: today }],
   announcements: [{ id: 'announcement', title: 'Term update for parents and staff', body: 'A longer school announcement to check wrapping and reading on mobile screens.', content: 'School term update.', audience: 'all', created_at: today }],
   audit_logs: [{ id: 'audit', actor_role: 'admin', description: 'Updated an example learner record', action_type: 'update', created_at: today }],
+}
+if (params.has('printFixture')) {
+  const base = { student_id: 'learner-0', term: '3', year: 2026, created_at: today }
+  const blueprint = getJuniorReportBook(learners[0].class_level)
+  const comment = 'Consistent progress, thoughtful participation and careful preparation. Continue regular practice to strengthen confidence and accuracy.'
+  db.academic_records = getSubjectsByGradeStream(learners[0].class_level, /Six/.test(learners[0].class_level) ? 'Arts' : 'Blue').map((subject, index) => ({ ...base, id: `academic-${index}`, subject, percentage: 72, exam_mark: 75, comment }))
+  db.junior_component_marks = (blueprint?.subjects || []).flatMap(subject => subject.components.map(component => ({ ...base, subject: subject.subject, component, score: 8, possible_mark: 10, comment: 'Good progress; continue regular reading and practice.' })))
+  db.junior_developmental_ratings = (blueprint?.areas || []).map(development_area => ({ ...base, development_area, rating: 4 }))
+  db.report_card_comments = [{ ...base, form_teacher_comment: comment.repeat(2), principal_comment: comment.repeat(2), head_signature_initials: 'E.A.', co_curricular_activities: 'Athletics, music, chess and school leadership activities.' }]
 }
 window.fixtureWrites = []
 function query(table) {

@@ -21,7 +21,7 @@
   }
   body.printing-academic-report [data-print-report],
   body.printing-academic-report [data-print-report] * { visibility: visible !important; }
-  body.printing-academic-report [data-print-report] {
+  body.printing-academic-report [data-print-report].report-card {
     display: block !important;
     position: relative !important;
     inset: auto !important;
@@ -70,7 +70,7 @@
 @page academic-report { size: A4 portrait; margin: 6mm; }
 @media print {
   body.printing-academic-report [data-report-print-ancestor],
-  body.printing-academic-report [data-print-report] { page: academic-report !important; }
+  body.printing-academic-report [data-print-report].report-card { page: academic-report !important; }
 }
 @media print {
   body.printing-academic-report .junior-foundation-book-table th:nth-child(1) { width: 17%; }
@@ -96,4 +96,10 @@
   body.printing-academic-report .report-card .report-table th:nth-child(5) { width: 33% !important; }
   body.printing-academic-report .report-card .report-table th:nth-child(6) { width: 16% !important; }
   body.printing-academic-report .report-card .report-table th:nth-child(7) { width: 8% !important; }
+}
+@media print {
+  body.printing-academic-report .report-card .report-header-aside .report-student-identification { grid-column: 1 !important; grid-row: 1 !important; }
+  body.printing-academic-report .report-card .report-header-aside .report-office-stamp { grid-column: 2 !important; grid-row: 1 !important; }
+  body.printing-academic-report .report-card .report-table td:nth-child(4),
+  body.printing-academic-report .report-card .report-table td:nth-child(4)::first-line { background: white !important; color: #111827 !important; padding: 1.5mm !important; }
 }
