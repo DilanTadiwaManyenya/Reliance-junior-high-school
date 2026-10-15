@@ -1,0 +1,78 @@
+/* Keep teacher pages inside their grid track; clipped overflow hid controls. */
+.coursework-page {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  width: 100%;
+}
+.coursework-page > *,
+.coursework-page .portal-form > *,
+.coursework-heading > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.coursework-page > .card {
+  width: 100%;
+  transform: none;
+}
+.coursework-page .grade-entry-heading,
+.coursework-page .coursework-scope,
+.coursework-page .junior-class-scope,
+.coursework-heading {
+  overflow-wrap: anywhere;
+}
+.coursework-page .portal-form {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  align-items: end;
+}
+.coursework-page .portal-form h2,
+.coursework-page .coursework-context-field {
+  grid-column: 1 / -1;
+}
+.coursework-page input,
+.coursework-page select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #172554;
+  font: inherit;
+  font-size: 1rem;
+}
+.coursework-page input:focus-visible,
+.coursework-page select:focus-visible {
+  outline: 3px solid #3f6bd84d;
+  outline-offset: 2px;
+  border-color: #3f6bd8;
+}
+.coursework-heading label {
+  display: grid;
+  gap: 6px;
+  flex: 0 1 360px;
+  min-width: 0;
+}
+.coursework-heading select { margin: 0; }
+.coursework-page .portal-form .btn { min-height: 46px; white-space: normal; }
+
+@media (max-width: 900px) {
+  .coursework-page .coursework-scope,
+  .coursework-page .junior-class-scope {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+  .coursework-heading { flex-direction: column; align-items: stretch; }
+  .coursework-heading label { flex-basis: auto; width: 100%; }
+}
+@media (max-width: 600px) {
+  .coursework-page { gap: 16px; }
+  .coursework-page > .card { padding: 16px; }
+  .coursework-page .portal-form { margin-top: 0; }
+  .coursework-page .portal-form h2,
+  .coursework-heading h2 { font-size: 1.25rem; line-height: 1.35; }
+  .coursework-page .portal-form .btn { grid-column: 1 / -1; width: 100%; }
+  .coursework-page .grade12-coursework-guidance { grid-template-columns: minmax(0, 1fr); }
+}
