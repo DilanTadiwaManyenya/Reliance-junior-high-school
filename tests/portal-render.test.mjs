@@ -14,6 +14,7 @@ test('Portal rendering follows the active role and profile failures remain recov
     const { default: Dashboard } = await server.ssrLoadModule('/src/pages/portal/StaffDashboard.jsx')
     const { default: Fees } = await server.ssrLoadModule('/src/components/portal/FeesDashboard.jsx')
     const { default: TopBar } = await server.ssrLoadModule('/src/components/portal/StaffTopBar.jsx')
+    const { default: AcademicReport } = await server.ssrLoadModule('/src/components/portal/AcademicReportCard.jsx')
     const { default: ProtectedRoute } = await server.ssrLoadModule('/src/components/portal/ProtectedRoute.jsx')
     const render = (Component, auth, props = {}, section = {}) => renderToStaticMarkup(
       React.createElement(MemoryRouter, null,
@@ -36,6 +37,11 @@ test('Portal rendering follows the active role and profile failures remain recov
     assert.doesNotMatch(principalFees, /Add learner/)
     assert.match(adminFees, /Add learner/)
     assert.match(render(TopBar, auth), /Viewing as:/)
+    for (const level of ['Lower Six', 'Upper Six']) {
+      const report = render(AcademicReport, auth, { student: { id: 'learner', full_name: 'Example Learner', class_level: level, class_stream: 'Sciences' } })
+      assert.match(report, /Senior School Academic Report/)
+      assert.doesNotMatch(report, /junior-report-book/)
+    }
     const recovery = render(ProtectedRoute, { ...auth, supabase: {}, profile: null, profileError: new Error('Request timed out') })
     assert.match(recovery, /Try again/)
     assert.match(recovery, /connection timed out/)

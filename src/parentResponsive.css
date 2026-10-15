@@ -1,0 +1,49 @@
+/* Parent navigation keeps every action on screen, including long school names. */
+@media screen and (max-width: 1100px) {
+  .parent-portal-shell .portal-nav { width: calc(100% - 28px); max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding-block: 10px; }
+  .parent-portal-shell .portal-nav .brand { grid-area: 1 / 1; min-width: 0; max-width: 100%; margin: 0; gap: 8px; }
+  .parent-portal-shell .brand img { flex: 0 0 38px; width: 38px; height: 44px; object-fit: contain; }
+  .parent-portal-shell .brand > span { min-width: 0; overflow-wrap: anywhere; font-size: .82rem; line-height: 1.3; }
+  .parent-portal-shell .brand small { font-size: .65rem; }
+  .parent-portal-shell .portal-user { display: contents; }
+  .parent-portal-shell .portal-user > span { display: none; }
+  .parent-portal-shell .portal-user > button:last-child { grid-area: 1 / 2; min-width: 76px; min-height: 44px; }
+  .parent-portal-shell .portal-history-back { grid-area: 2 / 1; justify-self: start; min-height: 44px; }
+  .parent-portal-shell .portal-site-link { grid-area: 2 / 2; justify-self: end; min-height: 44px; white-space: normal; }
+  .parent-portal-shell .portal-user .btn { padding: 10px 12px; }
+}
+@media screen and (max-width: 900px) {
+  .parent-portal-shell, .parent-portal-shell main, .parent-portal-shell .portal-content { min-width: 0; max-width: 100%; }
+  .parent-portal-shell .portal-content > * { min-width: 0; max-width: 100%; }
+  .parent-portal-shell :is(h1,h2,h3,.parent-full-card,.parent-catalogue-heading,.parent-shop-heading) { overflow-wrap: anywhere; }
+  .parent-portal-shell .parent-record-launcher { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+  .parent-portal-shell .parent-insight-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .parent-portal-shell .parent-uniform-shop { min-width: 0; }
+  .parent-portal-shell .parent-shop-grid, .parent-portal-shell .parent-product-grid { grid-template-columns: minmax(0, 1fr); }
+  .parent-portal-shell .parent-product-card-footer { flex-wrap: wrap; }
+  .parent-portal-shell .parent-product-card-footer .btn { min-height: 44px; }
+  .parent-portal-shell .parent-cart { width: 100%; min-width: 0; }
+  .parent-portal-shell .parent-cart-lines > div { grid-template-columns: minmax(0, 1fr) 64px; }
+  .parent-portal-shell .parent-cart-lines button { grid-column: 2; min-height: 44px; }
+  .parent-portal-shell .parent-cart-lines input { width: 64px; min-width: 0; min-height: 44px; }
+  .parent-portal-shell .parent-payment-methods label { min-height: 44px; }
+  .parent-portal-shell .parent-payment-methods input { min-width: 20px; min-height: 20px !important; }
+  .parent-portal-shell .parent-catalogue-back, .parent-portal-shell .parent-record-action { min-height: 44px; display: inline-flex; align-items: center; }
+  .parent-portal-shell .junior-report-book { min-width: 0; max-width: 100%; }
+  .parent-portal-shell .junior-report-section { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+  .parent-portal-shell .junior-report-table { min-width: 520px; }
+  .parent-portal-shell .junior-report-heading, .parent-portal-shell .junior-report-meta { min-width: 0; }
+  .parent-portal-shell .junior-report-meta > span { min-width: 0; overflow-wrap: anywhere; }
+  .portal-auth .phone-input-controls { grid-template-columns: minmax(0, 1fr); }
+  .portal-auth .phone-country, .portal-auth .phone-number { min-width: 0; }
+  .portal-auth .portal-auth-card { min-width: 0; max-width: 100%; }
+  .portal-auth .portal-auth-card > .portal-back { white-space: normal; }
+  .portal-auth .form :is(input,select) { min-height: 44px; font-size: 1rem; }
+}
+
+@media screen and (max-width: 900px) {
+  .parent-portal-shell .portal-content { width: calc(100% - 28px); margin-inline: auto; }
+  .parent-portal-shell h1 { font-size: clamp(1.6rem, 7vw, 2rem); line-height: 1.15; }
+  .parent-portal-shell .portal-user .btn { font-size: .85rem; }
+  .parent-portal-shell .portal-user .btn::before { content: none; }
+}

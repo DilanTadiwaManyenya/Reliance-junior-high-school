@@ -115,7 +115,7 @@
 .junior-teacher-class-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
 .coursework-back, .teacher-workspace-return { display: none; }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .staff-shell[data-role="teacher"] { --topbar-height: 64px; }
   .staff-shell[data-role="teacher"].campus-senior[data-workspace="classes"],
   .staff-shell[data-role="teacher"][data-multiple-roles="true"] { --topbar-height: 116px; }

@@ -11,6 +11,7 @@ import './mobileUX.css'
 import './parentPortal.css'
 import './teacherWorkspace.css'
 import './portalResponsive.css'
+import './parentResponsive.css'
 import App from './App'
 import { AuthProvider } from './context/AuthProvider'
 
