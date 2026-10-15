@@ -1,42 +1,73 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { fetchPortalProfile } from '../lib/portalProfile'
 import { AuthContext } from './authContext'
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [profileError, setProfileError] = useState(null)
   const [loading, setLoading] = useState(Boolean(supabase))
   const profileRequest = useRef(0)
 
   const loadProfile = useCallback(async user => {
     const requestId = ++profileRequest.current
-    if (!supabase || !user) { setProfile(null); return null }
-    const detailed = await supabase.from('profiles').select('*, user_roles(role), teacher_class_assignments(class_level, class_stream), teacher_class_subject_assignments(id, class_level, class_stream, subject, campus)').eq('id', user.id).single()
-    // Role-assignment tables may not be present in older deployments. A valid
-    // staff/parent profile must still be able to sign in while those optional
-    // joins are unavailable.
-    const fallback = detailed.error
-      ? await supabase.from('profiles').select('*').eq('id', user.id).single()
-      : detailed
-    const data = fallback.data
-    if (requestId === profileRequest.current) setProfile(data ?? null)
-    return data ?? null
+    setProfileError(null)
+    if (!supabase || !user) {
+      setProfile(null)
+      setLoading(false)
+      return null
+    }
+    setLoading(true)
+    const result = await fetchPortalProfile(supabase, user.id)
+    if (requestId === profileRequest.current) {
+      setProfile(result.profile)
+      setProfileError(result.error)
+      setLoading(false)
+    }
+    return result.profile
   }, [])
 
   useEffect(() => {
     if (!supabase) return undefined
+    let disposed = false
+    let authRevision = 0
+    let profileTimer
     const initialise = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
-      setSession(currentSession)
-      await loadProfile(currentSession?.user)
-      setLoading(false)
+      const revision = authRevision
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        if (disposed || revision !== authRevision) return
+        if (error) throw error
+        setSession(data.session)
+        await loadProfile(data.session?.user)
+      } catch (error) {
+        if (!disposed && revision === authRevision) {
+          setProfileError(error)
+          setLoading(false)
+        }
+      }
     }
     initialise()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      authRevision += 1
+      profileRequest.current += 1
       setSession(nextSession)
-      loadProfile(nextSession?.user)
+      setProfile(null)
+      setProfileError(null)
+      setLoading(Boolean(nextSession))
+      clearTimeout(profileTimer)
+      // Start database work after the auth callback releases its session lock.
+      profileTimer = setTimeout(() => {
+        if (!disposed) loadProfile(nextSession?.user)
+      }, 0)
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      disposed = true
+      profileRequest.current += 1
+      clearTimeout(profileTimer)
+      subscription.unsubscribe()
+    }
   }, [loadProfile])
 
   const signOut = async () => {
@@ -44,7 +75,7 @@ export function AuthProvider({ children }) {
     profileRequest.current += 1
     const result = await supabase.auth.signOut()
     if (result.error) throw result.error
-    setSession(null); setProfile(null)
+    setSession(null); setProfile(null); setProfileError(null); setLoading(false)
     return result
   }
 
@@ -58,5 +89,5 @@ export function AuthProvider({ children }) {
     setProfile(current => ({ ...current, active_role: role }))
   }
 
-  return <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, roles, activeRole, setActiveRole, refreshProfile: loadProfile, loading, signOut, supabase }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, profileError, roles, activeRole, setActiveRole, refreshProfile: loadProfile, loading, signOut, supabase }}>{children}</AuthContext.Provider>
 }

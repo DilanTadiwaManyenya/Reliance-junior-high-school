@@ -18,6 +18,7 @@ export default function PortalLogin({ staff = false }) {
     if (!navigator.onLine) return setError('You appear to be offline. Check your internet connection and try again.')
     if (!isInternationalPhone(normalized)) return setError('Enter a valid international phone number, including the country code.')
     setSubmitting(true)
+    try {
     const email = buildPortalEmail(normalized)
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) { setSubmitting(false); return setError(connectionError(authError) ? 'We could not connect to the portal. Check your internet connection and try again.' : 'Phone number or password is incorrect.') }
@@ -30,6 +31,10 @@ export default function PortalLogin({ staff = false }) {
     if (wrongPortal) { await supabase.auth.signOut(); setSubmitting(false); return setError(staff ? 'This is a parent account. Please use the Parent portal to sign in.' : 'This is a staff account. Please use the Staff portal to sign in.') }
     logActivity(supabase, data.user, resolvedProfile, { actionType: 'login', description: 'Signed in to the portal' })
     navigate(destination, { replace: true })
+    } catch (requestError) {
+      setError(connectionError(requestError) ? 'We could not connect to the portal. Check your internet connection and try again.' : 'We could not load your portal access. Please try again.')
+    } finally { setSubmitting(false) }
   }
   return <main className="portal-auth"><section className="portal-auth-card"><PortalSiteExitLink className="portal-website-button">← Back to website</PortalSiteExitLink><p className="eyebrow">{staff ? 'Staff' : 'Parent'} sign in</p><h1>Welcome back</h1>{error && <PortalNotice tone="error">{error}</PortalNotice>}<form className="form" onSubmit={submit}><PhoneInput value={identifier} onChange={setIdentifier} required /><PasswordInput id="login-password" label="Password" value={password} onChange={event => setPassword(event.target.value)} minLength={0} required /><button className="btn primary" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button></form>{!staff && <p>New parent? <Link to="/portal/signup">Create your account</Link></p>}</section></main>
 }
+
