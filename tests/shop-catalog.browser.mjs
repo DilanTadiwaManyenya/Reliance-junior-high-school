@@ -97,7 +97,7 @@ try {
   await page.getByRole('dialog').locator('select').first().selectOption('junior')
   const image = await page.evaluate(() => { const c=document.createElement('canvas'); c.width=1800;c.height=1200;const ctx=c.getContext('2d');ctx.fillStyle='#3172ad';ctx.fillRect(0,0,c.width,c.height);return c.toDataURL('image/png').split(',')[1] })
   const file = { name: 'shirt.png', mimeType: 'image/png', buffer: Buffer.from(image, 'base64') }
-  await page.getByLabel('Product photo (JPG, PNG or WebP, up to 2 MB)').setInputFiles(file)
+  await page.getByLabel('Product photo (JPG, PNG or WebP, up to 5 MB)').setInputFiles(file)
   await page.locator('.shop-image-preview img').waitFor()
   assert.equal(uploads.length,0,'Photo is previewed before uploading')
   await page.getByRole('button',{name:'Save product',exact:true}).click()
@@ -127,7 +127,7 @@ try {
   await parent.screenshot({ path: 'tmp/catalog-review/parent-catalog.png', fullPage: true })
   const oldUrl = products[0].image_url
   await page.getByRole('button',{name:/Catalog test shirt/}).click()
-  await page.getByLabel('Product photo (JPG, PNG or WebP, up to 2 MB)').setInputFiles(file)
+  await page.getByLabel('Product photo (JPG, PNG or WebP, up to 5 MB)').setInputFiles(file)
   await page.locator('.shop-image-preview img').waitFor()
   await page.getByRole('button',{name:'Save product',exact:true}).click()
   await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
@@ -155,7 +155,7 @@ try {
   await page.getByRole('button',{name:/Legacy jacket/}).click()
   const campus = page.getByRole('dialog').locator('select').first()
   assert.equal(await campus.isEnabled(),true,'Unassigned legacy campus can be selected')
-  await page.getByLabel('Product photo (JPG, PNG or WebP, up to 2 MB)').setInputFiles(file)
+  await page.getByLabel('Product photo (JPG, PNG or WebP, up to 5 MB)').setInputFiles(file)
   await page.locator('.shop-image-preview img').waitFor()
   const before = uploads.length
   await page.getByRole('button',{name:'Save product',exact:true}).click()
@@ -323,12 +323,31 @@ try {
   const validation=await page.evaluate(async()=>{
     const {prepareProductImage}=await import('/src/lib/productImages.js')
     const results=[]
-    for(const f of [new File(['<svg/>'],'x.svg',{type:'image/svg+xml'}),new File([new Uint8Array(2097153)],'large.png',{type:'image/png'}),new File(['invalid'],'broken.png',{type:'image/png'})]) {
+    for(const f of [new File(['<svg/>'],'x.svg',{type:'image/svg+xml'}),new File([new Uint8Array(5242881)],'large.png',{type:'image/png'}),new File(['invalid'],'broken.png',{type:'image/png'})]) {
       try{await prepareProductImage(f);results.push('accepted')}catch(error){results.push(error.message)}
     }
     return results
   })
-  assert.match(validation[0],/JPG, PNG or WebP/);assert.match(validation[1],/2 MB/);assert.match(validation[2],/could not be read/)
+  assert.match(validation[0],/JPG, PNG or WebP/);assert.match(validation[1],/5 MB/);assert.match(validation[2],/could not be read/)
+  const acceptedSizes = await page.evaluate(async () => {
+    const { prepareProductImage } = await import('/src/lib/productImages.js')
+    const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 600
+    const png = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    const results = []
+    for (const size of [2097153, 5242880]) {
+      const file = new File([png, new Uint8Array(size - png.size)], 'large-valid.png', { type: 'image/png' })
+      const compressed = await prepareProductImage(file)
+      const image = await createImageBitmap(compressed)
+      results.push({ source: file.size, bytes: compressed.size, width: image.width, height: image.height })
+      image.close()
+    }
+    return results
+  })
+  assert.equal(acceptedSizes.length, 2)
+  for (const result of acceptedSizes) {
+    assert.ok(result.bytes < result.source, 'Large valid photo is compressed')
+    assert.equal(result.width, 1000); assert.equal(result.height, 500)
+  }
   assert.deepEqual(errors,[])
   const overflow=await parent.evaluate(()=>document.documentElement.scrollWidth>innerWidth)
   assert.equal(overflow,false,'Parent mobile catalog does not overflow')

@@ -1,11 +1,11 @@
 export const PRODUCT_IMAGE_BUCKET = 'product-images'
-export const MAX_PRODUCT_IMAGE_BYTES = 2 * 1024 * 1024
+export const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024
 
 export async function prepareProductImage(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
     throw new Error('Choose a JPG, PNG or WebP image.')
   }
-  if (!file.size || file.size > MAX_PRODUCT_IMAGE_BYTES) throw new Error('Images must be no larger than 2 MB.')
+  if (!file.size || file.size > MAX_PRODUCT_IMAGE_BYTES) throw new Error('Images must be no larger than 5 MB.')
   const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This image could not be read. Choose another JPG, PNG or WebP.') })
   try {
     const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height))
@@ -14,7 +14,7 @@ export async function prepareProductImage(file) {
     canvas.height = Math.max(1, Math.round(bitmap.height * scale))
     canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height)
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.82))
-    if (!blob || blob.size > MAX_PRODUCT_IMAGE_BYTES) throw new Error('Unable to compress this image below 2 MB. Choose a smaller image.')
+    if (!blob || blob.size > MAX_PRODUCT_IMAGE_BYTES) throw new Error('Unable to compress this image below 5 MB. Choose a smaller image.')
     return blob
   } finally { bitmap.close() }
 }

@@ -1620,7 +1620,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               )}
             </div>
             <label className="shop-image-field">
-              Product photo (JPG, PNG or WebP, up to 2 MB)
+              Product photo (JPG, PNG or WebP, up to 5 MB)
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectProductImage} />
             </label>
             {imageBusy && <p role="status">Preparing image…</p>}
