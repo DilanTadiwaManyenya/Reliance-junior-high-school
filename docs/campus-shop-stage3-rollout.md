@@ -72,4 +72,13 @@ If the frontend cannot confirm a learner campus, keep ordering unavailable and f
 
 ## Status
 
-Results will be recorded here after rollout.
+Completed 16 October 2026. Code commit d1655bf is pushed to master. Migration 20261016170000 is applied to linked Supabase project ejrtmdvnumjwikehzrrk; its migration history entry is present and the schema reload was requested.
+
+Live authenticated rollback-only probes passed: Junior-only saw Junior products only; Senior-only saw Senior products only; dual-campus parents could browse both authorized campuses but could not mix campuses into one learner's order; unverified links could neither browse products nor order. Correct learner-campus orders succeeded. Revoked-link and teacher helper checks passed. Temporary products, links and orders were rolled back, and parent requests did not deduct stock.
+
+All four baseline hashes above match after verification: products, POS receipts, full parent orders and parent/student links are unchanged. The 22 existing products remain unassigned and require deliberate Main Admin allocation.
+
+Passed: Stage 1/2/3 database regression suites, six portal tests, expanded catalog browser suite, parent mobile browser coverage (72 layouts and four payment-method submissions), targeted lint and production build. Existing build bundle-size warning remains. Missing/inactive learner cases and late responses were covered by isolated SQL/browser tests; live role probes used existing active learners with temporary links inside the rollback transaction.
+
+Both Vercel project deployment statuses for d1655bf report success. Hosted authenticated UI was not independently inspected because deployment URLs redirect to Vercel sign-in; local real-component browser checks passed. Stage 4 final acceptance remains pending.
+

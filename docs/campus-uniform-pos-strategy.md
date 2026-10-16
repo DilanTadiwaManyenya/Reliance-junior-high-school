@@ -1,6 +1,6 @@
 # Campus uniform catalog and POS strategy
 
-Status, 16 October 2026: Stages 0–2 complete. Stage 1 code 1a05991 and Stage 2 code e8f90be are pushed; both Supabase migrations were applied and verified live. See campus-shop-stage1-rollout.md and campus-shop-stage2-rollout.md for evidence. Stages 3–4 remain pending. All 22 products still need explicit Main Admin allocation; no stock quantities or campus memberships were guessed.
+Status, 16 October 2026: Stages 0–3 complete. Stage 1 code 1a05991, Stage 2 code e8f90be and Stage 3 code d1655bf are pushed; all three Supabase migrations were applied and verified live. See campus-shop-stage1-rollout.md, campus-shop-stage2-rollout.md and campus-shop-stage3-rollout.md for evidence. Stage 4 remains pending. All 22 products still need explicit Main Admin allocation; no stock quantities or campus memberships were guessed.
 
 ## Agreed target
 
@@ -95,3 +95,4 @@ Push the final verification record. Each stage ends with its commit hash, tests,
 All 22 existing items currently need Main Admin allocation. Strict campus policies will intentionally stop serving unassigned products to campus staff and parents. Deploy matching UI and SQL for each stage with verified compatibility; communicate any empty-catalog transition instead of assigning stock automatically. Prepare and verify allocation controls before requiring staff to use them.
 
 No passwords, staff identities, stock quantities or campus memberships are invented. If a specific account's intended campus is unknown, leave that account restricted and report the missing assignment. This strategy uses the existing active-role and campus model; any new shop permission helper should compose those existing checks and remain scoped to the shop, rather than changing shared finance helpers globally.
+
