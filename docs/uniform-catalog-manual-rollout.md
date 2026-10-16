@@ -1,4 +1,6 @@
-# Uniform catalog: manual rollout and verification
+# Uniform catalog: rollout and verification
+
+Live rollout completed on 16 October 2026 at the user’s request. Both catalog migrations were applied atomically to project `ejrtmdvnumjwikehzrrk`, recorded in migration history, and the PostgREST schema cache was refreshed. The nested `inventory_products?select=id,product_variants(id)&limit=0` API query returned HTTP 200. Bucket settings, four Storage policies, image_url, the foreign key and variant RLS were verified. Rollback-only tests using existing parent and teacher identities confirmed product/image insert denial and zero editable product rows; the parent could read 21 active uniforms. The catalog remained at 22 products and existing history at one parent order. Real binary photo upload and an authenticated browser purchase were not performed during this rollout.
 
 ## Inspection before changes
 
@@ -39,7 +41,7 @@ order by schemaname,policyname;
 
 All three helper names and all four tables must exist. Review any additional broad Storage policies: PostgreSQL permissive policies combine with OR, so another policy allowing all buckets can undermine a bucket-specific restriction. The migration intentionally does not rewrite policies belonging to other features.
 
-This phase's SQL is prepared for manual execution and has NOT been applied to the live project. Do not run an unrestricted `db push`: the repo also contains an unrelated pending migration from a previous phase.
+The SQL below is retained for reproducible manual verification; it has now been applied live as recorded above. Do not run an unrestricted `db push`: the repo also contains an unrelated pending migration from a previous phase.
 
 ## Manual step 2: images, bucket and catalog management
 
