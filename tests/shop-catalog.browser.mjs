@@ -15,7 +15,9 @@ let onJuniorCatalogHeld
 const images = new Map()
 const uploads = []
 const errors = []
-const context = await runtime.browser.newContext({ viewport: { width: 390, height: 844 } })
+const viewportWidth = Number(process.env.CATALOG_VIEWPORT_WIDTH || 390)
+assert.ok([390, 1280].includes(viewportWidth), 'Catalog acceptance width must be 390 or 1280')
+const context = await runtime.browser.newContext({ viewport: { width: viewportWidth, height: 844 } })
 await context.route('**/catalog-api/**', async route => {
   const req = route.request(), url = new URL(req.url()), method = req.method()
   if (url.pathname.includes('/rpc/parent_shop_student_campus')) {
@@ -330,5 +332,5 @@ try {
   assert.deepEqual(errors,[])
   const overflow=await parent.evaluate(()=>document.documentElement.scrollWidth>innerWidth)
   assert.equal(overflow,false,'Parent mobile catalog does not overflow')
-  console.log('PASS: mobile photo preview/compression/upload/replace/remove, sizes, parent visibility and historical order display; invalid files rejected.')
+  console.log(`PASS (${viewportWidth}px): photo preview/compression/upload/replace/remove, sizes, parent visibility and historical order display; invalid files rejected.`)
 } finally { await context.close(); await runtime.close() }
