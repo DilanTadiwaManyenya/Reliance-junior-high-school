@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
 import PortalHeader from './PortalHeader'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
-export default function PortalLayout() { return <div className="portal-shell parent-portal-shell"><PortalHeader /><motion.main initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: 'easeOut' }}><Outlet /></motion.main></div> }
+export default function PortalLayout() { const reducedMotion = useReducedMotion(); return <div className="portal-shell parent-portal-shell"><PortalHeader /><motion.main initial={reducedMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: 'easeOut' }}><Outlet /></motion.main></div> }

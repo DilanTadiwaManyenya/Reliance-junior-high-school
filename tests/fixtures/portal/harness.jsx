@@ -75,6 +75,8 @@ function query(table) {
     insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this }, update(value) { operation = 'update'; payload = value; return this }, delete() { operation = 'delete'; return this },
     then(resolve, reject) {
       let data = (db[table] || []).filter(row => filters.every(filter => filter(row))).slice(start, end + 1)
+      if (table === 'academic_records' && window.fixtureParentError) return Promise.resolve({ data: null, error: { message: 'Synthetic learner records unavailable' } }).then(resolve, reject)
+      if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
       if (operation !== 'select') { window.fixtureWrites.push({ table, operation, payload }); data = [{ id: 'created', ...payload }] }
       return Promise.resolve({ data: single ? data[0] || null : data, error: null, count: data.length }).then(resolve, reject)
     },

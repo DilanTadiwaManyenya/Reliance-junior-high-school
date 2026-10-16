@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test:shop": "node --test tests/shop-database.test.mjs",
     "test:report-print": "node tests/report-print.browser.mjs",
-    "test:portal-parent-mobile": "node tests/portal-parent-mobile.browser.mjs",
+    "test:portal-parent-mobile": "node tests/portal-parent-mobile.browser.mjs && node tests/parent-learner-context.browser.mjs",
     "test:portal-workflows": "node tests/portal-workflows.browser.mjs && node tests/portal-finance-mobile.browser.mjs",
     "test:portal-mobile": "npm run test:portal-foundation && npm run test:portal-navigation && npm run test:portal-staff-mobile && npm run test:portal-parent-mobile && npm run test:teacher-mobile && npm run test:portal-workflows",
     "test:portal-staff-mobile": "node tests/portal-staff-mobile.browser.mjs && node tests/portal-admin-mobile.browser.mjs",
