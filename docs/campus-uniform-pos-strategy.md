@@ -1,6 +1,6 @@
 # Campus uniform catalog and POS strategy
 
-Status: Stage 0 (inspection and strategy) complete, 16 October 2026. This document plans the requested change; implementation stages below are not yet applied.
+Status, 16 October 2026: Stage 0 and Stage 1 complete. Stage 1 implementation was pushed as 1a05991 and its Supabase migration was applied and verified live. See campus-shop-stage1-rollout.md for evidence and allocation instructions. Stages 2–4 remain pending; no live stock allocation has been guessed or performed.
 
 ## Agreed target
 

@@ -66,4 +66,12 @@ The migration is transactional and rerunnable. Failed SQL application rolls back
 
 ## Rollout status
 
-Code and isolated tests prepared. Live application and hosted deployment verification are recorded below after execution; no automatic stock allocation is part of deployment.
+Completed. Implementation pushed as 1a05991. Migration 20261016150000 was applied to the linked live project and recorded transactionally. Live rollback-only probes using existing Junior/Senior admin and accountant identities confirmed: own-campus admin product insert/edit, size edit and image metadata insert allowed; cross-campus product edits returned zero rows; accountant product insert/edit, size edit and image insert denied. A rollback-only Main Admin split conserved stock.
+
+After rollback and migration, catalog and order hashes exactly matched the baseline: 22 products, all 22 unassigned, 1001 units, one unchanged parent order. No live stock allocation was retained.
+
+Portal tests (6), shop SQL tests (4 across the three suites), mobile browser workflow, targeted lint and production build passed. Historical SQL tests intentionally verify their original migration state; tests/shop-campus-admin.test.mjs verifies the new Stage 1 policy state.
+
+GitHub/Vercel reported successful deployments for commit 1a05991 in both connected frontend projects. Direct retrieval of the deployment assets redirected to vercel.com/login, so authenticated hosted UI inspection remains unverified. The real-component browser fixture passed locally. No live binary image was uploaded during rollout; the rollback probes test Storage metadata RLS.
+
+Stage 2 accountant POS layout/admin checkout and Stage 3 selected-learner parent campus separation remain pending. Main Admin must explicitly allocate products before they appear in campus catalogs.
