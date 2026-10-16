@@ -172,7 +172,18 @@ function exportCSV(rows, filename) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export default function InventoryPOS({ supabase, user, profile }) {
+export default function InventoryPOS(props) {
+  const role = props.profile?.active_role ?? props.profile?.role;
+  const main = role === "admin" && props.profile?.campus === "all";
+  const assignedCampus = ["junior", "senior"].includes(props.profile?.campus) ? props.profile.campus : null;
+  const [selectedCampus, setSelectedCampus] = useState(null);
+  const [tab, setTab] = useState(role === "accountant" ? "pos" : main ? "overview" : "products");
+  const checkoutCampus = main ? selectedCampus : assignedCampus;
+  return <ShopWorkspace {...props} key={`${props.user.id}:${role}:${checkoutCampus || 'unselected'}`}
+    checkoutCampus={checkoutCampus} setCheckoutCampus={setSelectedCampus} tab={tab} setTab={setTab} />;
+}
+
+function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCampus, tab, setTab }) {
   const role = profile?.active_role ?? profile?.role;
   const admin = role === "admin" && profile?.campus === "all";
   const campus = ["junior", "senior"].includes(profile?.campus) ? profile.campus : null;
@@ -180,8 +191,9 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const canManageProducts = admin || campusAdmin;
   const access = canManageProducts || (role === "accountant" && Boolean(campus));
   const [campusView, setCampusView] = useState("all");
-  const storageKey = `reliance-shop:${user.id}`;
-  const [tab, setTab] = useState(campusAdmin ? "products" : "overview");
+  const storageKey = `reliance-shop:v2:${user.id}:${role}:${checkoutCampus || "unselected"}`;
+  const legacyKey = `reliance-shop:${user.id}`;
+  const [legacyPending, setLegacyPending] = useState(() => readSession(legacyKey)?.pending || null);
   const [products, setProducts] = useState([]);
   const [sales, setSales] = useState([]);
   const [learners, setLearners] = useState([]);
@@ -257,7 +269,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
             .select(table === "pos_sales" ? "*,pos_sale_items(*)" : table === "inventory_products" ? "*,product_variants(*)" : "*")
             .order("id")
             .range(start, start + 499);
-          if (table === "inventory_products" && !admin && campus) request = request.eq("campus", campus);
+          if (["inventory_products", "pos_sales"].includes(table) && !admin && campus) request = request.eq("campus", campus);
           const result = await request;
           if (result.error) throw result.error;
           rows.push(...result.data);
@@ -266,7 +278,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
       };
       const [stock, history, prefs, audit, learnerRows] = await Promise.all([
         fetchAll("inventory_products"),
-        campusAdmin ? Promise.resolve([]) : fetchAll("pos_sales"),
+        fetchAll("pos_sales"),
         campusAdmin ? Promise.resolve({ data: { store_name: "Reliance Learning Centre", receipt_header: "School shop", low_stock_alerts_enabled: true } }) : supabase.from("shop_settings").select("*").single(),
         admin
           ? supabase
@@ -275,11 +287,11 @@ export default function InventoryPOS({ supabase, user, profile }) {
               .order("created_at", { ascending: false })
               .limit(200)
           : Promise.resolve({ data: [] }),
-        campusAdmin ? Promise.resolve({ data: [] }) : supabase
+        checkoutCampus ? supabase
           .from("students")
           .select("id,full_name,admission_number,class_level,class_stream,status")
-          .eq("status", "active")
-          .order("full_name"),
+          .eq("status", "active").eq("campus", checkoutCampus)
+          .order("full_name") : Promise.resolve({ data: [] }),
       ]);
       if (prefs.error) throw prefs.error;
       if (audit.error) throw audit.error;
@@ -299,7 +311,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
     } finally {
       setLoading(false);
     }
-  }, [access, admin, campus, campusAdmin, supabase]);
+  }, [access, admin, campus, campusAdmin, checkoutCampus, supabase]);
   useEffect(() => {
     const timer = setTimeout(load, 0);
     return () => clearTimeout(timer);
@@ -368,7 +380,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
     const learner = learners.find((row) => row.id === id);
     if (learner) setCustomer(learner.full_name);
   };
-  const saleProducts = catalogStockItems(scopedProducts);
+  const saleProducts = catalogStockItems(products.filter(product => checkoutCampus && product.campus === checkoutCampus));
   const catalogue = tab === "pos" ? saleProducts.filter(p => p.active) : tab === "products" && status === "archived" ? scopedProducts.filter((p) => !p.active) : active;
   const filtered = catalogue.filter(
     (p) =>
@@ -394,7 +406,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const invalid = lines.some(
     (l) => !l.product?.active || l.quantity > l.product.quantity_on_hand,
   );
-  const frozen = busy || !!pending;
+  const frozen = busy || !!pending || !!legacyPending;
   const add = (p) => {
     if (frozen) return;
     setCart((current) => {
@@ -522,8 +534,11 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const maxTrendRevenue = Math.max(1, ...salesTrend.map((point) => point.revenue));
   const checkout = () =>
     run(async () => {
+      if (!checkoutCampus || legacyPending) throw new Error("Choose the sale campus and resolve any earlier checkout first.");
+      if (pending && pending.campus !== checkoutCampus) throw new Error("Recover this pending sale in its original campus.");
       const request = pending || {
         id: crypto.randomUUID(),
+        campus: checkoutCampus,
         items: cart.map((l) => ({ product_id: l.product_id || l.id, variant_id: l.variant_id || null, quantity: l.quantity })),
         customer,
         payment,
@@ -555,6 +570,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
         p_customer_name: request.customer,
         p_request_id: request.id,
         p_amount_paid: request.paid,
+        p_campus: request.campus,
       });
       if (result.error) {
         // Server validation errors roll back the whole transaction; uncertain network failures retain the same request.
@@ -596,6 +612,23 @@ export default function InventoryPOS({ supabase, user, profile }) {
       if (detail.error) throw detail.error;
       setReceipt(detail.data);
     });
+  const recoverLegacyCheckout = () => run(async () => {
+    if (!checkoutCampus || !legacyPending || pending) throw new Error("Choose the original checkout campus before recovery.");
+    const result = await supabase.rpc("complete_pos_sale", {
+      p_items: legacyPending.items, p_payment_method: legacyPending.payment,
+      p_customer_name: legacyPending.customer, p_request_id: legacyPending.id,
+      p_amount_paid: legacyPending.paid, p_campus: checkoutCampus,
+    });
+    if (result.error) throw result.error;
+    const legacy = readSession(legacyKey) || {};
+    sessionStorage.setItem(legacyKey, JSON.stringify({ ...legacy, pending: null }));
+    setLegacyPending(null);
+    setNotice(`Earlier sale ${result.data.receipt_number} confirmed using its original request ID.`);
+    await load();
+    const detail = await supabase.from("pos_sales").select("*,pos_sale_items(*)").eq("id", result.data.id).single();
+    if (detail.error) throw detail.error;
+    setReceipt(detail.data);
+  });
   const selectProductImage = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -722,7 +755,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
       <header className="shop-hero">
         <div>
           <span className="shop-eyebrow">RELIANCE / SCHOOL SHOP</span>
-          <h1>{campusAdmin ? `${campus === "junior" ? "Junior" : "Senior"} school inventory` : "Inventory & point of sale"}</h1>
+          <h1>{role === "accountant" ? `${campus === "junior" ? "Junior" : "Senior"} school POS` : campusAdmin ? `${campus === "junior" ? "Junior" : "Senior"} school inventory` : "Inventory & point of sale"}</h1>
           <p>Every item accounted for. Every sale in one place.</p>
           <div className={`shop-live-status ${liveStatus}`}>
             {liveStatus === "live" ? <Wifi size={14} /> : <WifiOff size={14} />}
@@ -737,9 +770,9 @@ export default function InventoryPOS({ supabase, user, profile }) {
       <nav className="shop-tabs" aria-label="Shop sections">
         {tabs
           .filter(([id]) =>
-            campusAdmin ? ["products", "help"].includes(id) : admin
-              ? id !== "pos"
-              : !["products", "logs", "settings"].includes(id),
+            campusAdmin ? ["products", "pos", "sales", "help"].includes(id) : admin
+              ? true
+              : ["pos", "sales"].includes(id),
           )
           .map(([id, label, Icon]) => (
             <button
@@ -756,11 +789,21 @@ export default function InventoryPOS({ supabase, user, profile }) {
             </button>
           ))}
       </nav>
-      {admin && <div className="shop-campus-controls">
+      {admin && tab !== "pos" && <div className="shop-campus-controls">
         <label>Catalog campus<select aria-label="Catalog campus" value={campusView} onChange={event => setCampusView(event.target.value)}>
           <option value="all">Both campuses</option><option value="junior">Junior School</option><option value="senior">Senior School</option><option value="unassigned">Unassigned</option>
         </select></label>
         <p>{products.filter(product => !product.campus).length} products need campus allocation. Choose Unassigned to review their stock.</p>
+      </div>}
+      {tab === "pos" && admin && <label className="shop-pos-campus">Checkout campus
+        <select aria-label="Checkout campus" value={checkoutCampus || ""} disabled={busy || !!pending} onChange={event => setCheckoutCampus(event.target.value || null)}>
+          <option value="">Choose Junior or Senior</option><option value="junior">Junior School</option><option value="senior">Senior School</option>
+        </select>
+      </label>}
+      {tab === "pos" && !checkoutCampus && <p className="shop-message">Select a checkout campus to load its sale items and basket.</p>}
+      {legacyPending && <div className="shop-message" role="status">
+        <p>An earlier checkout needs confirmation. It has not been moved into a new campus basket. Select its original campus and recover it before starting another sale.</p>
+        <button disabled={busy || !!pending || !checkoutCampus} onClick={recoverLegacyCheckout}>Recover earlier checkout</button>
       </div>}
       {error && (
         <div role="alert" className="shop-message error">
@@ -812,10 +855,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
           </section>
           <div className="shop-columns shop-overview-columns">
             <article className="shop-panel">
-              <h2><ShoppingCart size={18} /> {admin ? "Sales oversight" : "Ready for the next sale"}</h2>
+              <h2><ShoppingCart size={18} /> Sales oversight</h2>
               <p>
                 {admin
-                  ? "Review receipts and sales performance. Campus accountants operate the point of sale."
+                  ? "Review receipts and sales performance. Choose Point of sale to sell within an authorized campus."
                   : "Browse the catalogue, collect payment and issue a receipt. Inventory updates automatically when a sale completes."}
               </p>
               {admin ? (
@@ -1199,7 +1242,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                   className="primary shop-full"
                   disabled={
                     busy ||
-                    !ready ||
+                    !ready || !checkoutCampus || !!legacyPending ||
                     (!pending &&
                       (!cart.length ||
                         invalid ||
@@ -1321,7 +1364,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 <tbody>
                   {salesVisible.map((s) => (
                     <tr key={s.id}>
-                      <td><strong>{s.receipt_number}</strong><small>{s.customer_name || "Walk-in customer"}</small></td>
+                      <td><strong>{s.receipt_number}</strong><small>{s.customer_name || "Walk-in customer"}</small><small>{s.campus === "junior" ? "Junior School" : s.campus === "senior" ? "Senior School" : "Legacy school shop"}</small></td>
                       <td>{new Date(s.created_at).toLocaleString()}</td>
                       <td><span className="shop-payment-badge">{methods[s.payment_method]}</span></td>
                       <td className="shop-receipt-amount">{money(s.total)}</td>
@@ -1616,6 +1659,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
             <h2>{settings.store_name}</h2>
             <p>{settings.receipt_header}</p>
             <strong>{receipt.receipt_number}</strong>
+            <p>{receipt.campus === "junior" ? "Junior School" : receipt.campus === "senior" ? "Senior School" : "Legacy school shop"}</p>
             <p>
               {new Date(receipt.created_at).toLocaleString()}
               <br />

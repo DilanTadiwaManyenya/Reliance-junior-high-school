@@ -680,3 +680,8 @@
 .shop-campus-controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin: 16px 0; }
 .shop-campus-controls label { display: grid; gap: 6px; }
 .shop-campus-controls select { min-height: 44px; font-size: 16px; }
+
+.shop-pos-campus { display: grid; gap: 8px; margin: 18px 0; max-width: 320px; }
+.shop-pos-campus select { min-height: 44px; font-size: 16px; }
+
+.shop-app .shop-hero h1 { color: #fff; }

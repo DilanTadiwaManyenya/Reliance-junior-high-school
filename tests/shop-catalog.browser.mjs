@@ -6,6 +6,9 @@ await mkdir('tmp/catalog-review', { recursive: true })
 const runtime = await startPortalBrowser()
 const products = []
 const orders = []
+const sales = []
+const checkoutRequests = []
+let interruptNextCheckout = false
 const images = new Map()
 const uploads = []
 const errors = []
@@ -18,6 +21,23 @@ await context.route('**/catalog-api/**', async route => {
     if (!images.has(root+source)) return route.fulfill({ status:404,body:'{}' })
     images.set(root+destination,images.get(root+source))
     return route.fulfill({status:200,body:'{}'})
+  }
+  if (url.pathname.includes('/rpc/complete_pos_sale')) {
+    const payload=req.postDataJSON();checkoutRequests.push(payload)
+    let sale=sales.find(sale=>sale.request_id===payload.p_request_id)
+    if(!sale) {
+      const lines=payload.p_items.map(item=>{
+        const product=products.find(product=>product.id===item.product_id)
+        const variant=item.variant_id ? product.product_variants.find(variant=>variant.id===item.variant_id) : null
+        if(variant) {variant.quantity_on_hand-=item.quantity;product.quantity_on_hand=product.product_variants.filter(v=>v.active).reduce((sum,v)=>sum+v.quantity_on_hand,0)}
+        else product.quantity_on_hand-=item.quantity
+        return {id:crypto.randomUUID(),product_id:product.id,product_name:product.name,variant_id:variant?.id,size_label:variant?.size,quantity:item.quantity,unit_price:product.selling_price,unit_cost:product.cost_price,line_total:product.selling_price*item.quantity}
+      })
+      sale={id:crypto.randomUUID(),receipt_number:'RLC-TEST-'+(sales.length+1),created_at:new Date().toISOString(),campus:payload.p_campus,request_id:payload.p_request_id,customer_name:payload.p_customer_name,payment_method:payload.p_payment_method,amount_paid:payload.p_amount_paid,total:lines.reduce((sum,line)=>sum+line.line_total,0),pos_sale_items:lines}
+      sales.push(sale)
+    }
+    if(interruptNextCheckout){interruptNextCheckout=false;return route.abort('failed')}
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(sale)})
   }
   if (url.pathname.includes('/rpc/split_unassigned_shop_product')) {
     const { p_product, p_campus, p_quantity, p_details }=req.postDataJSON()
@@ -33,7 +53,7 @@ await context.route('**/catalog-api/**', async route => {
     return route.fulfill(images.has(url.pathname) ? { status: 200, contentType: 'image/webp', body: images.get(url.pathname) } : { status: 404 })
   }
   const table = url.pathname.split('/').at(-1)
-  const tables = { inventory_products: products, parent_uniform_orders: orders, pos_sales: [], students: [], shop_audit: [], shop_settings: [{ id: true, store_name: 'Test shop', receipt_header: 'Uniforms', low_stock_alerts_enabled: true }] }
+  const tables = { inventory_products: products, parent_uniform_orders: orders, pos_sales: sales, students: [], shop_audit: [], shop_settings: [{ id: true, store_name: 'Test shop', receipt_header: 'Uniforms', low_stock_alerts_enabled: true }] }
   let rows = (tables[table] || []).filter(row => [...url.searchParams].every(([key, value]) => !value.startsWith('eq.') || String(row[key]) === value.slice(3)))
   if (method === 'POST') {
     const payload = req.postDataJSON()
@@ -154,7 +174,7 @@ try {
     await scoped.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin&campus=${staffCampus}`)
     await scoped.getByRole('heading',{name:staffCampus==='junior'?'Junior school inventory':'Senior school inventory'}).waitFor()
     await scoped.getByRole('button',{name:'Add product',exact:true}).waitFor()
-    assert.equal(await scoped.getByRole('button',{name:'Point of sale',exact:true}).count(),0,'Admin POS is Stage 2')
+    assert.equal(await scoped.getByRole('button',{name:'Point of sale',exact:true}).count(),1,'Campus admins can open their own POS')
     assert.equal(await scoped.getByLabel('Catalog campus',{exact:true}).count(),0)
     if(staffCampus==='junior') assert.equal(await scoped.getByRole('button',{name:/Shared campus stock/}).count(),0)
     else await scoped.getByRole('button',{name:/Shared campus stock/}).waitFor()
@@ -169,6 +189,70 @@ try {
   assert.equal(await cashier.getByRole('button',{name:'Products',exact:true}).count(),0)
   assert.equal(await cashier.getByRole('button',{name:'Add product',exact:true}).count(),0)
   await cashier.close()
+  // Stage 2: Main Admin selects the campus and baskets/held carts are separate.
+  await page.getByRole('button',{name:'Point of sale',exact:true}).click()
+  assert.equal(await page.locator('.shop-product').count(),0)
+  assert.equal(await page.getByRole('button',{name:'Complete checkout',exact:true}).isDisabled(),true)
+  await page.getByLabel('Checkout campus',{exact:true}).selectOption('junior')
+  await page.getByRole('button',{name:/Legacy jacket/}).click()
+  await page.getByRole('button',{name:'Hold cart',exact:true}).click()
+  await page.getByText('Held carts (1)',{exact:true}).waitFor()
+  await page.getByLabel('Checkout campus',{exact:true}).selectOption('senior')
+  await page.getByText('Held carts (0)',{exact:true}).waitFor()
+  await page.getByRole('button',{name:/Shared campus stock/}).click()
+  await page.getByLabel('Checkout campus',{exact:true}).selectOption('junior')
+  await page.getByText('Held carts (1)',{exact:true}).waitFor()
+  await page.getByRole('button',{name:'Resume',exact:true}).click()
+  await page.getByLabel('Amount received (USD)',{exact:true}).fill('25')
+  interruptNextCheckout=true
+  const stockBeforeRetry=legacy.quantity_on_hand
+  await page.getByRole('button',{name:'Complete checkout',exact:true}).click()
+  await page.getByRole('button',{name:'Retry pending sale',exact:true}).waitFor()
+  const pendingId=checkoutRequests.at(-1).p_request_id
+  assert.equal(await page.getByLabel('Checkout campus',{exact:true}).isDisabled(),true)
+  await page.reload()
+  await page.getByRole('button',{name:'Point of sale',exact:true}).click()
+  await page.getByLabel('Checkout campus',{exact:true}).selectOption('junior')
+  await page.getByRole('button',{name:'Retry pending sale',exact:true}).click()
+  await page.getByRole('dialog',{name:'Sale receipt'}).waitFor()
+  assert.equal(checkoutRequests.at(-1).p_request_id,pendingId)
+  assert.equal(checkoutRequests.at(-1).p_campus,'junior')
+  assert.equal(legacy.quantity_on_hand,stockBeforeRetry-1,'Retry after reload must not deduct stock twice')
+  await page.keyboard.press('Escape')
+  await page.getByLabel('Checkout campus',{exact:true}).selectOption('senior')
+  await page.locator('.shop-cart-line').getByText('Shared campus stock',{exact:true}).waitFor()
+  await page.getByLabel('Amount received (USD)',{exact:true}).fill('25')
+  await page.screenshot({path:'tmp/catalog-review/main-admin-campus-pos.png',fullPage:true})
+  await page.getByRole('button',{name:'Complete checkout',exact:true}).click()
+  await page.getByRole('dialog',{name:'Sale receipt'}).waitFor()
+  assert.equal(checkoutRequests.at(-1).p_campus,'senior')
+  await page.keyboard.press('Escape')
+  // Accountant opens directly into checkout and has only checkout/receipt tabs.
+  const restricted=await context.newPage()
+  restricted.on('pageerror',error=>errors.push(error.message))
+  await restricted.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`)
+  await restricted.getByRole('button',{name:/Legacy jacket/}).waitFor()
+  assert.deepEqual(await restricted.locator('.shop-tabs button').allTextContents(),['Point of sale','Sales & receipts'])
+  assert.equal(await restricted.getByLabel('Checkout campus',{exact:true}).count(),0)
+  await restricted.getByRole('button',{name:/Legacy jacket/}).click()
+  await restricted.reload()
+  await restricted.locator('.shop-cart-line').getByText('Legacy jacket',{exact:true}).waitFor()
+  await restricted.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=senior`)
+  await restricted.getByRole('button',{name:/Shared campus stock/}).waitFor()
+  assert.equal(await restricted.locator('.shop-cart-line').count(),0)
+  await restricted.close()
+  // Legacy unscoped pending state is preserved until explicit same-ID recovery.
+  const recovery=await context.newPage()
+  const legacyId=crypto.randomUUID()
+  await recovery.addInitScript(({legacyId,productId})=>sessionStorage.setItem('reliance-shop:staff',JSON.stringify({pending:{id:legacyId,items:[{product_id:productId,quantity:1}],payment:'cash',paid:25,customer:'Earlier customer'}})),{legacyId,productId:legacy.id})
+  await recovery.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`)
+  await recovery.getByRole('button',{name:'Recover earlier checkout',exact:true}).waitFor()
+  assert.equal(await recovery.getByRole('button',{name:'Complete checkout',exact:true}).isDisabled(),true)
+  await recovery.getByRole('button',{name:'Recover earlier checkout',exact:true}).click()
+  await recovery.getByRole('dialog',{name:'Sale receipt'}).waitFor()
+  assert.equal(checkoutRequests.at(-1).p_request_id,legacyId)
+  assert.equal(await recovery.evaluate(()=>JSON.parse(sessionStorage.getItem('reliance-shop:staff')).pending),null)
+  await recovery.close()
   // Invalid files are rejected before storage writes.
   const validation=await page.evaluate(async()=>{
     const {prepareProductImage}=await import('/src/lib/productImages.js')
