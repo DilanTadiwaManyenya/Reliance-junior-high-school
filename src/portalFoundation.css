@@ -1,0 +1,59 @@
+/* Portal foundations own shared tokens and ui-* components only.
+   Role/page layout remains in its existing stylesheets until its planned stage. */
+:where(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) {
+  --ui-space-1: 4px; --ui-space-2: 8px; --ui-space-3: 12px; --ui-space-4: 16px; --ui-space-5: 24px; --ui-space-6: 32px;
+  --ui-navy: #1b2a56; --ui-red: #a6302f; --ui-muted: #475569; --ui-border: #cbd5e1;
+  --ui-surface: #fff; --ui-radius: 12px; --ui-touch: 44px; --ui-focus: #2559b8;
+}
+@media screen {
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-button {
+    min-height: var(--ui-touch); min-width: var(--ui-touch); max-width: 100%; padding: 10px 16px;
+    border-radius: 8px; white-space: normal; overflow-wrap: anywhere; text-align: center; line-height: 1.4; cursor: pointer;
+  }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-button:hover { transform: none; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-button:is(:disabled,[aria-disabled=true]) { opacity: .65; cursor: not-allowed; transform: none; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-card { min-width: 0; padding: var(--ui-space-5); border-radius: var(--ui-radius); overflow-wrap: anywhere; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-card:hover { transform: none; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-badge { display: inline-flex; align-items: center; max-width: 100%; padding: 4px 8px; border-radius: 6px; color: #334155; background: #edf2f7; font-size: .875rem; line-height: 1.4; letter-spacing: normal; text-transform: none; white-space: normal; overflow-wrap: anywhere; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-badge-success { background: #dcfce7; color: #166534; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-badge-warning { background: #fef3c7; color: #78350f; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-badge-error { background: #fee2e2; color: #991b1b; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-notice { max-width: 100%; margin-block: 12px; padding: 12px 16px; border: 1px solid #bfd1eb; border-radius: 8px; color: #1e3a5f; background: #eff6ff; font-size: 1rem; line-height: 1.5; overflow-wrap: anywhere; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-notice.error { color: #991b1b; background: #fff1f2; border-color: #fecaca; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-notice.success { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) .ui-notice.warning { color: #78350f; background: #fffbeb; border-color: #fcd34d; }
+  :is(.portal-shell, .staff-shell, .portal-auth, .shop-app, .portal-foundation) :is(.ui-button,.ui-field-control,.ui-filter-panel>summary,.ui-table-scroll,.slideover-close):focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 3px; }
+  .ui-page-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .ui-page-heading { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+  .ui-page-heading h1 { margin: 4px 0 12px; font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.2; }
+  .ui-page-heading p { margin: 0 0 8px; color: var(--ui-muted); line-height: 1.5; }
+  :is(.portal-shell,.staff-shell,.portal-auth,.shop-app,.portal-foundation) .ui-section-heading { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  :is(.portal-shell,.staff-shell,.portal-auth,.shop-app,.portal-foundation) .ui-section-heading h2 { font-size: clamp(1.25rem, 3vw, 1.75rem); line-height: 1.25; }
+  .ui-action-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-width: 0; }
+  .ui-action-bar > * { min-width: 0; }
+  .ui-form-field { display: grid; gap: 8px; min-width: 0; margin-block: 16px; }
+  .ui-form-field label { font-size: 1rem; font-weight: 600; color: var(--ui-navy); overflow-wrap: anywhere; }
+  .ui-field-required { font-size: .875rem; font-weight: 400; color: var(--ui-muted); }
+  .ui-field-control { width: 100%; min-width: 0; max-width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; color: #172033; font: inherit; font-size: 16px; line-height: 1.5; }
+  .ui-field-control[aria-invalid=true] { border-color: var(--ui-red); }
+  .ui-field-hint, .ui-field-error { margin: 0; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
+  .ui-field-hint { color: var(--ui-muted); } .ui-field-error { color: #991b1b; }
+  .ui-filter-panel { min-width: 0; margin-block: 16px; padding: 8px 12px; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; }
+  .ui-filter-panel > summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-weight: 600; color: var(--ui-navy); overflow-wrap: anywhere; }
+  .ui-filter-content { padding-top: 8px; }
+  .ui-table-scroll { min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+  :is(.staff-shell,.portal-shell,.portal-foundation) .slideover { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; overflow: hidden; }
+  :is(.staff-shell,.portal-shell,.portal-foundation) .slideover-header { flex: none; gap: 12px; }
+  :is(.staff-shell,.portal-shell,.portal-foundation) .slideover-header > div { min-width: 0; overflow-wrap: anywhere; }
+  :is(.staff-shell,.portal-shell,.portal-foundation) .slideover-close { flex: 0 0 44px; width: 44px; min-height: 44px; }
+  :is(.staff-shell,.portal-shell,.portal-foundation) .slideover-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: max(24px,env(safe-area-inset-bottom)); }
+}
+@media screen and (max-width: 599px) {
+  :is(.portal-shell,.staff-shell,.portal-auth,.shop-app,.portal-foundation) .ui-card { padding: 16px; }
+  .ui-page-heading { flex-basis: 100%; }
+  .ui-page-header > .ui-action-bar { width: 100%; }
+  .ui-page-header > .ui-action-bar > *, .ui-action-bar[data-stack] > * { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.portal-shell,.staff-shell,.portal-auth,.shop-app,.portal-foundation) :is(.ui-button,.ui-card) { transition: none; }
+}

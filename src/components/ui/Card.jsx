@@ -1,1 +1,4 @@
-import {cn} from '../../lib/cn'; export default function Card({children,className='',style}){return <article className={cn('card',className)} style={style}>{children}</article>}
+import { cn } from '../../lib/cn'
+export default function Card({ children, className = '', ...props }) {
+  return <article {...props} className={cn('card', 'ui-card', className)}>{children}</article>
+}

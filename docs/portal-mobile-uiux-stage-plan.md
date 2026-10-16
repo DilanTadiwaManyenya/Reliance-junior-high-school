@@ -1,6 +1,6 @@
 **Whole-portal mobile responsiveness, UI/UX and visual polish plan**
 
-Prepared 16 October 2026. Status: planning only. Preliminary source inventory completed; fresh visual/performance baselines and all implementation stages remain pending. This plan covers Main Admin, Junior/Senior admins, Junior/Senior accountants, Junior/Senior/ECD teachers and parents. Principal screens receive regression checks because they share staff components.
+Prepared 16 October 2026. Status: Stage 1 shared design foundations implemented and verified; see portal-mobile-stage1-foundations.md. The user chose Stage 1 directly. The full Stage 0 audit/performance baseline and Stages 2–9 remain pending. This plan covers Main Admin, Junior/Senior admins, Junior/Senior accountants, Junior/Senior/ECD teachers and parents. Principal screens receive regression checks because they share staff components.
 
 **Purpose and scope**
 
@@ -152,7 +152,7 @@ Do not repeat every expensive suite for an isolated label adjustment; select che
 
 Record the planned scope and baseline, implement a small reviewable slice, run relevant checks, inspect representative screenshots, commit and push that stage, and verify both configured hosted deployment statuses for the exact source commit. Authenticated hosted smoke checks are distinct from local fixture tests. Report what changed, tests/results, commit, deployment and remaining items. If a backend change becomes necessary, provide exact scoped SQL, live verification and recovery notes; do not apply unrelated pending migrations. Proceed to the next stage after the current stage's required checks pass. Preserve unrelated workspace edits and keep private screenshots/backups out of commits.
 
-Stage 0 is the next implementation task. This document does not authorise a simultaneous portal-wide rewrite or claim any future stage has already passed.
+Stage 2 is the next planned implementation stage after the shared foundation. Complete the outstanding Stage 0 screen inventory/performance baseline alongside scoped work before final Stage 9 acceptance. This plan does not imply a simultaneous portal-wide rewrite.
 
 **Standards references**
 

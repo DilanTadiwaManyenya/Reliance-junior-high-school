@@ -15,6 +15,7 @@ import '../../../src/parentPortal.css'
 import '../../../src/teacherWorkspace.css'
 import '../../../src/portalResponsive.css'
 import '../../../src/parentResponsive.css'
+import '../../../src/portalFoundation.css'
 import '../../../src/reportPrint.css'
 
 const params = new URLSearchParams(location.search)

@@ -43,13 +43,15 @@ try {
           marksWidth: document.querySelector('.coursework-marks-wrap').scrollWidth,
           marksVisibleWidth: document.querySelector('.coursework-marks-wrap').clientWidth,
           inputHeights: [...document.querySelectorAll('.coursework-marks input')].map(el => el.getBoundingClientRect().height),
+          inputMinHeights: [...document.querySelectorAll('.coursework-marks input')].map(el => parseFloat(getComputedStyle(el).minHeight)),
           minInputFont: Math.min(...[...document.querySelectorAll('.coursework-page input, .coursework-page select')].map(el => parseFloat(getComputedStyle(el).fontSize))),
           toolbar: [...document.querySelectorAll('.staff-top-bar button, .staff-top-bar select')].filter(el => el.getBoundingClientRect().width > 0).map(el => { const b=el.getBoundingClientRect(); return { left:b.left, right:b.right, height:b.height } }),
         }
       })
       assert.ok(metrics.pageWidth <= width + 1, 'Page must not overflow horizontally: ' + JSON.stringify({width, scenario, actual:metrics.pageWidth}))
       assert.deepEqual(metrics.clipped, [], 'Form controls must fit inside coursework')
-      assert.ok(metrics.inputHeights.every(height => height >= 44), 'Mark fields need comfortable tap targets')
+      // Translated ancestors can report 43.99988 for a computed 44px target.
+      assert.ok(metrics.inputMinHeights.every(height => height >= 44) && metrics.inputHeights.every(height => height >= 43.99), 'Mark fields need comfortable tap targets')
       assert.ok(metrics.minInputFont >= 16, 'Inputs need readable text without iPhone focus zoom')
       if (width <= 600) {
         assert.ok(metrics.marksWidth <= metrics.marksVisibleWidth + 1, 'Mobile mark entry must not require sideways scrolling')

@@ -31,7 +31,7 @@ try {
   // All accountant workspaces remain reachable even though this role has no sidebar.
   const accountant = await openPortal(runtime.browser, runtime.base, { role: 'accountant', campus: 'junior' }, 320)
   const nav = accountant.getByRole('navigation', { name: 'Accountant workspace' })
-  for (const [tab, heading] of [['Learner profiles', 'Learner profiles'], ['Academic progress', 'Academic progress'], ['Expenses & Cashbook', 'Expenses & cashbook'], ['Inventory & POS', 'Inventory & point of sale'], ['Finance', 'Fees tracking']]) {
+  for (const [tab, heading] of [['Learner profiles', 'Learner profiles'], ['Academic progress', 'Academic progress'], ['Expenses & Cashbook', 'Expenses & cashbook'], ['Point of sale', 'Junior school POS'], ['Finance', 'Fees tracking']]) {
     await nav.getByRole('button', { name: tab, exact: true }).click()
     await accountant.getByRole('heading', { name: heading, exact: true }).waitFor()
   }
