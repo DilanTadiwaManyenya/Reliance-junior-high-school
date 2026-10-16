@@ -41,3 +41,4 @@ createRoot(document.getElementById('root')).render(role === 'parent'
 
 import '../../../src/portalFoundation.css'
 import '../../../src/portalNavigation.css'
+import '../../../src/portalAdminMobile.css'

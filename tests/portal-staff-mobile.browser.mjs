@@ -61,7 +61,11 @@ try {
   await staff.getByRole('button', { name: '+ Add Staff Member', exact: true }).click()
   const staffDialog = staff.getByRole('dialog', { name: 'Add staff member' })
   await staffDialog.waitFor()
-  assert.ok((await staffDialog.boundingBox()).width <= 320)
+  await staff.waitForFunction(() => {
+    const bounds = document.querySelector('.slideover').getBoundingClientRect()
+    return bounds.left >= -.01 && bounds.right <= innerWidth + .01
+  })
+  assert.ok((await staffDialog.boundingBox()).width <= 320.01)
   await staffDialog.getByRole('button', { name: 'Close panel', exact: true }).click()
   await staff.waitForFunction(() => document.body.style.overflow !== 'hidden')
   await staff.close()

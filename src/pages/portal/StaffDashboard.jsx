@@ -1,3 +1,4 @@
+import MobileRecordTable from '../../components/portal/MobileRecordTable'
 import InventoryPOS from "../../components/portal/InventoryPOS";
 import ExpensesCashbook from "../../components/portal/ExpensesCashbook";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -487,7 +488,7 @@ function DashboardHome({
       <div className="dash-page-header">
         <div>
           <p className="dash-kicker">
-            {isTeacher ? "Teaching workspace" : isCampusAdmin ? `${campusName} overview` : "Main Admin · all-school oversight"}
+            {isTeacher ? "Teaching workspace" : isCampusAdmin ? `${campusName} overview` : role === "principal" ? "Principal · school overview" : "Main Admin · all-school oversight"}
           </p>
           <h1 className="dash-page-title">{title}</h1>
           <p className="dash-page-sub">{subtitle}</p>
@@ -507,8 +508,9 @@ function DashboardHome({
           >
             {actionLabel}
           </Button>
-          {!isTeacher && <Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection("classes")}>Open classes</Button>}
+          {role === "admin" && <Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection("classes")}>Open classes</Button>}
           {!isTeacher && <Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection("fees")}>Review fees</Button>}
+          {!isTeacher && <Button className="dashboard-ghost-action" variant="secondary" onClick={() => setSection("staff")}>Find staff</Button>}
         </div>
       </div>
 
@@ -1663,7 +1665,7 @@ export default function StaffDashboard() {
                 </p>
               ) : (
                 <div className="portal-table-wrap">
-                  <table className="portal-table">
+                  <MobileRecordTable className={`portal-table ${isTeacher ? '' : 'mobile-record-table'}`} aria-label="Learner register">
                     <thead>
                       <tr>
                         <th>Name</th>
@@ -1773,7 +1775,8 @@ export default function StaffDashboard() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </MobileRecordTable>
+                  {!visible.length && <p className="muted" role="status">No learners match this search in your current scope.</p>}
                 </div>
               )}
             </Card>
@@ -2212,9 +2215,9 @@ export default function StaffDashboard() {
         <div className="dash-section staff-management-page">
           <div className="dash-page-header">
             <div>
-              <p className="eyebrow">{isMainAdmin ? "School administration" : `${managerCampusScope === "junior" ? "Junior" : "Senior"} campus administration`}</p>
+              <p className="eyebrow">{activeRole === "principal" ? "Staff directory" : isMainAdmin ? "School administration" : `${managerCampusScope === "junior" ? "Junior" : "Senior"} campus administration`}</p>
               <h1 className="dash-page-title">Staff Management</h1>
-              <p className="dash-page-sub">{isMainAdmin ? "Create and manage staff accounts across Reliance Learning Centre." : `Manage non-admin staff accounts and assignments for the ${managerCampusScope} campus only.`}</p>
+              <p className="dash-page-sub">{activeRole === "principal" ? "Review staff accounts and teaching allocations across the school." : isMainAdmin ? "Create and manage staff accounts across Reliance Learning Centre." : `Manage non-admin staff accounts and assignments for the ${managerCampusScope} campus only.`}</p>
               {isAdmin && (
                 <Button type="button" onClick={openStaffCreateModal}>
                   + Add Staff Member
@@ -2675,7 +2678,7 @@ export default function StaffDashboard() {
                 </div>
               )}
               <div className="portal-table-wrap">
-                <table className="portal-table staff-directory-table">
+                <MobileRecordTable className="portal-table staff-directory-table mobile-record-table" aria-label="Staff directory">
                   <thead>
                     <tr>
                       <th>Name</th>
@@ -2765,7 +2768,7 @@ export default function StaffDashboard() {
                       </tr>
                     )}
                   </tbody>
-                </table>
+                </MobileRecordTable>
               </div>
               <div className="data-table-footer">
                 <span>

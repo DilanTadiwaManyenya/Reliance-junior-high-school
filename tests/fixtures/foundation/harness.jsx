@@ -17,6 +17,7 @@ import '../../../src/mobileUX.css'
 import '../../../src/portalResponsive.css'
 import '../../../src/portalFoundation.css'
 import '../../../src/portalNavigation.css'
+import '../../../src/portalAdminMobile.css'
 
 export default function Foundation() {
   const [name, setName] = useState(''), [error,setError] = useState(''), [saved,setSaved] = useState(false)

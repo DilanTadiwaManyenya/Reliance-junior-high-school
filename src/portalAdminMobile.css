@@ -1,0 +1,24 @@
+/* Stage 3: readable registers keep all record fields and existing actions. */
+@media screen and (max-width: 600px) {
+  .staff-shell .portal-table-wrap:has(> .mobile-record-table)::after { content: none; }
+  .staff-shell .mobile-record-table { display: block; width: 100%; min-width: 0; border: 0; }
+  .staff-shell .mobile-record-table thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .staff-shell .mobile-record-table tbody { display: grid; gap: 12px; }
+  .staff-shell .mobile-record-table tbody tr { display: grid; padding: 14px; border: 1px solid #dce3ee; border-radius: 10px; background: #fff; }
+  .staff-shell .mobile-record-table tbody td { display: grid; grid-template-columns: minmax(72px, .7fr) minmax(0, 1.3fr); align-items: start; gap: 8px; width: auto; min-width: 0; padding: 8px 0; border: 0; white-space: normal; overflow-wrap: anywhere; font-size: .9rem; }
+  .staff-shell .mobile-record-table td::before { content: attr(data-label); color: #475569; font-size: .8rem; font-weight: 600; }
+  .staff-shell .mobile-record-table td:first-child { display: block; padding-top: 0; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
+  .staff-shell .mobile-record-table td:first-child::before { display: block; margin-bottom: 6px; }
+  .staff-shell .mobile-record-table td[colspan] { display: block; }
+  .staff-shell .mobile-record-table td > * { min-width: 0; max-width: 100%; }
+  .staff-shell .mobile-record-table .roster-learner-link { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+  .staff-shell .mobile-record-table .staff-directory-person { align-items: start; }
+  .staff-shell .mobile-record-table .staff-directory-person > div { min-width: 0; }
+  .staff-shell .mobile-record-table .staff-directory-person :is(strong,small) { display: block; white-space: normal; overflow-wrap: anywhere; }
+  .staff-shell .mobile-record-table .portal-action-row { display: grid; gap: 12px; }
+  .staff-shell .mobile-record-table .staff-class-list { white-space: normal; }
+  .staff-shell .dashboard-header-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
+  .staff-shell .dashboard-header-controls .ui-button { padding-inline: 10px; }
+  .staff-shell .staff-category-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .staff-shell .staff-category-tabs button { white-space: normal; }
+}

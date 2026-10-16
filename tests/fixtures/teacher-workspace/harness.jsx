@@ -67,3 +67,4 @@ createRoot(document.getElementById('root')).render(<BrowserRouter><AuthContext.P
 
 import '../../../src/portalFoundation.css'
 import '../../../src/portalNavigation.css'
+import '../../../src/portalAdminMobile.css'
