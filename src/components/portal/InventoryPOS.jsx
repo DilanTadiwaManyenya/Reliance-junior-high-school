@@ -620,7 +620,14 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       p_customer_name: legacyPending.customer, p_request_id: legacyPending.id,
       p_amount_paid: legacyPending.paid, p_campus: checkoutCampus,
     });
-    if (result.error) throw result.error;
+    if (result.error) {
+      if (result.error.code === "P0001" && result.error.message?.startsWith("This test checkout was cleared by Main Admin.")) {
+        const legacy = readSession(legacyKey) || {};
+        sessionStorage.setItem(legacyKey, JSON.stringify({ ...legacy, pending: null, cart: [] }));
+        setLegacyPending(null);
+      }
+      throw result.error;
+    }
     const legacy = readSession(legacyKey) || {};
     sessionStorage.setItem(legacyKey, JSON.stringify({ ...legacy, pending: null }));
     setLegacyPending(null);
@@ -686,7 +693,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     });
   };
   const deleteProduct = () => {
-    if (!canManageProducts || !form?.id || !window.confirm("Permanently delete this product? Products with any order history cannot be deleted. Use Hide to keep the catalog record.")) return;
+    if (!admin || !form?.id || !window.confirm("Permanently delete this product? Products with any order history cannot be deleted. Use Hide to keep the catalog record.")) return;
     run(async () => {
       const oldImage = products.find(product => product.id === form.id)?.image_url;
       const result = await supabase.from("inventory_products").delete().eq("id", form.id).select("id").single();
@@ -1670,11 +1677,11 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               setForm(current => ({ ...current, product_variants: updated.product_variants, has_variants: updated.has_variants, quantity_on_hand: updated.quantity_on_hand }));
               await load();
             }} /> : <p className="shop-form-note">Save the product with its campus first to manage sizes. For new sized products, start with zero opening stock.</p>}
-            {form.id && <p className="shop-form-note">Hide or show applies immediately without allocating stock; other edits stay unsaved. Permanent deletion is allowed only when this product has no parent order or POS sale history.</p>}
+            {form.id && <p className="shop-form-note">Hide or show applies immediately without allocating stock; other edits stay unsaved. Only Main Admin can permanently delete a product, and only when it has no remaining parent order or POS sale history.</p>}
             {form.visibilityNotice && <p role="status" className="shop-message">{form.visibilityNotice}</p>}
             <div className="shop-actions">
               {form.id && <button type="button" onClick={changeProductVisibility}>{products.find(product => product.id === form.id)?.active ? "Hide product" : "Show product"}</button>}
-              {form.id && <button type="button" onClick={deleteProduct}>Delete unused product</button>}
+              {admin && form.id && <button type="button" onClick={deleteProduct}>Delete unused product</button>}
               <button
                 type="button"
                 disabled={busy || imageBusy || variantBusy}

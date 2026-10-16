@@ -8,6 +8,7 @@ const products = []
 const orders = []
 const sales = []
 const checkoutRequests = []
+const retiredRequests = new Set()
 let interruptNextCheckout = false
 let holdNextJuniorCatalog = false
 let releaseJuniorCatalog
@@ -18,6 +19,7 @@ const errors = []
 const viewportWidth = Number(process.env.CATALOG_VIEWPORT_WIDTH || 390)
 assert.ok([390, 1280].includes(viewportWidth), 'Catalog acceptance width must be 390 or 1280')
 const context = await runtime.browser.newContext({ viewport: { width: viewportWidth, height: 844 } })
+context.setDefaultNavigationTimeout(45000)
 await context.route('**/catalog-api/**', async route => {
   const req = route.request(), url = new URL(req.url()), method = req.method()
   if (url.pathname.includes('/rpc/parent_shop_student_campus')) {
@@ -34,6 +36,7 @@ await context.route('**/catalog-api/**', async route => {
   }
   if (url.pathname.includes('/rpc/complete_pos_sale')) {
     const payload=req.postDataJSON();checkoutRequests.push(payload)
+    if(retiredRequests.has(payload.p_request_id)) return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({code:'P0001',message:'This test checkout was cleared by Main Admin. Clear the old pending basket and start a new sale.'})})
     let sale=sales.find(sale=>sale.request_id===payload.p_request_id)
     if(!sale) {
       const lines=payload.p_items.map(item=>{
@@ -92,7 +95,7 @@ const page = await context.newPage()
 page.setDefaultTimeout(10000)
 page.on('pageerror', e => errors.push(e.message))
 try {
-  await page.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin`)
+  await page.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin`, { waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Products', exact: true }).click()
   await page.getByRole('button', { name: 'Add product', exact: true }).click()
   await page.getByLabel('Product name', { exact: true }).fill('Catalog test shirt')
@@ -119,7 +122,7 @@ try {
   await page.getByRole('button',{name:'Cancel',exact:true}).click()
   const parent = await context.newPage()
   parent.on('pageerror', e=>errors.push(e.message))
-  await parent.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=parent`)
+  await parent.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=parent`, { waitUntil: 'domcontentloaded' })
   await parent.getByRole('heading',{name:'Catalog test shirt',exact:true}).waitFor()
   await parent.getByLabel('Size for Catalog test shirt').selectOption(products[0].product_variants[0].id)
   assert.equal(await parent.getByRole('button',{name:'Add to cart',exact:true}).isEnabled(),true)
@@ -239,20 +242,25 @@ try {
   for(const staffCampus of ['junior','senior']) {
     const scoped=await context.newPage()
     scoped.on('pageerror',e=>errors.push(e.message))
-    await scoped.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin&campus=${staffCampus}`)
+    await scoped.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin&campus=${staffCampus}`, { waitUntil: 'domcontentloaded' })
     await scoped.getByRole('heading',{name:staffCampus==='junior'?'Junior school inventory':'Senior school inventory'}).waitFor()
     await scoped.getByRole('button',{name:'Add product',exact:true}).waitFor()
     assert.equal(await scoped.getByRole('button',{name:'Point of sale',exact:true}).count(),1,'Campus admins can open their own POS')
     assert.equal(await scoped.getByLabel('Catalog campus',{exact:true}).count(),0)
     if(staffCampus==='junior') assert.equal(await scoped.getByRole('button',{name:/Shared campus stock/}).count(),0)
     else await scoped.getByRole('button',{name:/Shared campus stock/}).waitFor()
+    if(await scoped.getByRole('button',{name:/Shared campus stock/}).count()) {
+      await scoped.getByRole('button',{name:/Shared campus stock/}).click()
+      assert.equal(await scoped.getByRole('button',{name:'Delete unused product',exact:true}).count(),0,'Campus admin cannot permanently delete')
+      await scoped.getByRole('button',{name:'Cancel',exact:true}).click()
+    }
     await scoped.getByRole('button',{name:'Add product',exact:true}).click()
     const selector=scoped.getByRole('dialog').locator('select').first()
     assert.equal(await selector.inputValue(),staffCampus);assert.equal(await selector.isDisabled(),true)
     await scoped.close()
   }
   const cashier=await context.newPage()
-  await cashier.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`)
+  await cashier.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`, { waitUntil: 'domcontentloaded' })
   await cashier.getByRole('button',{name:'Point of sale',exact:true}).waitFor()
   assert.equal(await cashier.getByRole('button',{name:'Products',exact:true}).count(),0)
   assert.equal(await cashier.getByRole('button',{name:'Add product',exact:true}).count(),0)
@@ -298,14 +306,14 @@ try {
   // Accountant opens directly into checkout and has only checkout/receipt tabs.
   const restricted=await context.newPage()
   restricted.on('pageerror',error=>errors.push(error.message))
-  await restricted.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`)
+  await restricted.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`, { waitUntil: 'domcontentloaded' })
   await restricted.getByRole('button',{name:/Legacy jacket/}).waitFor()
   assert.deepEqual(await restricted.locator('.shop-tabs button').allTextContents(),['Point of sale','Sales & receipts'])
   assert.equal(await restricted.getByLabel('Checkout campus',{exact:true}).count(),0)
   await restricted.getByRole('button',{name:/Legacy jacket/}).click()
   await restricted.reload()
   await restricted.locator('.shop-cart-line').getByText('Legacy jacket',{exact:true}).waitFor()
-  await restricted.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=senior`)
+  await restricted.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=senior`, { waitUntil: 'domcontentloaded' })
   await restricted.getByRole('button',{name:/Shared campus stock/}).waitFor()
   assert.equal(await restricted.locator('.shop-cart-line').count(),0)
   await restricted.close()
@@ -313,7 +321,7 @@ try {
   const recovery=await context.newPage()
   const legacyId=crypto.randomUUID()
   await recovery.addInitScript(({legacyId,productId})=>sessionStorage.setItem('reliance-shop:staff',JSON.stringify({pending:{id:legacyId,items:[{product_id:productId,quantity:1}],payment:'cash',paid:25,customer:'Earlier customer'}})),{legacyId,productId:legacy.id})
-  await recovery.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`)
+  await recovery.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`, { waitUntil: 'domcontentloaded' })
   await recovery.getByRole('button',{name:'Recover earlier checkout',exact:true}).waitFor()
   assert.equal(await recovery.getByRole('button',{name:'Complete checkout',exact:true}).isDisabled(),true)
   await recovery.getByRole('button',{name:'Recover earlier checkout',exact:true}).click()
@@ -321,6 +329,16 @@ try {
   assert.equal(checkoutRequests.at(-1).p_request_id,legacyId)
   assert.equal(await recovery.evaluate(()=>JSON.parse(sessionStorage.getItem('reliance-shop:staff')).pending),null)
   await recovery.close()
+  const cleared=await context.newPage(),clearedId=crypto.randomUUID(),salesBeforeClearRetry=sales.length
+  retiredRequests.add(clearedId)
+  await cleared.addInitScript(({id,productId})=>sessionStorage.setItem('reliance-shop:staff',JSON.stringify({pending:{id,items:[{product_id:productId,quantity:1}],payment:'cash',paid:25,customer:'Cleared test'}})),{id:clearedId,productId:legacy.id})
+  await cleared.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`, { waitUntil: 'domcontentloaded' })
+  await cleared.getByRole('button',{name:'Recover earlier checkout',exact:true}).click()
+  await cleared.getByRole('alert').filter({hasText:'This test checkout was cleared by Main Admin.'}).waitFor()
+  assert.equal(await cleared.evaluate(()=>JSON.parse(sessionStorage.getItem('reliance-shop:staff')).pending),null)
+  assert.equal(sales.length,salesBeforeClearRetry,'Cleared test receipts cannot be recreated')
+  assert.equal(await cleared.getByRole('button',{name:'Recover earlier checkout',exact:true}).count(),0)
+  await cleared.close()
   // Stage 3: selected learner campus, clean carts/size choices, and stale response isolation.
   const familyJunior={id:crypto.randomUUID(),name:'Junior only blazer',campus:'junior',category:'Uniforms',active:true,selling_price:20,cost_price:10,quantity_on_hand:3,reorder_level:1,has_variants:true,image_url:legacy.image_url,product_variants:[{id:'family-junior-size',size:'Small',quantity_on_hand:3,active:true}]}
   const familySenior={id:crypto.randomUUID(),name:'Senior only blazer',campus:'senior',category:'Uniforms',active:true,selling_price:30,cost_price:15,quantity_on_hand:4,reorder_level:1,has_variants:true,image_url:allocated.image_url,product_variants:[{id:'family-senior-size',size:'Large',quantity_on_hand:4,active:true}]}
@@ -328,7 +346,7 @@ try {
   for(const [studentId,name] of [['student-junior','Historic Junior uniform'],['student-senior','Historic Senior uniform'],['student-missing','Legacy unassigned learner order']]) orders.push({id:crypto.randomUUID(),parent_id:'parent',student_id:studentId,items:[{name,quantity:1,unit_price:9}],total:9,payment_status:'pending',created_at:new Date().toISOString()})
   const family=await context.newPage()
   family.on('pageerror',error=>errors.push(error.message))
-  await family.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=parent&family=1`)
+  await family.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=parent&family=1`, { waitUntil: 'domcontentloaded' })
   await family.getByRole('heading',{name:'Junior only blazer',exact:true}).waitFor()
   assert.equal(await family.getByRole('heading',{name:'Senior only blazer',exact:true}).count(),0)
   await family.getByText('1 × Historic Junior uniform — $9.00 each',{exact:true}).waitFor()
