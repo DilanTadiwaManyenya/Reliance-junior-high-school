@@ -1,3 +1,4 @@
+import { useCourseworkDraftGuard } from '../../hooks/useCourseworkDraftGuard'
 import { useEffect, useMemo, useState } from 'react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
@@ -17,11 +18,15 @@ export default function CourseWork() {
   const [assessments, setAssessments] = useState([])
   const [form, setForm] = useState(blankAssessment)
   const [marks, setMarks] = useState({})
+  const [savedMarks, setSavedMarks] = useState({})
   const [selected, setSelected] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
+  const marksDirty = JSON.stringify(marks) !== JSON.stringify(savedMarks)
+  useCourseworkDraftGuard(marksDirty, saving)
   const [loading, setLoading] = useState(true)
+  const [loadingMarks, setLoadingMarks] = useState(false)
 
   const selectedAllocation = useMemo(() => allocations.find(allocation => allocation.id === selectedSubjectAllocationId) || null, [allocations, selectedSubjectAllocationId])
   const hasSubjectScope = Boolean(selectedAllocation && selectedSubject === selectedAllocation.subject && selectedSubjectLevel === selectedAllocation.class_level)
@@ -51,22 +56,30 @@ export default function CourseWork() {
   useEffect(() => {
     setSelected('')
     setStudents([])
-    setMarks({})
+    setMarks({}); setSavedMarks({})
   }, [selectedSubjectAllocationId])
   useEffect(() => {
-    if (!selected) { setStudents([]); setMarks({}); return }
+    let active = true
+    if (!selected) { setStudents([]); setMarks({}); setSavedMarks({}); return }
+    setLoadingMarks(true)
+    setStudents([]); setMarks({}); setSavedMarks({})
     Promise.all([
       supabase.rpc('coursework_learners', { requested_assessment_id: selected }),
       supabase.from('coursework_marks').select('student_id,score').eq('assessment_id', selected),
     ]).then(([learnerResult, markResult]) => {
-      if (learnerResult.error || markResult.error) setError(learnerResult.error?.message || markResult.error?.message)
+      if (!active) return
+      setLoadingMarks(false)
+      if (learnerResult.error || markResult.error) { setError(learnerResult.error?.message || markResult.error?.message); return }
       setStudents(learnerResult.data || [])
-      setMarks(Object.fromEntries((markResult.data || []).map(row => [row.student_id, String(row.score)])))
+      setMarks(Object.fromEntries((markResult.data || []).map(row => [row.student_id, String(row.score)]))); setSavedMarks(Object.fromEntries((markResult.data || []).map(row => [row.student_id, String(row.score)])))
     })
+    return () => { active = false }
   }, [selected, supabase])
 
   const create = async event => {
-    event.preventDefault(); setError(''); setNotice('')
+    event.preventDefault()
+    if (marksDirty && !window.confirm('You have unsaved coursework marks. Create another assessment and discard those changes?')) return
+    setError(''); setNotice('')
     if (!hasSubjectScope) return setError('Return to Subject allocations and choose one of your current subject assignments.')
     if (!form.title.trim()) return setError('Enter an assessment title.')
     if (!Number(form.total_marks) || Number(form.total_marks) < 1) return setError('Enter a total mark greater than zero.')
@@ -87,7 +100,7 @@ export default function CourseWork() {
     }).select().single()
     setSaving(false)
     if (requestError) return setError(requestError.message)
-    setAssessments(rows => [data, ...rows]); setSelected(data.id); setMarks({}); setForm(blankAssessment())
+    setAssessments(rows => [data, ...rows]); setSelected(data.id); setMarks({}); setSavedMarks({}); setForm(blankAssessment())
     setNotice(`Assessment created for ${scopeLabel}. Enter marks below, then save once.`)
   }
 
@@ -100,6 +113,7 @@ export default function CourseWork() {
     const { error: requestError } = rows.length ? await supabase.from('coursework_marks').upsert(rows, { onConflict: 'assessment_id,student_id' }) : { error: null }
     setSaving(false)
     if (requestError) return setError(requestError.message)
+    setSavedMarks({ ...marks })
     setNotice(`${rows.length} coursework mark${rows.length === 1 ? '' : 's'} saved.`)
   }
 
@@ -111,6 +125,6 @@ export default function CourseWork() {
     {!loading && !hasSubjectScope && <PortalNotice tone="error">This course-work link does not match one of your active allocations. Return to Subject allocations and select the class, subject, and stream again.</PortalNotice>}
     {hasSubjectScope && <div className="coursework-scope"><span>Active allocation</span><strong>{scopeLabel}</strong><small>{scopeStream ? 'This assessment is restricted to the selected stream.' : 'This assessment covers the whole assigned form.'}</small></div>}
     <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label className="coursework-context-field">Subject and form<input readOnly value={scopeLabel} placeholder="Choose a subject allocation" /></label><p className="muted" style={{ gridColumn: '1 / -1', margin: 0 }}>{scopeStream ? `This assessment will include only active learners in ${selectedAllocation?.class_level} · ${scopeStream}.` : 'This assessment will include every active learner in your whole-form allocation.'}</p><label>Assessment title<input required value={form.title} onChange={e => setForm(value => ({ ...value, title: e.target.value }))} placeholder="e.g. Week 4 fractions test" disabled={!hasSubjectScope} /></label><label>Type<select value={form.assessment_type} onChange={e => setForm(value => ({ ...value, assessment_type: e.target.value }))} disabled={!hasSubjectScope}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={e => setForm(value => ({ ...value, total_marks: e.target.value }))} disabled={!hasSubjectScope} /></label><label>Date<input required type="date" value={form.assessment_date} onChange={e => setForm(value => ({ ...value, assessment_date: e.target.value }))} disabled={!hasSubjectScope} /></label><Button type="submit" disabled={saving || !hasSubjectScope}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
-    <Card><div className="coursework-heading"><div><h2>2. Enter marks</h2><p>Select an assessment from this allocation to see marks entered and marks still missing.</p></div><label>Assessment<select value={selected} onChange={e => setSelected(e.target.value)} disabled={!hasSubjectScope}><option value="">Choose assessment</option>{scopedAssessments.map(row => <option key={row.id} value={row.id}>{row.title} · {row.assessment_date}</option>)}</select></label></div>{hasSubjectScope && !scopedAssessments.length && <p className="muted">No assessments have been created for this allocation yet.</p>}{selectedAssessment && <CourseworkMarks students={students} marks={marks} totalMarks={selectedAssessment.total_marks} saving={saving} onMarkChange={(id, value) => setMarks(current => ({ ...current, [id]: value }))} onSave={saveMarks} />}</Card>
+    <Card><div className="coursework-heading"><div><h2>2. Enter marks</h2><p>Select an assessment from this allocation to see marks entered and marks still missing.</p></div><label>Assessment<select value={selected} onChange={e => setSelected(e.target.value)} disabled={!hasSubjectScope}><option value="">Choose assessment</option>{scopedAssessments.map(row => <option key={row.id} value={row.id}>{row.title} · {row.assessment_date}</option>)}</select></label></div>{hasSubjectScope && !scopedAssessments.length && <p className="muted">No assessments have been created for this allocation yet.</p>}{loadingMarks && selected && <p role="status">Loading assessment learners and marks…</p>}{selectedAssessment && !loadingMarks && <CourseworkMarks students={students} marks={marks} totalMarks={selectedAssessment.total_marks} saving={saving} dirty={marksDirty} onMarkChange={(id, value) => { setNotice(''); setMarks(current => ({ ...current, [id]: value })) }} onSave={saveMarks} />}</Card>
   </section>
 }

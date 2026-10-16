@@ -1,0 +1,9 @@
+# Mobile Stage 5 — teacher coursework feedback and draft protection
+
+Coursework now announces unsaved/saving state and exposes invalid mark ranges next to the learner and through aria-invalid. Failed saves retain entered marks for explicit retry. Supported assessment/class/subject/role/workspace controls and sign-out/site links warn before discarding unsaved coursework marks; navigation controls remain blocked during a coursework request. Creating another assessment also asks before discarding marks. Refresh/full-page navigation receives the native unsaved-change warning. No offline storage or automatic mark replay was introduced.
+
+Assessment changes clear the previous learner/mark display while loading. Senior coursework now ignores late responses after switching; Junior retains its existing stale-response guard. A failed mark read cannot enable Senior editing against an empty baseline. Assessment, stream, Junior component, Grade 1/2 and ECD rules remain unchanged.
+
+Passed: 24 coursework viewport/scenario combinations at 320/390/600/768/1024/1440px, including invalid-range prevention, decimal marks, Enter-to-next-learner and assessment creation; 12 surrounding teacher views and ECD routing; Junior/Senior failure/retry, discard cancellation and explicit discard checks. New hook/feedback/tests pass targeted lint and production build. Existing page-level hook-style lint findings are outside this presentation stage.
+
+Draft protection applies to coursework marks and the supported controls listed above; it does not claim a universal router blocker for native browser Back or every older markbook form. Those are recorded for final acceptance rather than silently claiming universal draft coverage. Desktop/print and underlying permissions remain under the existing model. Stage 6 continues parent learner context and navigation.

@@ -43,6 +43,7 @@ const supabase = {
       select() { return this }, eq(key, value) { filters.push([key, value]); return this }, order() { return this }, in() { return this }, limit() { return this }, gte() { return this }, lte() { return this }, or() { return this }, maybeSingle() { single = true; return this }, single() { single = true; return this },
       insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this },
       then(resolve, reject) {
+        if (table === 'coursework_marks' && operation !== 'select' && window.fixtureFailMarks) return Promise.resolve({ data: null, error: { message: 'Synthetic mark save failed. Try again.' } }).then(resolve, reject)
         let data = (db[table] || []).filter(row => filters.every(([key, value]) => row[key] === value))
         if (operation !== 'select') {
           window.fixtureWrites.push({ table, operation, payload })
