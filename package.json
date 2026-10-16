@@ -19,7 +19,8 @@
     "test:portal": "node --test tests/portal-profile.test.mjs tests/portal-render.test.mjs tests/teacher-access.test.mjs",
     "test:shop:campus": "node --test tests/shop-database.test.mjs tests/shop-catalog-database.test.mjs tests/shop-campus-admin.test.mjs tests/shop-campus-pos.test.mjs tests/shop-parent-campus.test.mjs",
     "test:shop:browser": "node tests/shop-campus-acceptance.browser.mjs",
-    "test:portal-foundation": "node tests/portal-foundation.browser.mjs"
+    "test:portal-foundation": "node tests/portal-foundation.browser.mjs",
+    "test:portal-loading": "npm run build && node tests/portal-route-loading.browser.mjs && node tests/portal-loading-performance.browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

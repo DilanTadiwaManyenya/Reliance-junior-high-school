@@ -1,0 +1,4 @@
+.route-loading { width: min(100% - 32px, 640px); margin: 32px auto; padding: 24px; min-height: 160px; overflow-wrap: anywhere; }
+.route-loading h1 { font-size: clamp(1.5rem, 5vw, 2rem); }
+.route-loading button { min-height: 44px; white-space: normal; }
+.route-loading button:focus-visible { outline: 3px solid #1b2a56; outline-offset: 4px; }

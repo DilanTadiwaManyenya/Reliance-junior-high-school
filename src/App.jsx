@@ -1,37 +1,42 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
-import Footer from './components/layout/Footer'
-import Navbar from './components/layout/Navbar'
-import About from './pages/About'
-import Academics from './pages/Academics'
-import Admissions from './pages/Admissions'
-import Contact from './pages/Contact'
-import Facilities from './pages/Facilities'
-import Gallery from './pages/Gallery'
-import Home from './pages/Home'
-import News from './pages/News'
-import NotFound from './pages/NotFound'
-import Staff from './pages/Staff'
-import StudentLife from './pages/StudentLife'
-import PortalLogin from './pages/portal/PortalLogin'
-import PortalSignup from './pages/portal/PortalSignup'
-import ForgotPassword from './pages/portal/ForgotPassword'
-import ParentDashboard from './pages/portal/ParentDashboard'
-import ParentUniformCatalogue from './pages/portal/ParentUniformCatalogue'
-import ParentRecordPage from './pages/portal/ParentRecordPage'
-import StaffDashboard from './pages/portal/StaffDashboard'
+import RouteLoadBoundary from './components/RouteLoadBoundary'
+import './routeLoading.css'
 import ProtectedRoute from './components/portal/ProtectedRoute'
-import PortalLayout from './components/portal/PortalLayout'
-import StaffPortalLayout from './components/portal/StaffPortalLayout'
-import PortalEntry from './pages/portal/PortalEntry'
-import Announcements from './pages/portal/Announcements'
-import TeacherFirstLogin from './pages/portal/TeacherFirstLogin'
-import SetNewPassword from './pages/portal/SetNewPassword'
-import RoleDashboard from './pages/portal/RoleDashboard.jsx'
 import ActivityLogger from './components/portal/ActivityLogger'
+
+const Footer = lazy(() => import('./components/layout/Footer'))
+const Navbar = lazy(() => import('./components/layout/Navbar'))
+const About = lazy(() => import('./pages/About'))
+const Academics = lazy(() => import('./pages/Academics'))
+const Admissions = lazy(() => import('./pages/Admissions'))
+const Contact = lazy(() => import('./pages/Contact'))
+const Facilities = lazy(() => import('./pages/Facilities'))
+const Gallery = lazy(() => import('./pages/Gallery'))
+const Home = lazy(() => import('./pages/Home'))
+const News = lazy(() => import('./pages/News'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+const Staff = lazy(() => import('./pages/Staff'))
+const StudentLife = lazy(() => import('./pages/StudentLife'))
+const PortalLogin = lazy(() => import('./pages/portal/PortalLogin'))
+const PortalSignup = lazy(() => import('./pages/portal/PortalSignup'))
+const ForgotPassword = lazy(() => import('./pages/portal/ForgotPassword'))
+const ParentDashboard = lazy(() => import('./pages/portal/ParentDashboard'))
+const ParentUniformCatalogue = lazy(() => import('./pages/portal/ParentUniformCatalogue'))
+const ParentRecordPage = lazy(() => import('./pages/portal/ParentRecordPage'))
+const StaffDashboard = lazy(() => import('./pages/portal/StaffDashboard'))
+const PortalLayout = lazy(() => import('./components/portal/PortalLayout'))
+const StaffPortalLayout = lazy(() => import('./components/portal/StaffPortalLayout'))
+const PortalEntry = lazy(() => import('./pages/portal/PortalEntry'))
+const Announcements = lazy(() => import('./pages/portal/Announcements'))
+const TeacherFirstLogin = lazy(() => import('./pages/portal/TeacherFirstLogin'))
+const SetNewPassword = lazy(() => import('./pages/portal/SetNewPassword'))
+const RoleDashboard = lazy(() => import('./pages/portal/RoleDashboard.jsx'))
+
 function App() {
   const location = useLocation()
   const portal = location.pathname.startsWith('/portal')
-  return <div className={portal ? 'portal-shell' : 'site-shell'}><ActivityLogger />{!portal && <Navbar />}<main><Routes>
+  return <div className={portal ? 'portal-shell' : 'site-shell'}><ActivityLogger /><RouteLoadBoundary key={location.pathname}><Suspense fallback={<section className="route-loading" role="status" aria-live="polite" aria-busy="true"><p>Opening page…</p></section>}>{!portal && <Navbar />}<main><Routes>
     <Route path="/" element={<Home />} /><Route path="/about" element={<About />} />
     <Route path="/academics" element={<Academics />} /><Route path="/admissions" element={<Admissions />} />
     <Route path="/student-life" element={<StudentLife />} /><Route path="/facilities" element={<Facilities />} />
@@ -62,6 +67,6 @@ function App() {
       </Route>
     </Route>
     <Route path="*" element={<NotFound />} />
-  </Routes></main>{!portal && <Footer />}</div>
+  </Routes></main>{!portal && <Footer />}</Suspense></RouteLoadBoundary></div>
 }
 export default App
