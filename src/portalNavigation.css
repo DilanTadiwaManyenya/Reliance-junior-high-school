@@ -1,0 +1,42 @@
+/* Stage 2: account context, workspace disclosure and authentication. */
+@media screen {
+  .portal-account-context { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 12px clamp(14px, 2vw, 28px); color: #1b2a56; border-bottom: 1px solid #dce3ee; background: #fff; font-size: .875rem; overflow-wrap: anywhere; }
+  .portal-account-context > * { min-width: 0; max-width: 100%; }
+  .portal-account-context > span { text-transform: capitalize; }
+  .portal-account-context small { color: #475569; }
+  .parent-portal-shell .portal-account-context { border-top: 1px solid #dce3ee; }
+  .accountant-workspace-nav { display: block; }
+  .accountant-workspace-menu { min-width: 0; width: 100%; }
+  .accountant-workspace-menu > summary { display: none; }
+  .accountant-workspace-menu > .accountant-workspace-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .staff-shell .top-bar-role-switcher { position: relative; }
+  .staff-shell .top-bar-role-switcher > [role="alert"] { position: absolute; top: 100%; inset-inline: 0; z-index: 150; padding: 10px; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; background: #fff1f2; overflow-wrap: anywhere; }
+  .portal-auth { min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .portal-auth .portal-auth-card { width: min(100%, 560px); min-width: 0; overflow-wrap: anywhere; }
+  .portal-auth .phone-number > span:first-child { flex: 0 0 auto; white-space: nowrap; }
+  .portal-auth .phone-number input { flex: 1 1 0; width: 0; }
+  .portal-auth .form > * { min-width: 0; }
+  .portal-auth .password-input > span { min-width: 0; }
+  :is(.portal-auth, .staff-shell, .portal-shell) .password-input button { width: 44px; min-width: 44px; min-height: 44px; }
+  .portal-auth :is(input, select) { font-size: 1rem; min-height: 44px; max-width: 100%; }
+  .portal-auth :is(.btn, .portal-back, .portal-website-button) { min-height: 44px; white-space: normal; }
+  .portal-auth-card > p > a { display: inline-flex; align-items: center; min-height: 44px; }
+  :is(.portal-auth, .accountant-workspace-nav) :is(button, select, input, summary, a):focus-visible { outline: 3px solid #2559b8; outline-offset: 3px; }
+}
+@media screen and (max-width: 900px) {
+  .accountant-workspace-menu { border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
+  .accountant-workspace-menu > summary { display: list-item; cursor: pointer; padding: 12px 14px; min-height: 48px; color: #1b2a56; overflow-wrap: anywhere; }
+  .accountant-workspace-menu:not([open]) > .accountant-workspace-options { display: none; }
+  .accountant-workspace-menu[open] > .accountant-workspace-options { display: grid; grid-template-columns: minmax(0, 1fr); padding: 8px; }
+  .portal-account-context { align-items: start; }
+  .portal-account-context small { flex-basis: 100%; }
+}
+@media screen and (max-width: 480px) {
+  .portal-auth .portal-auth-card { padding: 22px 16px; }
+  .portal-auth h1 { font-size: clamp(1.6rem, 7vw, 2rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-auth-animated { animation: none; }
+  .staff-shell .sidebar-wrapper { transition: none; }
+}
+@media print { .portal-account-context { display: none; } }

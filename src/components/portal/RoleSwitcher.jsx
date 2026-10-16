@@ -23,5 +23,5 @@ export default function RoleSwitcher() {
       setError('We could not switch roles. Please try again.')
     } finally { setSwitching(false) }
   }
-  return <label className="top-bar-role-switcher">Viewing as: <select value={activeRole || ''} disabled={switching} onChange={changeRole}>{roles.map(role => <option key={role} value={role}>{labels[role] || role}</option>)}</select>{error && <span role="alert">{error}</span>}</label>
+  return <label className="top-bar-role-switcher">Viewing as: <select value={activeRole || ''} aria-label="Active portal role" aria-busy={switching} disabled={switching} onChange={changeRole}>{roles.map(role => <option key={role} value={role}>{labels[role] || role}</option>)}</select>{error && <span role="alert">{error}</span>}</label>
 }

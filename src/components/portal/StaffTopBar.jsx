@@ -172,7 +172,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
           <span className="top-bar-username">{profile?.full_name || 'Portal User'}</span>
           <span className="top-bar-role-badge">{isMainAdmin ? 'Main Admin' : activeRole || 'staff'}</span>
         </div>
-        <button className="top-bar-logout" onClick={handleLogout} title="Log out">
+        <button className="top-bar-logout" onClick={handleLogout} title="Log out" aria-label="Log out">
           <LogoutIcon />
           <span>Log out</span>
         </button>

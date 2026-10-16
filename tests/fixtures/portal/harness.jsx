@@ -16,6 +16,7 @@ import '../../../src/teacherWorkspace.css'
 import '../../../src/portalResponsive.css'
 import '../../../src/parentResponsive.css'
 import '../../../src/portalFoundation.css'
+import '../../../src/portalNavigation.css'
 import '../../../src/reportPrint.css'
 
 const params = new URLSearchParams(location.search)
@@ -106,7 +107,7 @@ const initialRoute = params.get('route') || `${paths[role]}?${search}`
 function RouteObserver() { const route = useLocation(); useEffect(() => { window.fixtureRoute = route.pathname + route.search }, [route]); return null }
 export default function PortalFixture() {
   const [activeRole, setActiveRole] = useState(role)
-  const value = { user: { id: staffId }, session: { user: { id: staffId } }, profile: { ...profile, active_role: activeRole }, activeRole, roles: params.has('multi') ? [role, role === 'admin' ? 'teacher' : 'admin'] : [role], loading: false, supabase, signOut: async () => {}, refreshProfile: async () => profile, setActiveRole: async role => setActiveRole(role) }
+  const value = { user: { id: staffId }, session: { user: { id: staffId } }, profile: { ...profile, active_role: activeRole }, activeRole, roles: params.has('multi') ? [role, role === 'admin' ? 'teacher' : 'admin'] : [role], loading: false, supabase, signOut: async () => {}, refreshProfile: async () => profile, setActiveRole: async role => { if (params.has('roleError')) throw new Error('Fixture role switch failed'); setActiveRole(role) } }
   return <MemoryRouter initialEntries={[initialRoute]}><AuthContext.Provider value={value}><RouteObserver /><App /></AuthContext.Provider></MemoryRouter>
 }
 createRoot(document.getElementById('root')).render(<PortalFixture />)

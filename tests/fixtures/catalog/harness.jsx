@@ -40,3 +40,4 @@ createRoot(document.getElementById('root')).render(role === 'parent'
   : <InventoryPOS supabase={supabase} user={{ id: 'staff' }} profile={{ role, active_role: role, campus: new URLSearchParams(location.search).get('campus') || (role === 'admin' ? 'all' : 'junior') }} />)
 
 import '../../../src/portalFoundation.css'
+import '../../../src/portalNavigation.css'

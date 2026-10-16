@@ -66,3 +66,4 @@ export default function FixturePage() {
 createRoot(document.getElementById('root')).render(<BrowserRouter><AuthContext.Provider value={value}><Routes><Route element={<StaffPortalLayout />}><Route path="*" element={<FixturePage />} /></Route></Routes></AuthContext.Provider></BrowserRouter>)
 
 import '../../../src/portalFoundation.css'
+import '../../../src/portalNavigation.css'

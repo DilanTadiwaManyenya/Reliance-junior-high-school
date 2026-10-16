@@ -152,7 +152,7 @@ Do not repeat every expensive suite for an isolated label adjustment; select che
 
 Record the planned scope and baseline, implement a small reviewable slice, run relevant checks, inspect representative screenshots, commit and push that stage, and verify both configured hosted deployment statuses for the exact source commit. Authenticated hosted smoke checks are distinct from local fixture tests. Report what changed, tests/results, commit, deployment and remaining items. If a backend change becomes necessary, provide exact scoped SQL, live verification and recovery notes; do not apply unrelated pending migrations. Proceed to the next stage after the current stage's required checks pass. Preserve unrelated workspace edits and keep private screenshots/backups out of commits.
 
-Stage 2 is the next planned implementation stage after the shared foundation. Complete the outstanding Stage 0 screen inventory/performance baseline alongside scoped work before final Stage 9 acceptance. This plan does not imply a simultaneous portal-wide rewrite.
+Stage 2 navigation/account/authentication foundations are implemented and verified; see docs/portal-mobile-stage2-navigation.md for scope and results. Stage 3 admin dashboards and operations is next. Module-specific form safeguards and shortcuts continue in their role stages. Complete the outstanding Stage 0 screen inventory/performance baseline alongside scoped work before final Stage 9 acceptance. This plan does not imply a simultaneous portal-wide rewrite.
 
 **Standards references**
 
