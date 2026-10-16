@@ -6,6 +6,6 @@ The shared Edge Function helper now recognizes Supabase FunctionsFetchError (inc
 
 The staff form and Edge Functions support Mrs, but profiles_working_title_check previously allowed only Mr and Ms. Apply supabase/migrations/20261016100000_allow_mrs_staff_working_title.sql to align the database constraint. This migration does not change staff identities or allocations.
 
-Rollout requires deploying the frontend and applying the migration through authenticated Supabase management access. The CLI reports LegacyPlatformAuthRequiredError here. No live staff data, migration, or deployment was changed.
+The frontend fix was pushed to master in commit 22918e8. After the user completed Supabase CLI authentication, the title migration was applied to linked project ejrtmdvnumjwikehzrrk in a transaction and recorded in migration history. A follow-up query verified the live constraint allows Mr, Ms, and Mrs and the migration is recorded. No staff identities or allocations were changed. Hosted frontend deployment and an authenticated browser save have not been verified. The unrelated pending 20261015100000 migration was left unapplied.
 
 After rollout, use an authorized administrator account to save a verified full legal name, reload the staff list, and verify the working name, legal name, and signature initials. Check Mrs as well as Mr and Ms.
