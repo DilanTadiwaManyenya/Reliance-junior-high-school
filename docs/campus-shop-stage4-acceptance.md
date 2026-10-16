@@ -5,7 +5,7 @@
 ## Reproducible checks
 
 - `npm run test:shop:campus`: six database tests across the original shop, image catalog, campus admin, campus POS and parent campus suites. Passed. Restricted authenticated roles exercise actual migration/helper bodies, rather than UI-only permission mocks.
-- `npm run test:shop:browser`: full real-component catalog/POS/parent workflow at 390px and 1280px. Covers Main Admin allocation/photo copying, both campus admins, both campus accountants, campus switching, pending checkout recovery, photo preview/compression/upload/replacement/removal, variants, parent visibility, dual-campus learner switching and delayed responses.
+- `npm run test:shop:browser`: full real-component catalog/POS/parent workflow at 390px and 1280px. Both viewport runs passed. Covers Main Admin allocation/photo copying, both campus admins, both campus accountants, campus switching, pending checkout recovery, photo preview/compression/upload/replacement/removal, variants, parent visibility, dual-campus learner switching and delayed responses.
 - `node tests/portal-navigation.browser.mjs`: passed all 16 role/viewport combinations (320, 390, 768, 1024px), including role switching, drawer focus and scrolling.
 - Targeted ESLint for acceptance scripts passed; production build passed with the existing large-bundle warning.
 
@@ -44,8 +44,9 @@ Main Admin should open Inventory & POS → Products → Unassigned and allocate 
 
 ## Hosted acceptance and release
 
-Both connected Vercel projects reported success for 283a57f (Stage 3 implementation and verification). Final Stage 4 deployment status is recorded after push. Hosted authenticated UI inspection remains unverified because deployment URLs redirect to Vercel sign-in; local real-component tests and live database/API checks are separate evidence.
+Both connected Vercel projects reported success for 283a57f (Stage 3 implementation and verification). Stage 4 acceptance commit d5d6349 is pushed to master; both connected Vercel projects report successful deployment for that exact commit. Hosted authenticated UI inspection remains unverified because deployment URLs redirect to Vercel sign-in; local real-component tests and live database/API checks are separate evidence.
 
 After allocation, sign in through the normal school portal: create a dedicated campus test uniform with photo as its admin; confirm it appears for that campus parent without redeployment; replace the image; hide/show it; verify the other campus parent never sees it. Confirm accountants have only POS/receipts within Inventory & POS and cannot upload/edit/delete. Confirm previous orders retain their recorded name, unit price and size. Delete the test product only if never ordered. Use no real payments for this check.
 
 Technical checks can pass while operational allocation remains incomplete. Full business rollout requires the remaining 21 product allocations and the hosted signed-in photo/access smoke check.
+
