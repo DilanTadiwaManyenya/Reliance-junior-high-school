@@ -27,6 +27,10 @@ import "./inventory.css";
 import { useModalFocus } from "../../hooks/useModalFocus";
 import { logActivity } from "../../lib/logActivity";
 import PasswordInput from "../ui/PasswordInput";
+import ProductImage from "./ProductImage";
+import ProductVariants from "./ProductVariants";
+import { catalogStockItems } from "../../lib/shopCatalog";
+import { prepareProductImage, uploadProductImage, removeProductImage } from "../../lib/productImages";
 
 const money = (value) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
@@ -34,6 +38,7 @@ const money = (value) =>
   );
 const blank = {
   name: "",
+  image_url: null,
   sku: "",
   category: "Uniforms",
   campus: "",
@@ -120,8 +125,8 @@ const helpTopics = [
     title: "Access denied or a section is missing",
     solution: "Shop features depend on the active Reliance role.",
     steps: [
-      "Administrators manage products, stock, settings and audit records.",
-      "Accountants process sales and view reports.",
+      "The Main Admin manages products, stock, settings and audit records.",
+      "Accountants manage their campus catalog, process sales and view reports.",
       "Sign out and back in if your assigned role was recently changed.",
     ],
   },
@@ -169,10 +174,10 @@ function exportCSV(rows, filename) {
 }
 export default function InventoryPOS({ supabase, user, profile }) {
   const role = profile?.active_role ?? profile?.role;
-  // Stock belongs to the school as a whole. Campus administrators do not
-  // manage products: only the Main Admin may create and receive stock.
+  // Preserve Main Admin access; accountants manage their own campus catalog.
   const admin = role === "admin" && profile?.campus === "all";
   const access = admin || role === "accountant";
+  const canManageProducts = access;
   const storageKey = `reliance-shop:${user.id}`;
   const [tab, setTab] = useState("overview");
   const [products, setProducts] = useState([]);
@@ -221,6 +226,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [form, setForm] = useState(null);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [variantBusy, setVariantBusy] = useState(false);
   const [adjust, setAdjust] = useState({ product: "", change: "", reason: "" });
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -234,7 +241,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
   const modalOpen = !!form || !!receipt;
   const dialogRef = useRef(null);
   useModalFocus(modalOpen, dialogRef, () => {
-    if (!busy) { setForm(null); setReceipt(null); }
+    if (!busy && !imageBusy && !variantBusy) { setForm(null); setReceipt(null); }
   });
   const load = useCallback(async () => {
     if (!access) return;
@@ -245,7 +252,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
         for (let start = 0; ; start += 500) {
           const result = await supabase
             .from(table)
-            .select(table === "pos_sales" ? "*,pos_sale_items(*)" : "*")
+            .select(table === "pos_sales" ? "*,pos_sale_items(*)" : table === "inventory_products" ? "*,product_variants(*)" : "*")
             .order("id")
             .range(start, start + 499);
           if (result.error) throw result.error;
@@ -356,7 +363,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
     const learner = learners.find((row) => row.id === id);
     if (learner) setCustomer(learner.full_name);
   };
-  const catalogue = tab === "products" && status === "archived" ? products.filter((p) => !p.active) : active;
+  const saleProducts = catalogStockItems(products);
+  const catalogue = tab === "pos" ? saleProducts.filter(p => p.active) : tab === "products" && status === "archived" ? products.filter((p) => !p.active) : active;
   const filtered = catalogue.filter(
     (p) =>
       `${p.name} ${p.sku || ""} ${p.category || ""}`
@@ -369,7 +377,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
   );
   const lines = cart.map((line) => ({
     ...line,
-    product: products.find((p) => p.id === line.id),
+    product: saleProducts.find((p) => p.id === line.id),
   }));
   const total =
     lines.reduce(
@@ -392,7 +400,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               ? { ...l, quantity: Math.min(l.quantity + 1, p.quantity_on_hand) }
               : l,
           )
-        : [...current, { id: p.id, quantity: 1 }];
+        : [...current, { id: p.id, product_id: p.product_id || p.id, variant_id: p.variant_id || null, quantity: 1 }];
     });
   };
   const period = sales.filter(
@@ -511,7 +519,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
     run(async () => {
       const request = pending || {
         id: crypto.randomUUID(),
-        items: cart.map((l) => ({ product_id: l.id, quantity: l.quantity })),
+        items: cart.map((l) => ({ product_id: l.product_id || l.id, variant_id: l.variant_id || null, quantity: l.quantity })),
         customer,
         payment,
         paid: Number(paid),
@@ -583,13 +591,46 @@ export default function InventoryPOS({ supabase, user, profile }) {
       if (detail.error) throw detail.error;
       setReceipt(detail.data);
     });
+  const selectProductImage = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setError("");
+    setImageBusy(true);
+    try {
+      const blob = await prepareProductImage(file);
+      const preview = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Unable to preview this image."));
+        reader.readAsDataURL(blob);
+      });
+      setForm(current => current ? { ...current, imageBlob: blob, imagePreview: preview } : null);
+    } catch (error) { setError(error.message); }
+    finally { setImageBusy(false); }
+  };
+  const deleteProduct = () => {
+    if (!canManageProducts || !form?.id || !window.confirm("Permanently delete this product? Products with any order history cannot be deleted. Use Hide to keep the catalog record.")) return;
+    run(async () => {
+      const oldImage = products.find(product => product.id === form.id)?.image_url;
+      const result = await supabase.from("inventory_products").delete().eq("id", form.id).select("id").single();
+      if (result.error) throw result.error;
+      let cleanupFailed = false;
+      try { await removeProductImage(supabase, oldImage); } catch { cleanupFailed = true; }
+      setForm(null);
+      await load();
+      setNotice(cleanupFailed ? "Product deleted. Its unused photo could not be removed from storage." : "Unused product deleted.");
+    });
+  };
   const saveProduct = (event) => {
     event.preventDefault();
+    if (!canManageProducts || imageBusy || variantBusy) return;
     run(async () => {
       const payload = {
         name: form.name.trim(),
         sku: form.sku.trim() || null,
         category: form.category.trim(),
+        image_url: form.image_url || null,
         selling_price: Number(form.selling_price),
         cost_price: Number(form.cost_price),
         reorder_level: Number(form.reorder_level),
@@ -600,23 +641,34 @@ export default function InventoryPOS({ supabase, user, profile }) {
       if (!form.id && !["junior", "senior"].includes(payload.campus)) {
         throw new Error("Choose the campus that will own this stock.");
       }
+      if (![payload.selling_price, payload.cost_price, payload.reorder_level].every(value => Number.isFinite(value) && value >= 0)
+          || !Number.isInteger(payload.reorder_level)
+          || (!form.id && (!Number.isInteger(Number(form.quantity_on_hand)) || Number(form.quantity_on_hand) < 0))) {
+        throw new Error("Prices must be non-negative numbers; stock and thresholds must be whole numbers.");
+      }
+      const oldImage = products.find(product => product.id === form.id)?.image_url;
+      if (form.imageBlob) payload.image_url = await uploadProductImage(supabase, form.imageBlob, form.campus);
       const result = form.id
         ? await supabase
             .from("inventory_products")
             .update({ ...payload, updated_at: new Date().toISOString() })
-            .eq("id", form.id)
+            .eq("id", form.id).select("id").single()
         : await supabase
             .from("inventory_products")
             .insert({
               ...payload,
               quantity_on_hand: Number(form.quantity_on_hand),
               created_by: user.id,
-            });
+            }).select("id").single();
       if (result.error) throw result.error;
       logActivity(supabase, user, profile, { actionType: form.id ? "update" : "create", description: `${form.id ? "Updated" : "Created"} product ${payload.name}`, targetTable: "inventory_products", targetId: form.id });
+      let cleanupFailed = false;
+      if (oldImage && oldImage !== payload.image_url) {
+        try { await removeProductImage(supabase, oldImage); } catch { cleanupFailed = true; }
+      }
       setForm(null);
-      setNotice("Product saved.");
       await load();
+      setNotice(cleanupFailed ? "Product saved. Its previous photo could not be removed from storage." : "Product saved.");
     });
   };
   const changeMyPassword = async () => {
@@ -812,7 +864,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               <option value="all">All stock</option>
               <option value="low">Low stock</option>
               <option value="empty">Out of stock</option>
-              {tab === "products" && <option value="archived">Archived products</option>}
+              {tab === "products" && <option value="archived">Hidden products</option>}
             </select>
             <button onClick={() => setList(!list)}>
               {list ? "Grid view" : "List view"}
@@ -848,8 +900,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 Export stock CSV
               </button>
             )}
-            {admin && tab === "products" && (
-              <button className="primary" onClick={() => setForm({ ...blank })}>
+            {canManageProducts && tab === "products" && (
+              <button className="primary" onClick={() => setForm({ ...blank, campus: role === "accountant" && ["junior", "senior"].includes(profile.campus) ? profile.campus : "" })}>
                 <Plus size={16} /> Add product
               </button>
             )}
@@ -864,7 +916,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                     disabled={
                       tab === "pos"
                         ? frozen || !ready || !p.quantity_on_hand
-                        : !admin
+                        : !canManageProducts
                     }
                     onClick={() =>
                       tab === "pos"
@@ -876,9 +928,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                           })
                     }
                   >
-                    <span className="shop-product-icon">
-                      <Package size={28} />
-                    </span>
+                    <ProductImage url={p.image_url} name={p.name} className="shop-product-icon" />
                     <small>
                       {p.category || "General"} · {p.sku || "No SKU"}
                     </small>
@@ -888,9 +938,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
                         p.quantity_on_hand <= p.reorder_level ? "shop-low" : ""
                       }
                     >
-                      {p.active ? `${p.quantity_on_hand} units available` : "Archived"}
+                      {p.active ? `${p.quantity_on_hand} units available` : "Hidden"}
                     </span>
                     <b>{money(p.selling_price)}</b>
+                    {tab === "products" && <span className="shop-edit-label">Edit product</span>}
                   </button>
                 ))}
               </div>
@@ -930,7 +981,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                         }
                       >
                         <option value="">Choose product</option>
-                        {active.map((p) => (
+                        {active.filter(p => !p.has_variants).map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
                           </option>
@@ -1438,6 +1489,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 {error}
               </p>
             )}
+            <fieldset className="shop-product-fields" disabled={busy || imageBusy || variantBusy}>
             <div className="shop-form-grid">
               {[
                 ["name", "Product name", "text"],
@@ -1492,22 +1544,36 @@ export default function InventoryPOS({ supabase, user, profile }) {
                     checked={form.active}
                     onChange={(e) => setForm({ ...form, active: e.target.checked })}
                   />
-                  Available for sale
+                  Show in shop (uncheck to hide)
                 </label>
               )}
             </div>
+            <label className="shop-image-field">
+              Product photo (JPG, PNG or WebP, up to 2 MB)
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectProductImage} />
+            </label>
+            {imageBusy && <p role="status">Preparing image…</p>}
+            <ProductImage url={form.imageBlob ? form.imagePreview : form.image_url} name={form.name || "New product"} className="shop-image-preview" />
+            {(form.imageBlob || form.image_url) && <button type="button" onClick={() => setForm(current => ({ ...current, imageBlob: null, image_url: null }))}>Remove photo</button>}
+            {form.id ? <ProductVariants key={form.id} product={form} supabase={supabase} onBusy={setVariantBusy} onSaved={async (updated) => {
+              setForm(current => ({ ...current, product_variants: updated.product_variants, has_variants: updated.has_variants, quantity_on_hand: updated.quantity_on_hand }));
+              await load();
+            }} /> : <p className="shop-form-note">For sized products, start with zero opening stock, save the product, then open Edit product to add sizes and their quantities.</p>}
+            {form.id && <p className="shop-form-note">Hide keeps this product in order history. Permanent deletion is allowed only when it has never been ordered.</p>}
             <div className="shop-actions">
+              {form.id && <button type="button" onClick={deleteProduct}>Delete unused product</button>}
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || imageBusy || variantBusy}
                 onClick={() => setForm(null)}
               >
                 Cancel
               </button>
-              <button className="primary" disabled={busy || !ready}>
-                Save product
+              <button className="primary" disabled={busy || imageBusy || variantBusy || !ready}>
+                {busy ? "Saving…" : "Save product"}
               </button>
             </div>
+            </fieldset>
           </form>
         </div>
       )}
@@ -1531,7 +1597,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
             {receipt.pos_sale_items.map((l) => (
               <div className="shop-row" key={l.id}>
                 <span>
-                  {l.quantity} × {l.product_name}
+                  {l.quantity} × {l.product_name}{l.size_label ? ` · ${l.size_label}` : ""}
                   <small>{money(l.unit_price)} each</small>
                 </span>
                 <strong>{money(l.line_total)}</strong>
