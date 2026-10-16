@@ -1448,7 +1448,7 @@ export default function StaffDashboard() {
     return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} students={filteredStudents} teacherName={profile?.full_name} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onBack={clearSubjectGroup} onOpenWorkspace={(nextSection, subject, level, allocationId) => setSubjectGroup(subject, level, allocationId, nextSection)} />;
 
   const shopRole = activeRole;
-  if (section === "inventory" && (isMainAdmin || accountant))
+  if (section === "inventory" && ((isAdmin && ["all", "junior", "senior"].includes(profile?.campus)) || (accountant && ["junior", "senior"].includes(profile?.campus))))
     return (
       <div className="staff-content-area">
 

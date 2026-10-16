@@ -12,6 +12,21 @@ const errors = []
 const context = await runtime.browser.newContext({ viewport: { width: 390, height: 844 } })
 await context.route('**/catalog-api/**', async route => {
   const req = route.request(), url = new URL(req.url()), method = req.method()
+  if (url.pathname.includes('/copy/')) {
+    const { source, destination } = req.postDataJSON()
+    const root='/catalog-api/images/product-images/'
+    if (!images.has(root+source)) return route.fulfill({ status:404,body:'{}' })
+    images.set(root+destination,images.get(root+source))
+    return route.fulfill({status:200,body:'{}'})
+  }
+  if (url.pathname.includes('/rpc/split_unassigned_shop_product')) {
+    const { p_product, p_campus, p_quantity, p_details }=req.postDataJSON()
+    const source=products.find(product=>product.id===p_product)
+    source.quantity_on_hand-=p_quantity
+    const allocated={ ...source, ...p_details, id:crypto.randomUUID(), campus:p_campus, quantity_on_hand:p_quantity }
+    products.push(allocated)
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(allocated.id)})
+  }
   if (url.pathname.includes('/images/')) {
     if (method === 'POST') { const body = req.postDataBuffer(); images.set(url.pathname, body); uploads.push(body); return route.fulfill({ status: 200, body: '{}' }) }
     if (method === 'DELETE') { images.delete(url.pathname); return route.fulfill({ status: 200, body: '{}' }) }
@@ -118,6 +133,42 @@ try {
   await page.getByRole('button',{name:/Legacy jacket/}).click()
   assert.equal(await page.getByRole('dialog').locator('select').first().isDisabled(),true,'Assigned campus stays locked')
   await page.getByRole('button',{name:'Cancel',exact:true}).click()
+  // Stage 1: explicit stock split, copied campus photo, scoped admin views and no accountant editor.
+  const shared={...legacy,id:crypto.randomUUID(),name:'Shared campus stock',campus:null,quantity_on_hand:10}
+  products.push(shared)
+  await page.getByRole('button',{name:'Refresh',exact:true}).click()
+  await page.getByRole('button',{name:/Shared campus stock/}).click()
+  await page.getByRole('dialog').locator('select').first().selectOption('senior')
+  await page.getByLabel('Allocation quantity',{exact:false}).fill('4')
+  await page.getByRole('button',{name:'Save product',exact:true}).click()
+  await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
+  const allocated=products.find(product=>product.name===shared.name && product.campus==='senior')
+  assert.equal(shared.quantity_on_hand,6);assert.equal(shared.campus,null);assert.equal(allocated.quantity_on_hand,4)
+  assert.ok(allocated.image_url.includes('/senior/'));assert.notEqual(allocated.image_url,shared.image_url)
+  assert.ok(images.has(new URL(shared.image_url).pathname),'Split retains source photo')
+  await page.getByLabel('Catalog campus',{exact:true}).selectOption('unassigned')
+  assert.equal(await page.getByRole('button',{name:/Shared campus stock/}).count(),1)
+  for(const staffCampus of ['junior','senior']) {
+    const scoped=await context.newPage()
+    scoped.on('pageerror',e=>errors.push(e.message))
+    await scoped.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin&campus=${staffCampus}`)
+    await scoped.getByRole('heading',{name:staffCampus==='junior'?'Junior school inventory':'Senior school inventory'}).waitFor()
+    await scoped.getByRole('button',{name:'Add product',exact:true}).waitFor()
+    assert.equal(await scoped.getByRole('button',{name:'Point of sale',exact:true}).count(),0,'Admin POS is Stage 2')
+    assert.equal(await scoped.getByLabel('Catalog campus',{exact:true}).count(),0)
+    if(staffCampus==='junior') assert.equal(await scoped.getByRole('button',{name:/Shared campus stock/}).count(),0)
+    else await scoped.getByRole('button',{name:/Shared campus stock/}).waitFor()
+    await scoped.getByRole('button',{name:'Add product',exact:true}).click()
+    const selector=scoped.getByRole('dialog').locator('select').first()
+    assert.equal(await selector.inputValue(),staffCampus);assert.equal(await selector.isDisabled(),true)
+    await scoped.close()
+  }
+  const cashier=await context.newPage()
+  await cashier.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=accountant&campus=junior`)
+  await cashier.getByRole('button',{name:'Point of sale',exact:true}).waitFor()
+  assert.equal(await cashier.getByRole('button',{name:'Products',exact:true}).count(),0)
+  assert.equal(await cashier.getByRole('button',{name:'Add product',exact:true}).count(),0)
+  await cashier.close()
   // Invalid files are rejected before storage writes.
   const validation=await page.evaluate(async()=>{
     const {prepareProductImage}=await import('/src/lib/productImages.js')

@@ -30,7 +30,7 @@ import PasswordInput from "../ui/PasswordInput";
 import ProductImage from "./ProductImage";
 import ProductVariants from "./ProductVariants";
 import { catalogStockItems } from "../../lib/shopCatalog";
-import { prepareProductImage, uploadProductImage, removeProductImage } from "../../lib/productImages";
+import { prepareProductImage, uploadProductImage, removeProductImage, copyProductImageForCampus } from "../../lib/productImages";
 
 const money = (value) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
@@ -126,7 +126,7 @@ const helpTopics = [
     solution: "Shop features depend on the active Reliance role.",
     steps: [
       "The Main Admin manages products, stock, settings and audit records.",
-      "Accountants manage their campus catalog, process sales and view reports.",
+      "Accountants process sales in their own campus. Only administrators manage products, photos and stock.",
       "Sign out and back in if your assigned role was recently changed.",
     ],
   },
@@ -174,12 +174,14 @@ function exportCSV(rows, filename) {
 }
 export default function InventoryPOS({ supabase, user, profile }) {
   const role = profile?.active_role ?? profile?.role;
-  // Preserve Main Admin access; accountants manage their own campus catalog.
   const admin = role === "admin" && profile?.campus === "all";
-  const access = admin || role === "accountant";
-  const canManageProducts = access;
+  const campus = ["junior", "senior"].includes(profile?.campus) ? profile.campus : null;
+  const campusAdmin = role === "admin" && Boolean(campus);
+  const canManageProducts = admin || campusAdmin;
+  const access = canManageProducts || (role === "accountant" && Boolean(campus));
+  const [campusView, setCampusView] = useState("all");
   const storageKey = `reliance-shop:${user.id}`;
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(campusAdmin ? "products" : "overview");
   const [products, setProducts] = useState([]);
   const [sales, setSales] = useState([]);
   const [learners, setLearners] = useState([]);
@@ -250,11 +252,13 @@ export default function InventoryPOS({ supabase, user, profile }) {
       const fetchAll = async (table) => {
         const rows = [];
         for (let start = 0; ; start += 500) {
-          const result = await supabase
+          let request = supabase
             .from(table)
             .select(table === "pos_sales" ? "*,pos_sale_items(*)" : table === "inventory_products" ? "*,product_variants(*)" : "*")
             .order("id")
             .range(start, start + 499);
+          if (table === "inventory_products" && !admin && campus) request = request.eq("campus", campus);
+          const result = await request;
           if (result.error) throw result.error;
           rows.push(...result.data);
           if (result.data.length < 500) return rows;
@@ -262,8 +266,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
       };
       const [stock, history, prefs, audit, learnerRows] = await Promise.all([
         fetchAll("inventory_products"),
-        fetchAll("pos_sales"),
-        supabase.from("shop_settings").select("*").single(),
+        campusAdmin ? Promise.resolve([]) : fetchAll("pos_sales"),
+        campusAdmin ? Promise.resolve({ data: { store_name: "Reliance Learning Centre", receipt_header: "School shop", low_stock_alerts_enabled: true } }) : supabase.from("shop_settings").select("*").single(),
         admin
           ? supabase
               .from("shop_audit")
@@ -271,7 +275,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               .order("created_at", { ascending: false })
               .limit(200)
           : Promise.resolve({ data: [] }),
-        supabase
+        campusAdmin ? Promise.resolve({ data: [] }) : supabase
           .from("students")
           .select("id,full_name,admission_number,class_level,class_stream,status")
           .eq("status", "active")
@@ -295,7 +299,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
     } finally {
       setLoading(false);
     }
-  }, [access, admin, supabase]);
+  }, [access, admin, campus, campusAdmin, supabase]);
   useEffect(() => {
     const timer = setTimeout(load, 0);
     return () => clearTimeout(timer);
@@ -344,7 +348,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
       setBusy(false);
     }
   };
-  const active = products.filter((p) => p.active);
+  const scopedProducts = products.filter(product => !admin || campusView === "all" || (campusView === "unassigned" ? !product.campus : product.campus === campusView));
+  const active = scopedProducts.filter((p) => p.active);
   const learnerClassOptions = useMemo(() => {
     const classes = new Map();
     learners.forEach((learner) => {
@@ -363,8 +368,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
     const learner = learners.find((row) => row.id === id);
     if (learner) setCustomer(learner.full_name);
   };
-  const saleProducts = catalogStockItems(products);
-  const catalogue = tab === "pos" ? saleProducts.filter(p => p.active) : tab === "products" && status === "archived" ? products.filter((p) => !p.active) : active;
+  const saleProducts = catalogStockItems(scopedProducts);
+  const catalogue = tab === "pos" ? saleProducts.filter(p => p.active) : tab === "products" && status === "archived" ? scopedProducts.filter((p) => !p.active) : active;
   const filtered = catalogue.filter(
     (p) =>
       `${p.name} ${p.sku || ""} ${p.category || ""}`
@@ -648,9 +653,17 @@ export default function InventoryPOS({ supabase, user, profile }) {
           || (!form.id && (!Number.isInteger(Number(form.quantity_on_hand)) || Number(form.quantity_on_hand) < 0))) {
         throw new Error("Prices must be non-negative numbers; stock and thresholds must be whole numbers.");
       }
-      const oldImage = products.find(product => product.id === form.id)?.image_url;
+      const oldImage = savedProduct?.image_url;
+      const allocationQuantity = Number(form.allocationQuantity ?? savedProduct?.quantity_on_hand);
+      const allocating = Boolean(form.id && needsCampus);
+      if (allocating && (!Number.isInteger(allocationQuantity) || allocationQuantity < (savedProduct.quantity_on_hand > 0 ? 1 : 0) || allocationQuantity > savedProduct.quantity_on_hand)) throw new Error("Choose a whole allocation quantity within the available stock.");
+      const partialAllocation = allocating && allocationQuantity < savedProduct.quantity_on_hand;
+      if (partialAllocation && savedProduct.has_variants) throw new Error("Allocate sized products as a whole.");
       if (form.imageBlob) payload.image_url = await uploadProductImage(supabase, form.imageBlob, form.campus);
-      const result = form.id
+      else if (allocating) payload.image_url = await copyProductImageForCampus(supabase, payload.image_url, form.campus, partialAllocation);
+      const result = partialAllocation
+        ? await supabase.rpc("split_unassigned_shop_product", { p_product: form.id, p_campus: form.campus, p_quantity: allocationQuantity, p_details: payload })
+        : form.id
         ? await supabase
             .from("inventory_products")
             .update({ ...payload, updated_at: new Date().toISOString() })
@@ -665,12 +678,12 @@ export default function InventoryPOS({ supabase, user, profile }) {
       if (result.error) throw result.error;
       logActivity(supabase, user, profile, { actionType: form.id ? "update" : "create", description: `${form.id ? "Updated" : "Created"} product ${payload.name}`, targetTable: "inventory_products", targetId: form.id });
       let cleanupFailed = false;
-      if (oldImage && oldImage !== payload.image_url) {
+      if (!partialAllocation && oldImage && oldImage !== payload.image_url) {
         try { await removeProductImage(supabase, oldImage); } catch { cleanupFailed = true; }
       }
       setForm(null);
       await load();
-      setNotice(cleanupFailed ? "Product saved. Its previous photo could not be removed from storage." : "Product saved.");
+      setNotice(cleanupFailed ? "Product saved. Its previous photo could not be removed from storage." : partialAllocation ? "Stock allocated. The remaining quantity stays in Unassigned." : "Product saved.");
     });
   };
   const changeMyPassword = async () => {
@@ -702,14 +715,14 @@ export default function InventoryPOS({ supabase, user, profile }) {
   };
   if (!access)
     return (
-      <p>Inventory access is available to administrators and accountants.</p>
+      <p>Shop access requires an assigned Junior or Senior campus, or Main Admin access.</p>
     );
   return (
     <section className="shop-app">
       <header className="shop-hero">
         <div>
           <span className="shop-eyebrow">RELIANCE / SCHOOL SHOP</span>
-          <h1>Inventory & point of sale</h1>
+          <h1>{campusAdmin ? `${campus === "junior" ? "Junior" : "Senior"} school inventory` : "Inventory & point of sale"}</h1>
           <p>Every item accounted for. Every sale in one place.</p>
           <div className={`shop-live-status ${liveStatus}`}>
             {liveStatus === "live" ? <Wifi size={14} /> : <WifiOff size={14} />}
@@ -724,9 +737,9 @@ export default function InventoryPOS({ supabase, user, profile }) {
       <nav className="shop-tabs" aria-label="Shop sections">
         {tabs
           .filter(([id]) =>
-            admin
+            campusAdmin ? ["products", "help"].includes(id) : admin
               ? id !== "pos"
-              : !["logs", "settings"].includes(id),
+              : !["products", "logs", "settings"].includes(id),
           )
           .map(([id, label, Icon]) => (
             <button
@@ -743,6 +756,12 @@ export default function InventoryPOS({ supabase, user, profile }) {
             </button>
           ))}
       </nav>
+      {admin && <div className="shop-campus-controls">
+        <label>Catalog campus<select aria-label="Catalog campus" value={campusView} onChange={event => setCampusView(event.target.value)}>
+          <option value="all">Both campuses</option><option value="junior">Junior School</option><option value="senior">Senior School</option><option value="unassigned">Unassigned</option>
+        </select></label>
+        <p>{products.filter(product => !product.campus).length} products need campus allocation. Choose Unassigned to review their stock.</p>
+      </div>}
       {error && (
         <div role="alert" className="shop-message error">
           {error}
@@ -903,7 +922,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
               </button>
             )}
             {canManageProducts && tab === "products" && (
-              <button className="primary" onClick={() => setForm({ ...blank, campus: role === "accountant" && ["junior", "senior"].includes(profile.campus) ? profile.campus : "" })}>
+              <button className="primary" onClick={() => setForm({ ...blank, campus: campusAdmin ? campus : ["junior", "senior"].includes(campusView) ? campusView : "" })}>
                 <Plus size={16} /> Add product
               </button>
             )}
@@ -925,6 +944,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                         ? add(p)
                         : setForm({
                             ...p,
+                            allocationQuantity: p.quantity_on_hand,
                             sku: p.sku || "",
                             category: p.category || "",
                           })
@@ -935,6 +955,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                       {p.category || "General"} · {p.sku || "No SKU"}
                     </small>
                     <strong>{p.name}</strong>
+                    {tab === "products" && <small>{p.campus === "junior" ? "Junior School" : p.campus === "senior" ? "Senior School" : "Unassigned campus"}</small>}
                     <span
                       className={
                         p.quantity_on_hand <= p.reorder_level ? "shop-low" : ""
@@ -952,7 +973,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                   {loading ? "Loading inventory…" : "No products found."}
                 </div>
               )}
-              {tab === "products" && admin && (
+              {tab === "products" && canManageProducts && (
                 <form
                   className="shop-panel"
                   onSubmit={(e) => {
@@ -1529,7 +1550,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 Campus
                 <select
                   required
-                  disabled={Boolean(form.id && products.find(product => product.id === form.id)?.campus)}
+                  disabled={campusAdmin || Boolean(form.id && products.find(product => product.id === form.id)?.campus)}
                   value={form.campus || ""}
                   onChange={(e) => setForm({ ...form, campus: e.target.value })}
                 >
@@ -1537,8 +1558,13 @@ export default function InventoryPOS({ supabase, user, profile }) {
                   <option value="junior">Junior School</option>
                   <option value="senior">Senior School</option>
                 </select>
-                {form.id && <small>{products.find(product => product.id === form.id)?.campus ? "Campus is locked after assignment." : "Choose the campus for this older product before saving its photo."}</small>}
+                {form.id && <small>{products.find(product => product.id === form.id)?.campus ? "Campus is locked after assignment." : "Choose the campus and stock quantity to allocate."}</small>}
               </label>
+              {admin && form.id && !products.find(product => product.id === form.id)?.campus && <label>
+                Allocation quantity
+                <input type="number" required min={form.quantity_on_hand > 0 ? 1 : 0} max={form.quantity_on_hand} step="1" disabled={form.has_variants} value={form.allocationQuantity ?? form.quantity_on_hand} onChange={event => setForm({ ...form, allocationQuantity: event.target.value })} />
+                <small>Allocating all {form.quantity_on_hand} assigns this product. A smaller quantity creates a separate campus product and leaves the remainder unassigned. Sized products are allocated as a whole.</small>
+              </label>}
               {form.id && (
                 <label className="shop-checkbox">
                   <input
@@ -1557,10 +1583,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
             {imageBusy && <p role="status">Preparing image…</p>}
             <ProductImage url={form.imageBlob ? form.imagePreview : form.image_url} name={form.name || "New product"} className="shop-image-preview" />
             {(form.imageBlob || form.image_url) && <button type="button" onClick={() => setForm(current => ({ ...current, imageBlob: null, image_url: null }))}>Remove photo</button>}
-            {form.id ? <ProductVariants key={form.id} product={form} supabase={supabase} onBusy={setVariantBusy} onSaved={async (updated) => {
+            {form.id && form.campus && products.find(product => product.id === form.id)?.campus ? <ProductVariants key={form.id} product={form} supabase={supabase} onBusy={setVariantBusy} onSaved={async (updated) => {
               setForm(current => ({ ...current, product_variants: updated.product_variants, has_variants: updated.has_variants, quantity_on_hand: updated.quantity_on_hand }));
               await load();
-            }} /> : <p className="shop-form-note">For sized products, start with zero opening stock, save the product, then open Edit product to add sizes and their quantities.</p>}
+            }} /> : <p className="shop-form-note">Save the product with its campus first to manage sizes. For new sized products, start with zero opening stock.</p>}
             {form.id && <p className="shop-form-note">Hide keeps this product in order history. Permanent deletion is allowed only when it has never been ordered.</p>}
             <div className="shop-actions">
               {form.id && <button type="button" onClick={deleteProduct}>Delete unused product</button>}

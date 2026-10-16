@@ -40,3 +40,18 @@ export async function removeProductImage(supabase, url) {
   const { error } = await bucket.remove([path])
   if (error) throw error
 }
+export async function copyProductImageForCampus(supabase, url, campus, forceCopy = false) {
+  if (!url) return null
+  if (!['junior', 'senior'].includes(campus)) throw new Error('Choose a product campus before copying its photo.')
+  const bucket = supabase.storage.from(PRODUCT_IMAGE_BUCKET)
+  const base = bucket.getPublicUrl('').data.publicUrl
+  if (!url.startsWith(base)) return url
+  const path = url.slice(base.length)
+  if (!forceCopy && path.split('/')[0] === campus) return url
+  const extension = path.split('.').at(-1).toLowerCase()
+  if (!['jpg', 'jpeg', 'png', 'webp'].includes(extension) || path.includes('..')) throw new Error('Replace this product photo before allocating its campus.')
+  const destination = `${campus}/${crypto.randomUUID()}.${extension}`
+  const { error } = await bucket.copy(path, destination)
+  if (error) throw error
+  return bucket.getPublicUrl(destination).data.publicUrl
+}
