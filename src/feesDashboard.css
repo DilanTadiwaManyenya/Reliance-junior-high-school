@@ -42,6 +42,7 @@
 }
 .fees-period-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 .fees-period-controls label {
@@ -54,6 +55,7 @@
   letter-spacing: 0.07em;
 }
 .fees-period-controls select {
+  min-width: 104px;
   min-height: 40px;
   padding: 0 28px 0 10px;
   border: 1px solid #d0d5dd;

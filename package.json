@@ -20,7 +20,9 @@
     "test:shop:campus": "node --test tests/shop-database.test.mjs tests/shop-catalog-database.test.mjs tests/shop-campus-admin.test.mjs tests/shop-campus-pos.test.mjs tests/shop-parent-campus.test.mjs",
     "test:shop:browser": "node tests/shop-campus-acceptance.browser.mjs",
     "test:portal-foundation": "node tests/portal-foundation.browser.mjs",
-    "test:portal-loading": "npm run build && node tests/portal-route-loading.browser.mjs && node tests/portal-loading-performance.browser.mjs"
+    "test:portal-loading": "npm run build && node tests/portal-route-loading.browser.mjs && node tests/portal-loading-performance.browser.mjs",
+    "test:portal-boundaries": "node tests/portal-acceptance-boundaries.browser.mjs",
+    "test:portal-acceptance": "npm run test:portal && npm run test:portal-mobile && npm run test:portal-boundaries && npm run test:shop:campus && npm run test:shop:browser && npm run test:portal-loading"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

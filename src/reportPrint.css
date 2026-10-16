@@ -28,7 +28,8 @@
     width: 100% !important;
     max-width: none !important;
     height: auto !important;
-    overflow: visible !important;
+    /* Keep transformed decorative artwork inside the measured print area. */
+    overflow: clip !important;
     transform: none !important;
     margin: 0 !important;
     padding: 0 !important;

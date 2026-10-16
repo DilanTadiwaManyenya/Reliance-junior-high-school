@@ -6,6 +6,9 @@ await mkdir('tmp/mobile-foundation-review',{recursive:true})
 try {
   for(const width of [320,390,768,1280]) {
     const page=await runtime.browser.newPage({viewport:{width,height:844},reducedMotion:'reduce'})
+    // Local component acceptance must not wait for the external font service.
+    await page.route("https://fonts.googleapis.com/**", route => route.abort())
+    await page.route("https://fonts.gstatic.com/**", route => route.abort())
     page.setDefaultTimeout(15000)
     const errors=[];page.on('pageerror',error=>errors.push(error.message))
     await page.goto(`${runtime.base}/tests/fixtures/foundation/index.html`,{waitUntil:'domcontentloaded'})

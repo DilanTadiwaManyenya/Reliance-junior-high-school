@@ -28,3 +28,5 @@ No payment, fee, stock, academic or permission logic changed. Deployment status 
 Recorded results: core 6/6; navigation 16 role/width cases, accountant routing and 18 short auth layouts plus five 200% text cases; staff 80 layouts and admin records; parent 72 layouts plus learner-context isolation; teacher 24 coursework and 12 surrounding layouts plus ECD. The draft retry suite had one DOM-detachment timeout in the combined run and then passed both campuses in isolation. Production loading/recovery/public-route and byte-budget checks passed; targeted lint and build passed.
 
 All 45 report PDFs were generated. PDF content verification found an extra blank page after a Senior report. Reproducing with the Stage 7 App source also produced two pages, establishing that this predates the loading split. Content remains on page one; the single-page acceptance check is pending a Stage 9 print correction. This is not recorded as a passing PDF verification.
+
+Follow-up: Stage 9 isolated the PDF blank page to decorative artwork overflow and corrected its print boundary. All 45 one-page PDF content checks subsequently passed; see portal-mobile-stage9-acceptance.md.
