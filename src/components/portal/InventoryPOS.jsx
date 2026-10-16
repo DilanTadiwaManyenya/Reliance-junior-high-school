@@ -667,6 +667,24 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     } catch (error) { setError(error.message); }
     finally { setImageBusy(false); }
   };
+  const changeProductVisibility = () => {
+    if (!canManageProducts || !form?.id) return;
+    const savedProduct = products.find(product => product.id === form.id);
+    if (!savedProduct) return;
+    const active = !savedProduct.active;
+    run(async () => {
+      const result = await supabase.from("inventory_products")
+        .update({ active, updated_at: new Date().toISOString() })
+        .eq("id", savedProduct.id).select("id").single();
+      if (result.error) throw result.error;
+      await load();
+      setForm(current => current?.id === savedProduct.id ? {
+        ...current, active,
+        visibilityNotice: active ? "Product shown. Other edits remain unsaved." : "Product hidden. Order history is preserved. Other edits remain unsaved.",
+      } : current);
+      logActivity(supabase, user, profile, { actionType: "update", description: active ? "Show product" : "Hide product", targetTable: "inventory_products", targetId: savedProduct.id });
+    });
+  };
   const deleteProduct = () => {
     if (!canManageProducts || !form?.id || !window.confirm("Permanently delete this product? Products with any order history cannot be deleted. Use Hide to keep the catalog record.")) return;
     run(async () => {
@@ -1652,8 +1670,10 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               setForm(current => ({ ...current, product_variants: updated.product_variants, has_variants: updated.has_variants, quantity_on_hand: updated.quantity_on_hand }));
               await load();
             }} /> : <p className="shop-form-note">Save the product with its campus first to manage sizes. For new sized products, start with zero opening stock.</p>}
-            {form.id && <p className="shop-form-note">Hide keeps this product in order history. Permanent deletion is allowed only when it has never been ordered.</p>}
+            {form.id && <p className="shop-form-note">Hide or show applies immediately without allocating stock; other edits stay unsaved. Permanent deletion is allowed only when this product has no parent order or POS sale history.</p>}
+            {form.visibilityNotice && <p role="status" className="shop-message">{form.visibilityNotice}</p>}
             <div className="shop-actions">
+              {form.id && <button type="button" onClick={changeProductVisibility}>{products.find(product => product.id === form.id)?.active ? "Hide product" : "Show product"}</button>}
               {form.id && <button type="button" onClick={deleteProduct}>Delete unused product</button>}
               <button
                 type="button"

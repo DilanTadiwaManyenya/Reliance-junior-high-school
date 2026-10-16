@@ -75,6 +75,10 @@ await context.route('**/catalog-api/**', async route => {
     } else (tables[table] || []).push(row)
     rows = [row]
   }
+  if (method === 'DELETE' && table === 'inventory_products') {
+    if(rows.some(product=>orders.some(order=>order.items.some(item=>item.product_id===product.id)))) return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({message:'This product has order history. Hide it instead of deleting it.',code:'P0001'})})
+    rows.forEach(row=>products.splice(products.indexOf(row),1))
+  }
   if (method === 'PATCH') rows.forEach(row => Object.assign(row, req.postDataJSON()))
   if (table==='inventory_products' && method==='GET' && url.searchParams.get('campus')==='eq.junior' && holdNextJuniorCatalog) {
     holdNextJuniorCatalog=false
@@ -176,9 +180,13 @@ try {
   await parent.getByRole('button',{name:'Refresh catalog',exact:true}).click()
   await parent.getByRole('img',{name:'No photo for Catalog test shirt',exact:true}).waitFor()
   await page.getByRole('button',{name:/Catalog test shirt/}).click()
-  await page.getByLabel('Show in shop (uncheck to hide)').uncheck()
-  await page.getByRole('button',{name:'Save product',exact:true}).click()
-  await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
+  page.once('dialog',dialog=>dialog.accept())
+  await page.getByRole('button',{name:'Delete unused product',exact:true}).click()
+  await page.getByRole('dialog',{name:'Product editor'}).getByRole('alert').filter({hasText:'This product has order history.'}).waitFor()
+  await page.getByRole('button',{name:'Hide product',exact:true}).click()
+  await page.getByText('Product hidden. Order history is preserved. Other edits remain unsaved.',{exact:true}).waitFor()
+  assert.equal(products[0].active,false)
+  await page.getByRole('button',{name:'Cancel',exact:true}).click()
   await parent.getByRole('button',{name:'Refresh catalog',exact:true}).click()
   await parent.getByText('No uniform items are currently available.').waitFor()
   await parent.getByText(/1 × Catalog test shirt · Small/).waitFor()
@@ -187,6 +195,16 @@ try {
   products.push(legacy)
   await page.getByRole('button',{name:'Refresh',exact:true}).click()
   await page.getByRole('button',{name:/Legacy jacket/}).click()
+  // Visibility applies without the required campus and must not save unrelated form edits.
+  await page.getByLabel('Product name',{exact:true}).fill('Unsaved draft name')
+  await page.getByRole('button',{name:'Hide product',exact:true}).click()
+  await page.getByText('Product hidden. Order history is preserved. Other edits remain unsaved.',{exact:true}).waitFor()
+  assert.equal(legacy.active,false);assert.equal(legacy.campus,null);assert.equal(legacy.quantity_on_hand,5);assert.equal(legacy.name,'Legacy jacket')
+  assert.equal(await page.getByLabel('Product name',{exact:true}).inputValue(),'Unsaved draft name')
+  await page.getByRole('button',{name:'Show product',exact:true}).click()
+  await page.getByText('Product shown. Other edits remain unsaved.',{exact:true}).waitFor()
+  assert.equal(legacy.active,true);assert.equal(legacy.campus,null)
+  await page.getByLabel('Product name',{exact:true}).fill('Legacy jacket')
   const campus = page.getByRole('dialog').locator('select').first()
   assert.equal(await campus.isEnabled(),true,'Unassigned legacy campus can be selected')
   await page.getByLabel('Product photo (JPG, PNG or WebP, up to 5 MB)').setInputFiles(file)

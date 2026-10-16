@@ -600,7 +600,7 @@
   .shop-toolbar > select { width: 100%; min-height: 42px; }
   .shop-toolbar > button { justify-content: center; }
   .shop-search { min-width: 0; }
-  .shop-tabs { margin-inline: -2px; padding: 12px 2px; }
+  .shop-tabs { margin-inline: 0; padding: 12px 2px; }
   .shop-tabs button { min-height: 42px; }
   .shop-table { margin-inline: -2px; -webkit-overflow-scrolling: touch; }
   .shop-table table { min-width: 620px; }
