@@ -1,6 +1,6 @@
 # Campus uniform catalog and POS strategy
 
-Status, 16 October 2026: Stage 0 and Stage 1 complete. Stage 1 implementation was pushed as 1a05991 and its Supabase migration was applied and verified live. See campus-shop-stage1-rollout.md for evidence and allocation instructions. Stages 2–4 remain pending; no live stock allocation has been guessed or performed.
+Status, 16 October 2026: Stages 0–2 complete. Stage 1 code 1a05991 and Stage 2 code e8f90be are pushed; both Supabase migrations were applied and verified live. See campus-shop-stage1-rollout.md and campus-shop-stage2-rollout.md for evidence. Stages 3–4 remain pending. All 22 products still need explicit Main Admin allocation; no stock quantities or campus memberships were guessed.
 
 ## Agreed target
 

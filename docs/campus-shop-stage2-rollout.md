@@ -64,4 +64,12 @@ Push tested code, apply only the reviewed Stage 2 migration transactionally with
 
 ## Status
 
-Implementation and verification results will be recorded here after rollout.
+Completed on 16 October 2026. Code pushed as e8f90be. Migration 20261016160000 applied and recorded transactionally in live project ejrtmdvnumjwikehzrrk. Both connected GitHub/Vercel checks reported success for this exact code commit. Authenticated hosted UI inspection is not confirmed; the deployment URLs use Vercel sign-in protection, as observed during Stage 1.
+
+Portal tests: 6 passed. Shop SQL tests: 5 passed across the historical catalog/checkout, Stage 1 and Stage 2 suites. The mobile real-component browser workflow passed, including cart/held-cart campus isolation, interrupted response and retry after reload with the same request ID, and explicit legacy pending recovery. Targeted lint and production build passed.
+
+Live rollback-only tests using existing identities passed for Junior/Senior admins and accountants: own-campus sales allowed, legacy wrapper and repeated requests returned the same sale, stock deducted once, wrong campus denied, cross-campus receipt reads returned zero rows. Accountants still could not edit products. Main Admin could explicitly sell in both campuses but could not reuse one request ID across campuses. Parent and teacher sales/receipt access were denied. Temporary products and test sales were rolled back; no real payments were made.
+
+The final live product, POS sale, POS line and parent order hashes exactly match the baseline above. Existing data remains 22 unassigned products, 1001 stock units and 4 historical POS sales. Only the secured six-argument function and five-argument wrapper remain. An anonymous call to the new six-argument REST endpoint returned HTTP 401/code 42501 (permission denied), confirming the route is live and rejects unauthenticated calls.
+
+Main Admin allocation is still required before campus POS catalogs have real sale items. Stage 3 selected-learner parent campus separation remains pending.
