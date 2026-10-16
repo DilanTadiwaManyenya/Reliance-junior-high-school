@@ -5,7 +5,7 @@ export default function MobileRecordTable({ children, className = '', ...props }
   const sections = Children.toArray(children)
   const header = sections.find(child => isValidElement(child) && child.type === 'thead')
   const headerRow = Children.toArray(header?.props.children)[0]
-  const labels = Children.toArray(headerRow?.props.children).map(cell => cell.props.children || 'Actions')
+  const labels = Children.toArray(headerRow?.props.children).map(cell => cell.props['aria-label'] || cell.props.children || 'Actions')
   const rows = section => Children.map(section.props.children, row => {
     if (!isValidElement(row) || row.type !== 'tr') return row
     let index = 0

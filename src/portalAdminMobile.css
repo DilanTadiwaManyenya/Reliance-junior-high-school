@@ -10,6 +10,15 @@
   .staff-shell .mobile-record-table td:first-child { display: block; padding-top: 0; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
   .staff-shell .mobile-record-table td:first-child::before { display: block; margin-bottom: 6px; }
   .staff-shell .mobile-record-table td[colspan] { display: block; }
+  .staff-shell .fee-master-table td:nth-child(2) { display: block; padding-block: 12px; border-bottom: 1px solid #e2e8f0; }
+  .staff-shell .fee-master-table td:nth-child(2)::before { display: block; margin-bottom: 6px; }
+  .staff-shell .cashbook-record-table td:nth-child(2) { display: block; }
+  .staff-shell .cashbook-record-table td:nth-child(2)::before { display: block; margin-bottom: 6px; }
+  .staff-shell .cashbook-record-table td small { display: block; margin-top: 6px; }
+  .staff-shell .mobile-record-table td.currency::before { text-align: left; }
+  .staff-shell .mobile-record-table .fee-row-actions { display: grid; gap: 12px; width: 100%; }
+  .staff-shell .mobile-record-table .fee-row-actions button { width: 100%; }
+  .staff-shell .mobile-record-table .selection-column input { width: 24px; height: 24px; }
   .staff-shell .mobile-record-table td > * { min-width: 0; max-width: 100%; }
   .staff-shell .mobile-record-table .roster-learner-link { white-space: normal; text-align: left; overflow-wrap: anywhere; }
   .staff-shell .mobile-record-table .staff-directory-person { align-items: start; }

@@ -1038,22 +1038,6 @@
   .fee-master-table {
     min-width: 640px;
   }
-  /* Keep the payment register actionable on a phone. Supporting values remain
-     available on desktop and in the exported register. */
-  .fee-master-table th:nth-child(1),
-  .fee-master-table td:nth-child(1),
-  .fee-master-table th:nth-child(3),
-  .fee-master-table td:nth-child(3),
-  .fee-master-table th:nth-child(5),
-  .fee-master-table td:nth-child(5),
-  .fee-master-table th:nth-child(6),
-  .fee-master-table td:nth-child(6),
-  .fee-master-table th:nth-child(7),
-  .fee-master-table td:nth-child(7),
-  .fee-master-table th:nth-child(10),
-  .fee-master-table td:nth-child(10) {
-    display: none;
-  }
   .fee-master-table th,
   .fee-master-table td {
     padding: 10px 8px;

@@ -1,3 +1,4 @@
+import MobileRecordTable from './MobileRecordTable'
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuBuilding2,
@@ -559,10 +560,10 @@ function MasterTable({
         </div>
       )}
       <div className="fee-table-wrap">
-        <table className="fee-table fee-master-table">
+        <MobileRecordTable className="fee-table fee-master-table mobile-record-table" aria-label="Learner fee balances">
           <thead>
             <tr>
-              <th className="selection-column">
+              <th className="selection-column" aria-label="Selection">
                 <input
                   type="checkbox"
                   checked={
@@ -688,7 +689,7 @@ function MasterTable({
               </tr>
             )}
           </tbody>
-        </table>
+        </MobileRecordTable>
       </div>
       <div className="fee-pagination">
         <span>
@@ -766,7 +767,7 @@ export default function FeesDashboard({
   const role = profile?.active_role ?? profile?.role;
   const readOnly = role === "principal";
   const isMainAdmin = role === "admin" && profile?.campus === "all";
-  const campusScope = ["junior", "senior"].includes(profile?.campus) && !isMainAdmin;
+  const campusScope = !isMainAdmin && ["junior", "senior"].includes(profile?.campus) ? profile.campus : null;
   const scopeLabel = profile?.campus === "junior" ? "Junior School" : "Senior School";
   const { levels: registryLevels, streamsForLevel } = useSchoolClasses(supabase);
   const classLevels = registryLevels.length ? registryLevels : CLASS_LEVELS;
@@ -825,7 +826,7 @@ export default function FeesDashboard({
 
   const enriched = useMemo(
     () =>
-      students.map((student) => {
+      students.filter(student => !campusScope || student.campus === campusScope).map((student) => {
         const fee = feeRecords.find(
           (record) => record.student_id === student.id,
         );
@@ -849,7 +850,7 @@ export default function FeesDashboard({
                   : "unpaid",
         };
       }),
-    [students, feeRecords, feeMapping],
+    [students, feeRecords, feeMapping, campusScope],
   );
   const stats = useMemo(
     () => ({

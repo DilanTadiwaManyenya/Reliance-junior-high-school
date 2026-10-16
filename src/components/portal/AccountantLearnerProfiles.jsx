@@ -1,3 +1,4 @@
+import MobileRecordTable from './MobileRecordTable'
 import { useMemo, useState } from 'react'
 import Card from '../ui/Card'
 
@@ -22,7 +23,7 @@ export default function AccountantLearnerProfiles({ students = [], campus = 'jun
         <label>Find learner<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name or admission number" /></label>
       </div>
       <p className="muted accountant-profile-count">{visibleStudents.length} learner{visibleStudents.length === 1 ? '' : 's'} available in this view.</p>
-      <div className="portal-table-wrap"><table className="portal-table accountant-profile-table"><thead><tr><th>Learner</th><th>Admission no.</th><th>Grade</th><th>Status</th><th aria-label="Open profile" /></tr></thead><tbody>{visibleStudents.length ? visibleStudents.map(student => <tr key={student.id}><td><strong>{student.full_name}</strong></td><td className="mono">{student.admission_number || '—'}</td><td>{student.class_level}{student.class_stream ? ` · ${student.class_stream}` : ''}</td><td><span className={`roster-status-pill ${student.status === 'active' ? 'pill-active' : 'pill-inactive'}`}>{student.status === 'active' ? 'Enrolled' : 'Inactive'}</span></td><td><button type="button" className="fee-profile-button" onClick={() => onOpenProfile?.(student)}>Open profile</button></td></tr>) : <tr><td colSpan="5" className="muted">No Junior learners match this grade and search.</td></tr>}</tbody></table></div>
+      <div className="portal-table-wrap"><MobileRecordTable className="portal-table accountant-profile-table mobile-record-table" aria-label="Campus learner profiles"><thead><tr><th>Learner</th><th>Admission no.</th><th>Grade</th><th>Status</th><th aria-label="Open profile" /></tr></thead><tbody>{visibleStudents.length ? visibleStudents.map(student => <tr key={student.id}><td><strong>{student.full_name}</strong></td><td className="mono">{student.admission_number || '—'}</td><td>{student.class_level}{student.class_stream ? ` · ${student.class_stream}` : ''}</td><td><span className={`roster-status-pill ${student.status === 'active' ? 'pill-active' : 'pill-inactive'}`}>{student.status === 'active' ? 'Enrolled' : 'Inactive'}</span></td><td><button type="button" className="fee-profile-button" onClick={() => onOpenProfile?.(student)}>Open profile</button></td></tr>) : <tr><td colSpan="5" className="muted">No learners match this grade and search in your campus.</td></tr>}</tbody></MobileRecordTable></div>
     </Card>
   </section>
 }
