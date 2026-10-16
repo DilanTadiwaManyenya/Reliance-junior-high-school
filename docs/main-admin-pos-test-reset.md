@@ -2,6 +2,8 @@
 
 16 October 2026. User explicitly identified all existing POS history as testing and requested its removal, with product deletion restricted to Main Admin.
 
+Latest follow-up: the user subsequently authorized clearing the remaining parent uniform order too. See uniform-shop-history-cleared.md for the current zero-history state; the preserved-parent-order statements below describe the earlier POS-only cleanup.
+
 ## Applied live
 
 Migration 20261016190000_main_admin_product_delete.sql splits the prior campus-admin ALL inventory policy into campus-scoped INSERT/UPDATE and Main Admin-only DELETE using the existing is_main_school_admin helper. Staff catalog reads remain campus-scoped. The frontend hides the permanent deletion action from campus admins and checks the Main Admin role before attempting it.
