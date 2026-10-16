@@ -14,6 +14,12 @@ Verification: targeted lint and production build passed. Real-component browser 
 
 ## Stage 2 — catalog display and mobile acceptance
 
-Pending after the Stage 1 push: use a consistent square frame that contains the entire image in admin and parent catalogs, including portrait/landscape legacy images. Retain lazy loading, error placeholders and bounded list thumbnails. Verify mobile/desktop layouts and editor controls before pushing Stage 2.
+The shared ProductImage component now imports its own frame stylesheet so parent display does not depend on the inventory page loading CSS. Admin grid cards, editor previews and parent cards use a reserved square frame; the image is positioned within it with object-fit: contain, so intrinsic tall/wide image dimensions cannot expand the frame and crop the visible photo. List thumbnails stay 72px. Existing lazy loading, async decoding and missing/broken-image placeholders remain. No old files are rewritten for this display change.
+
+Acceptance adds portrait (300x900) and landscape (900x300) image probes in both catalogs, checking square frame geometry, contained image bounds and lazy loading. Editor interaction also exercises pointer dragging, alongside sliders. Run npm run test:shop:browser for the full independent 390px and 1280px workflows.
 
 Stage 1 result: expanded 390px browser suite passed, including existing-image editing, cancel/no-upload checks, square fit/crop geometry, rotation and WebP output.
+
+Stage 1 commit a6f171a is pushed and both connected Vercel deployments report success. Hosted signed-in UI was not directly inspected; real-component browser tests run against isolated backend fixtures. No Supabase migration or data changes are part of these two photo stages.
+
+Stage 2 result: npm run test:shop:browser passed both 390px and 1280px workflows, including pointer positioning and tall/wide legacy image containment in admin and parent catalogs. Targeted lint and production build passed, with the existing bundle-size warning. Mobile and desktop screenshots were visually reviewed.

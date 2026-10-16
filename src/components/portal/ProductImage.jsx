@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import './ProductImage.css'
 
 export default function ProductImage({ url, name, className = '' }) {
   const [failedUrl, setFailedUrl] = useState(null)

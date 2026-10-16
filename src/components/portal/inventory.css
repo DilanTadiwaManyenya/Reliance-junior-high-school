@@ -658,15 +658,11 @@
   color: white;
 }
 
-/* Catalog photographs share a fixed frame to avoid layout shifts. */
-.catalog-image { display: grid; place-items: center; overflow: hidden; background: #eef2f6; border-radius: 10px; }
-.catalog-image img { width: 100%; height: 100%; object-fit: contain; }
-.catalog-image-placeholder { padding: 12px; color: #536176; font-size: 12px; text-align: center; }
-.shop-product .catalog-image { width: 100%; height: 120px; }
+.shop-product .catalog-image { width: 100%; height: auto; min-height: 0; aspect-ratio: 1; flex: none; }
 .shop-product-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .shop-image-field { display: grid; gap: 8px; margin: 16px 0; }
 .shop-image-field input { max-width: 100%; min-width: 0; }
-.shop-image-preview { width: 100%; max-width: 320px; height: 200px; margin: 12px 0; }
+.shop-image-preview { width: 100%; max-width: 320px; height: auto; aspect-ratio: 1; margin: 12px 0; }
 .shop-edit-label { text-decoration: underline; }
 
 .shop-catalog.list .catalog-image { flex: 0 0 72px; width: 72px; height: 72px; }

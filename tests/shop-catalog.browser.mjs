@@ -137,7 +137,13 @@ try {
   await page.getByLabel('Photo zoom',{exact:true}).fill('1.5')
   await page.getByLabel('Horizontal photo position',{exact:true}).fill('0.3')
   await page.locator('.shop-photo-editor').getByText(/Ready to save:/).waitFor()
-  await page.locator('.shop-photo-editor').screenshot({path:'tmp/catalog-review/photo-editor-mobile.png'})
+  const cropCanvas=page.getByLabel('Square photo crop preview',{exact:true})
+  await cropCanvas.scrollIntoViewIfNeeded()
+  const box=await cropCanvas.boundingBox()
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2)
+  await page.mouse.down();await page.mouse.move(box.x+box.width*0.7,box.y+box.height*0.6);await page.mouse.up()
+  assert.notEqual(await page.getByLabel('Horizontal photo position',{exact:true}).inputValue(),'0.3','Pointer drag repositions the photo')
+  await page.screenshot({path:`tmp/catalog-review/photo-editor-${viewportWidth}.png`})
   await page.getByRole('button',{name:'Reset photo',exact:true}).click()
   assert.equal(await page.getByLabel('Photo zoom',{exact:true}).inputValue(),'1')
   await page.getByRole('button',{name:'Cancel photo edit',exact:true}).click()
@@ -377,6 +383,32 @@ try {
     assert.ok(result.bytes < result.source, 'Large valid photo is compressed')
     assert.equal(result.width, 1000); assert.equal(result.height, 500)
   }
+  // Tall/wide legacy uploads must use the complete image within a stable square.
+  const layoutProbe=async target=>target.locator('.catalog-image:has(img)').first().evaluate(async frame=>{
+    const img=frame.querySelector('img');const original=img.src
+    const dimensions=[]
+    for(const [width,height] of [[300,900],[900,300]]) {
+      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height
+      canvas.getContext('2d').fillRect(0,0,width,height)
+      img.src=canvas.toDataURL('image/png');await img.decode()
+      const rect=frame.getBoundingClientRect(),imageRect=img.getBoundingClientRect()
+      dimensions.push({width:rect.width,height:rect.height,imageWidth:imageRect.width,imageHeight:imageRect.height,fit:getComputedStyle(img).objectFit,lazy:img.loading})
+    }
+    img.src=original
+    return dimensions
+  })
+  // Close a recovered sale receipt before returning to the staff catalog.
+  if(await page.getByRole('dialog',{name:'Sale receipt'}).count()) await page.getByRole('dialog',{name:'Sale receipt'}).getByRole('button',{name:'Close',exact:true}).click()
+  await page.getByRole('button',{name:'Products',exact:true}).click()
+  await parent.getByRole('button',{name:'Refresh catalog',exact:true}).click()
+  await parent.getByRole('heading',{name:'Legacy jacket',exact:true}).waitFor()
+  for(const target of [page,parent]) for(const result of await layoutProbe(target)) {
+    assert.ok(Math.abs(result.width-result.height)<2,'Catalog frame is square')
+    assert.ok(Math.abs(result.imageWidth-result.width)<2 && Math.abs(result.imageHeight-result.height)<2,'Photo stays within its frame')
+    assert.equal(result.fit,'contain');assert.equal(result.lazy,'lazy')
+  }
+  await parent.screenshot({path:`tmp/catalog-review/parent-photo-display-${viewportWidth}.png`,fullPage:true})
+  assert.equal(await page.locator('.shop-catalog').evaluate(grid=>[grid,...grid.querySelectorAll('.shop-product,.catalog-image')].every(element=>{const box=element.getBoundingClientRect();return box.left>=-1 && box.right<=innerWidth+1})),true,'Admin catalog cards and photo frames stay inside the viewport')
   const geometry=await page.evaluate(async()=>{
     const {drawProductPhoto,compressProductPhoto,DEFAULT_PHOTO_EDIT}=await import('/src/lib/productPhotoEditor.js')
     const source=document.createElement('canvas');source.width=1200;source.height=600
