@@ -98,6 +98,26 @@ try {
   await parent.getByRole('button',{name:'Refresh catalog',exact:true}).click()
   await parent.getByText('No uniform items are currently available.').waitFor()
   await parent.getByText(/1 × Catalog test shirt · Small/).waitFor()
+  // Regression: legacy products have no campus and must allow a one-time assignment.
+  const legacy = { id: crypto.randomUUID(), name: 'Legacy jacket', category: 'Uniforms', campus: null, selling_price: 25, cost_price: 18, quantity_on_hand: 5, reorder_level: 5, active: true, has_variants: false, product_variants: [] }
+  products.push(legacy)
+  await page.getByRole('button',{name:'Refresh',exact:true}).click()
+  await page.getByRole('button',{name:/Legacy jacket/}).click()
+  const campus = page.getByRole('dialog').locator('select').first()
+  assert.equal(await campus.isEnabled(),true,'Unassigned legacy campus can be selected')
+  await page.getByLabel('Product photo (JPG, PNG or WebP, up to 2 MB)').setInputFiles(file)
+  await page.locator('.shop-image-preview img').waitFor()
+  const before = uploads.length
+  await page.getByRole('button',{name:'Save product',exact:true}).click()
+  assert.equal(uploads.length,before,'No upload is attempted until a valid campus is selected')
+  await campus.selectOption('junior')
+  await page.getByRole('button',{name:'Save product',exact:true}).click()
+  await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
+  assert.equal(legacy.campus,'junior')
+  assert.ok(legacy.image_url.includes('/junior/'))
+  await page.getByRole('button',{name:/Legacy jacket/}).click()
+  assert.equal(await page.getByRole('dialog').locator('select').first().isDisabled(),true,'Assigned campus stays locked')
+  await page.getByRole('button',{name:'Cancel',exact:true}).click()
   // Invalid files are rejected before storage writes.
   const validation=await page.evaluate(async()=>{
     const {prepareProductImage}=await import('/src/lib/productImages.js')

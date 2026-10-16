@@ -20,6 +20,7 @@ export async function prepareProductImage(file) {
 }
 
 export async function uploadProductImage(supabase, blob, campus) {
+  if (!['junior', 'senior'].includes(campus)) throw new Error('Choose the product campus before uploading its photo.')
   const extension = blob.type === 'image/webp' ? 'webp' : 'png'
   const path = `${campus}/${crypto.randomUUID()}.${extension}`
   const bucket = supabase.storage.from(PRODUCT_IMAGE_BUCKET)

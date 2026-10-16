@@ -199,3 +199,7 @@ This tests Storage metadata RLS, not file binary processing. The isolated automa
 - `npm run build`
 
 There is no hard-coded production catalog or image list. The historical SQL seed and test fixtures contain sample products only; the app does not import them. Live application of SQL, deployment and real-account smoke testing are separate from isolated test results.
+
+## Legacy products without a campus
+
+The photo upload regression reported on 16 October was caused by an older product with campus NULL. Its disabled campus selector prevented assignment and its image path failed Storage RLS. The editor now allows a one-time campus selection for an unassigned product, persists that selection, and locks it afterward. The upload helper rejects missing/invalid campuses before contacting Storage. Browser regression coverage verifies no upload before selection, successful image upload and campus persistence, and locking after save. No storage policy relaxation, guessed campus assignment or additional SQL is required.

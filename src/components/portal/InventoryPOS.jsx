@@ -626,6 +626,8 @@ export default function InventoryPOS({ supabase, user, profile }) {
     event.preventDefault();
     if (!canManageProducts || imageBusy || variantBusy) return;
     run(async () => {
+      const savedProduct = products.find(product => product.id === form.id);
+      const needsCampus = !form.id || !savedProduct?.campus;
       const payload = {
         name: form.name.trim(),
         sku: form.sku.trim() || null,
@@ -635,10 +637,10 @@ export default function InventoryPOS({ supabase, user, profile }) {
         cost_price: Number(form.cost_price),
         reorder_level: Number(form.reorder_level),
         ...(form.id ? { active: Boolean(form.active) } : {}),
-        ...(!form.id ? { campus: form.campus } : {}),
+        ...(needsCampus ? { campus: form.campus } : {}),
       };
       if (!payload.name) throw new Error("Enter a product name.");
-      if (!form.id && !["junior", "senior"].includes(payload.campus)) {
+      if (!["junior", "senior"].includes(form.campus)) {
         throw new Error("Choose the campus that will own this stock.");
       }
       if (![payload.selling_price, payload.cost_price, payload.reorder_level].every(value => Number.isFinite(value) && value >= 0)
@@ -1527,7 +1529,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                 Campus
                 <select
                   required
-                  disabled={Boolean(form.id)}
+                  disabled={Boolean(form.id && products.find(product => product.id === form.id)?.campus)}
                   value={form.campus || ""}
                   onChange={(e) => setForm({ ...form, campus: e.target.value })}
                 >
@@ -1535,7 +1537,7 @@ export default function InventoryPOS({ supabase, user, profile }) {
                   <option value="junior">Junior School</option>
                   <option value="senior">Senior School</option>
                 </select>
-                {form.id && <small>Campus is locked after stock is created.</small>}
+                {form.id && <small>{products.find(product => product.id === form.id)?.campus ? "Campus is locked after assignment." : "Choose the campus for this older product before saving its photo."}</small>}
               </label>
               {form.id && (
                 <label className="shop-checkbox">
