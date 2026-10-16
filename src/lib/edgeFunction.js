@@ -2,7 +2,8 @@ const EDGE_TIMEOUT_MS = 15_000
 
 const isRetryableNetworkError = (error) => {
   const message = String(error?.message ?? error ?? '').toLowerCase()
-  return error?.name === 'AbortError' || /network|fetch|timeout|timed out|failed to fetch|load failed/.test(message)
+  return ['AbortError', 'FunctionsFetchError', 'FunctionsRelayError'].includes(error?.name)
+    || /network|fetch|timeout|timed out|failed to send a request|load failed/.test(message)
 }
 
 const invokeOnce = async (supabase, name, body) => {
@@ -26,5 +27,14 @@ const invokeSafely = async (...args) => {
 
 export const invokeEdgeFunction = async (supabase, name, body) => {
   const first = await invokeSafely(supabase, name, body)
-  return first.error && isRetryableNetworkError(first.error) ? invokeSafely(supabase, name, body) : first
+  const result = first.error && isRetryableNetworkError(first.error)
+    ? await invokeSafely(supabase, name, body)
+    : first
+  if (result.error && isRetryableNetworkError(result.error)) {
+    return {
+      ...result,
+      error: new Error('Unable to reach the school server. Check your connection, then reload the staff list to confirm whether the change saved before trying again.', { cause: result.error }),
+    }
+  }
+  return result
 }
