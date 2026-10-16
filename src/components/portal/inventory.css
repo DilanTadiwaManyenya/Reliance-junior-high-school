@@ -685,3 +685,15 @@
 .shop-pos-campus select { min-height: 44px; font-size: 16px; }
 
 .shop-app .shop-hero h1 { color: #fff; }
+
+/* Inline photo editor stays inside the product modal focus boundary. */
+.shop-photo-editor { margin: 18px 0; padding: 14px; border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; min-width: 0; }
+.shop-photo-editor h3 { margin: 0 0 8px; }
+.shop-photo-editor p { font-size: 13px; line-height: 1.5; color: #475569; }
+.shop-photo-editor canvas { display: block; width: 100%; max-width: 360px; height: auto; aspect-ratio: 1; background: white; border: 1px solid #cbd5e1; touch-action: none; cursor: grab; }
+.shop-photo-controls { display: grid; gap: 12px; margin: 16px 0; }
+.shop-photo-controls label { display: grid; gap: 6px; min-width: 0; }
+.shop-photo-controls input, .shop-photo-controls select { width: 100%; min-width: 0; min-height: 44px; font-size: 16px; }
+.shop-photo-controls input[type=range] { padding: 0; accent-color: #1b2a56; }
+.shop-photo-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.shop-photo-actions button { min-height: 44px; white-space: normal; }

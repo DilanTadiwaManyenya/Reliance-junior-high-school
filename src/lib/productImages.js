@@ -1,11 +1,15 @@
 export const PRODUCT_IMAGE_BUCKET = 'product-images'
 export const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024
 
-export async function prepareProductImage(file) {
+export function validateProductImage(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
     throw new Error('Choose a JPG, PNG or WebP image.')
   }
   if (!file.size || file.size > MAX_PRODUCT_IMAGE_BYTES) throw new Error('Images must be no larger than 5 MB.')
+}
+
+export async function prepareProductImage(file) {
+  validateProductImage(file)
   const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This image could not be read. Choose another JPG, PNG or WebP.') })
   try {
     const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height))

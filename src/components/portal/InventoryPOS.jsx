@@ -28,9 +28,10 @@ import { useModalFocus } from "../../hooks/useModalFocus";
 import { logActivity } from "../../lib/logActivity";
 import PasswordInput from "../ui/PasswordInput";
 import ProductImage from "./ProductImage";
+import ProductPhotoEditor from "./ProductPhotoEditor";
 import ProductVariants from "./ProductVariants";
 import { catalogStockItems } from "../../lib/shopCatalog";
-import { prepareProductImage, uploadProductImage, removeProductImage, copyProductImageForCampus } from "../../lib/productImages";
+import { validateProductImage, uploadProductImage, removeProductImage, copyProductImageForCampus } from "../../lib/productImages";
 
 const money = (value) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
@@ -629,21 +630,40 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     if (detail.error) throw detail.error;
     setReceipt(detail.data);
   });
-  const selectProductImage = async (event) => {
+  const selectProductImage = (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     setError("");
+    try {
+      validateProductImage(file);
+      setForm(current => current ? { ...current, imageEditorSource: file } : null);
+    } catch (error) { setError(error.message); }
+  };
+  const editProductImage = async () => {
+    setError(""); setImageBusy(true);
+    try {
+      let source = form.imageBlob;
+      if (!source) {
+        const response = await fetch(form.image_url, { credentials: "omit" });
+        if (!response.ok) throw new Error("Unable to load this photo. Choose the original image to edit it.");
+        source = await response.blob();
+      }
+      validateProductImage(source);
+      setForm(current => current ? { ...current, imageEditorSource: source } : null);
+    } catch (error) { setError(error.message || "Unable to load this photo. Choose the original image to edit it."); }
+    finally { setImageBusy(false); }
+  };
+  const applyProductImage = async (blob) => {
     setImageBusy(true);
     try {
-      const blob = await prepareProductImage(file);
       const preview = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = () => reject(new Error("Unable to preview this image."));
         reader.readAsDataURL(blob);
       });
-      setForm(current => current ? { ...current, imageBlob: blob, imagePreview: preview } : null);
+      setForm(current => current ? { ...current, imageBlob: blob, imagePreview: preview, imageEditorSource: null } : null);
     } catch (error) { setError(error.message); }
     finally { setImageBusy(false); }
   };
@@ -662,7 +682,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   };
   const saveProduct = (event) => {
     event.preventDefault();
-    if (!canManageProducts || imageBusy || variantBusy) return;
+    if (!canManageProducts || imageBusy || variantBusy || form?.imageEditorSource) return;
     run(async () => {
       const savedProduct = products.find(product => product.id === form.id);
       const needsCampus = !form.id || !savedProduct?.campus;
@@ -1619,13 +1639,15 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 </label>
               )}
             </div>
+            {form.imageEditorSource ? <ProductPhotoEditor source={form.imageEditorSource} onApply={applyProductImage} onCancel={() => setForm(current => ({ ...current, imageEditorSource: null }))} /> : <>
             <label className="shop-image-field">
               Product photo (JPG, PNG or WebP, up to 5 MB)
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectProductImage} />
             </label>
             {imageBusy && <p role="status">Preparing image…</p>}
             <ProductImage url={form.imageBlob ? form.imagePreview : form.image_url} name={form.name || "New product"} className="shop-image-preview" />
-            {(form.imageBlob || form.image_url) && <button type="button" onClick={() => setForm(current => ({ ...current, imageBlob: null, image_url: null }))}>Remove photo</button>}
+            {(form.imageBlob || form.image_url) && <div className="shop-photo-actions"><button type="button" onClick={editProductImage}>Edit photo</button><button type="button" onClick={() => setForm(current => ({ ...current, imageBlob: null, imagePreview: null, image_url: null }))}>Remove photo</button></div>}
+            </>}
             {form.id && form.campus && products.find(product => product.id === form.id)?.campus ? <ProductVariants key={form.id} product={form} supabase={supabase} onBusy={setVariantBusy} onSaved={async (updated) => {
               setForm(current => ({ ...current, product_variants: updated.product_variants, has_variants: updated.has_variants, quantity_on_hand: updated.quantity_on_hand }));
               await load();
@@ -1640,7 +1662,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               >
                 Cancel
               </button>
-              <button className="primary" disabled={busy || imageBusy || variantBusy || !ready}>
+              <button className="primary" disabled={busy || imageBusy || variantBusy || !!form.imageEditorSource || !ready}>
                 {busy ? "Saving…" : "Save product"}
               </button>
             </div>
