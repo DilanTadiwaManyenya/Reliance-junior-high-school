@@ -27,6 +27,8 @@ try{
     await page.keyboard.press('Escape');await page.waitForFunction(()=>document.body.style.overflow!=='hidden')
    }
    if(label.trim()==='Point of sale'){
+    const campusPicker=page.getByLabel('Checkout campus',{exact:true})
+    if(await campusPicker.count())await campusPicker.selectOption('senior')
     await page.locator('.shop-product').first().click()
     await page.getByLabel('Amount received (USD)',{exact:true}).fill('20')
     await verify(page,`accountant checkout cart ${width}px`)

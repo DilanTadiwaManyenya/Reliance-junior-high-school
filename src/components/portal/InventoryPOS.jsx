@@ -1588,7 +1588,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       {form && (
         <div className="shop-overlay">
           <form
-            ref={dialogRef} tabIndex={-1} className="shop-dialog"
+            ref={dialogRef} tabIndex={-1} className="shop-dialog shop-product-dialog"
             role="dialog"
             aria-modal="true"
             aria-label="Product editor"
@@ -1616,9 +1616,9 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 <label key={key}>
                   {label}
                   <input
-                    autoFocus={key === "name"}
                     required={key !== "sku" && key !== "category"}
                     type={type}
+                    inputMode={type === "number" ? (["selling_price", "cost_price"].includes(key) ? "decimal" : "numeric") : undefined}
                     min={type === "number" ? 0 : undefined}
                     step={
                       ["selling_price", "cost_price"].includes(key)
@@ -1650,7 +1650,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               </label>
               {admin && form.id && !products.find(product => product.id === form.id)?.campus && <label>
                 Allocation quantity
-                <input type="number" required min={form.quantity_on_hand > 0 ? 1 : 0} max={form.quantity_on_hand} step="1" disabled={form.has_variants} value={form.allocationQuantity ?? form.quantity_on_hand} onChange={event => setForm({ ...form, allocationQuantity: event.target.value })} />
+                <input type="number" inputMode="numeric" required min={form.quantity_on_hand > 0 ? 1 : 0} max={form.quantity_on_hand} step="1" disabled={form.has_variants} value={form.allocationQuantity ?? form.quantity_on_hand} onChange={event => setForm({ ...form, allocationQuantity: event.target.value })} />
                 <small>Allocating all {form.quantity_on_hand} assigns this product. A smaller quantity creates a separate campus product and leaves the remainder unassigned. Sized products are allocated as a whole.</small>
               </label>}
               {form.id && (
@@ -1679,9 +1679,11 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             }} /> : <p className="shop-form-note">Save the product with its campus first to manage sizes. For new sized products, start with zero opening stock.</p>}
             {form.id && <p className="shop-form-note">Hide or show applies immediately without allocating stock; other edits stay unsaved. Only Main Admin can permanently delete a product, and only when it has no remaining parent order or POS sale history.</p>}
             {form.visibilityNotice && <p role="status" className="shop-message">{form.visibilityNotice}</p>}
-            <div className="shop-actions">
+            <div className="shop-product-secondary-actions">
               {form.id && <button type="button" onClick={changeProductVisibility}>{products.find(product => product.id === form.id)?.active ? "Hide product" : "Show product"}</button>}
-              {admin && form.id && <button type="button" onClick={deleteProduct}>Delete unused product</button>}
+              {admin && form.id && <button type="button" className="shop-product-delete" onClick={deleteProduct}>Delete unused product</button>}
+            </div>
+            <div className="shop-actions shop-product-save-actions">
               <button
                 type="button"
                 disabled={busy || imageBusy || variantBusy}

@@ -20,6 +20,9 @@ const viewportWidth = Number(process.env.CATALOG_VIEWPORT_WIDTH || 390)
 assert.ok([390, 1280].includes(viewportWidth), 'Catalog acceptance width must be 390 or 1280')
 const context = await runtime.browser.newContext({ viewport: { width: viewportWidth, height: 844 } })
 context.setDefaultNavigationTimeout(45000)
+// Keep local catalog acceptance independent of external font availability.
+await context.route('https://fonts.googleapis.com/**', route => route.abort())
+await context.route('https://fonts.gstatic.com/**', route => route.abort())
 await context.route('**/catalog-api/**', async route => {
   const req = route.request(), url = new URL(req.url()), method = req.method()
   if (url.pathname.includes('/rpc/parent_shop_student_campus')) {

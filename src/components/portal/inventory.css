@@ -693,3 +693,21 @@
 .shop-photo-controls input[type=range] { padding: 0; accent-color: #1b2a56; }
 .shop-photo-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
 .shop-photo-actions button { min-height: 44px; white-space: normal; }
+
+/* Product editing uses one scrolling surface; permanent actions stay separate from Save. */
+.shop-product-secondary-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+.shop-product-secondary-actions button { min-height: 44px; white-space: normal; }
+.shop-product-secondary-actions .shop-product-delete { color: #9f252b; border-color: #d9a9ac; }
+.shop-product-dialog { scroll-padding-block: 24px 96px; }
+.shop-product-dialog input, .shop-product-dialog select, .shop-product-dialog button { scroll-margin-block: 24px 96px; }
+@media (max-width: 600px) {
+  .shop-product-dialog .shop-product-save-actions { position: sticky; bottom: -16px; z-index: 2; background: #fff; border-top: 1px solid #dbe1ea; margin: 20px -16px -16px; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
+  .shop-product-save-actions > button { min-width: 0; white-space: normal; }
+  .shop-product-secondary-actions > button { flex: 1 1 150px; }
+  .shop-size-editor .shop-size-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; border: 1px solid #dbe1ea; border-radius: 8px; }
+  .shop-size-row button { min-height: 44px; white-space: normal; }
+  .shop-size-row .shop-checkbox { align-self: center; }
+}
+
+/* Avoid animated document scroll fighting focus restoration and checkout recovery. */
+html:has(.shop-app) { scroll-behavior: auto; }

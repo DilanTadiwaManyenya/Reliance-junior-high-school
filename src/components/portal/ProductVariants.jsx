@@ -5,7 +5,7 @@ function SizeRow({ variant, save, busy }) {
   return <div className="shop-size-row">
     <label>Size<input maxLength={40} value={draft.size} onChange={e => setDraft({ ...draft, size: e.target.value })} /></label>
     <label>Size SKU<input value={draft.sku || ''} onChange={e => setDraft({ ...draft, sku: e.target.value })} /></label>
-    <label>Stock<input type="number" min="0" step="1" value={draft.quantity_on_hand} onChange={e => setDraft({ ...draft, quantity_on_hand: e.target.value })} /></label>
+    <label>Stock<input type="number" inputMode="numeric" min="0" step="1" value={draft.quantity_on_hand} onChange={e => setDraft({ ...draft, quantity_on_hand: e.target.value })} /></label>
     <label className="shop-checkbox"><input type="checkbox" checked={draft.active} onChange={e => setDraft({ ...draft, active: e.target.checked })} />Show size</label>
     <button type="button" disabled={busy} onClick={() => save(draft, variant)}>Save size</button>
   </div>
@@ -47,7 +47,7 @@ export default function ProductVariants({ product, supabase, onSaved, onBusy }) 
     <div className="shop-size-row">
       <label>New size<input maxLength={40} value={newSize.size} onChange={e => setNewSize({ ...newSize, size: e.target.value })} /></label>
       <label>New size SKU<input value={newSize.sku} onChange={e => setNewSize({ ...newSize, sku: e.target.value })} /></label>
-      <label>New size stock<input type="number" min="0" step="1" value={newSize.quantity_on_hand} onChange={e => setNewSize({ ...newSize, quantity_on_hand: e.target.value })} /></label>
+      <label>New size stock<input type="number" inputMode="numeric" min="0" step="1" value={newSize.quantity_on_hand} onChange={e => setNewSize({ ...newSize, quantity_on_hand: e.target.value })} /></label>
       <button type="button" disabled={busy || (!product.has_variants && product.quantity_on_hand > 0)} onClick={() => save(newSize)}>Add size</button>
     </div>
   </section>
