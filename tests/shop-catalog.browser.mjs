@@ -9,12 +9,20 @@ const orders = []
 const sales = []
 const checkoutRequests = []
 let interruptNextCheckout = false
+let holdNextJuniorCatalog = false
+let releaseJuniorCatalog
+let onJuniorCatalogHeld
 const images = new Map()
 const uploads = []
 const errors = []
 const context = await runtime.browser.newContext({ viewport: { width: 390, height: 844 } })
 await context.route('**/catalog-api/**', async route => {
   const req = route.request(), url = new URL(req.url()), method = req.method()
+  if (url.pathname.includes('/rpc/parent_shop_student_campus')) {
+    const { requested_student_id }=req.postDataJSON()
+    const campus = requested_student_id==='student' || requested_student_id==='student-junior' ? 'junior' : requested_student_id==='student-senior' ? 'senior' : null
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(campus)})
+  }
   if (url.pathname.includes('/copy/')) {
     const { source, destination } = req.postDataJSON()
     const root='/catalog-api/images/product-images/'
@@ -66,6 +74,11 @@ await context.route('**/catalog-api/**', async route => {
     rows = [row]
   }
   if (method === 'PATCH') rows.forEach(row => Object.assign(row, req.postDataJSON()))
+  if (table==='inventory_products' && method==='GET' && url.searchParams.get('campus')==='eq.junior' && holdNextJuniorCatalog) {
+    holdNextJuniorCatalog=false
+    rows=structuredClone(rows)
+    await new Promise(resolve=>{releaseJuniorCatalog=resolve;onJuniorCatalogHeld?.()})
+  }
   const single = req.headers().accept?.includes('vnd.pgrst.object')
   return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(single ? rows[0] || null : rows) })
 })
@@ -253,6 +266,57 @@ try {
   assert.equal(checkoutRequests.at(-1).p_request_id,legacyId)
   assert.equal(await recovery.evaluate(()=>JSON.parse(sessionStorage.getItem('reliance-shop:staff')).pending),null)
   await recovery.close()
+  // Stage 3: selected learner campus, clean carts/size choices, and stale response isolation.
+  const familyJunior={id:crypto.randomUUID(),name:'Junior only blazer',campus:'junior',category:'Uniforms',active:true,selling_price:20,cost_price:10,quantity_on_hand:3,reorder_level:1,has_variants:true,image_url:legacy.image_url,product_variants:[{id:'family-junior-size',size:'Small',quantity_on_hand:3,active:true}]}
+  const familySenior={id:crypto.randomUUID(),name:'Senior only blazer',campus:'senior',category:'Uniforms',active:true,selling_price:30,cost_price:15,quantity_on_hand:4,reorder_level:1,has_variants:true,image_url:allocated.image_url,product_variants:[{id:'family-senior-size',size:'Large',quantity_on_hand:4,active:true}]}
+  products.push(familyJunior,familySenior)
+  for(const [studentId,name] of [['student-junior','Historic Junior uniform'],['student-senior','Historic Senior uniform'],['student-missing','Legacy unassigned learner order']]) orders.push({id:crypto.randomUUID(),parent_id:'parent',student_id:studentId,items:[{name,quantity:1,unit_price:9}],total:9,payment_status:'pending',created_at:new Date().toISOString()})
+  const family=await context.newPage()
+  family.on('pageerror',error=>errors.push(error.message))
+  await family.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=parent&family=1`)
+  await family.getByRole('heading',{name:'Junior only blazer',exact:true}).waitFor()
+  assert.equal(await family.getByRole('heading',{name:'Senior only blazer',exact:true}).count(),0)
+  await family.getByText('1 × Historic Junior uniform — $9.00 each',{exact:true}).waitFor()
+  await family.getByLabel('Size for Junior only blazer').selectOption('family-junior-size')
+  await family.locator('.parent-product-card').filter({has:family.getByRole('heading',{name:'Junior only blazer',exact:true})}).getByRole('button',{name:'Add to cart',exact:true}).click()
+  await family.locator('.parent-cart-lines').getByText('Junior only blazer · Small',{exact:true}).waitFor()
+  await family.getByLabel('Buying for',{exact:false}).selectOption('student-senior')
+  assert.equal(await family.getByText('1 × Historic Junior uniform — $9.00 each',{exact:true}).count(),0)
+  assert.equal(await family.getByRole('heading',{name:'Junior only blazer',exact:true}).count(),0)
+  await family.getByRole('heading',{name:'Senior only blazer',exact:true}).waitFor()
+  assert.equal(await family.locator('.parent-cart-lines').count(),0)
+  await family.getByLabel('Size for Senior only blazer').selectOption('family-senior-size')
+  await family.locator('.parent-product-card').filter({has:family.getByRole('heading',{name:'Senior only blazer',exact:true})}).getByRole('button',{name:'Add to cart',exact:true}).click()
+  await family.getByLabel('Pay at collection',{exact:true}).check()
+  await family.getByRole('button',{name:/Place order/}).click()
+  await family.getByText('1 × Senior only blazer · Large — $30.00 each',{exact:true}).waitFor()
+  assert.equal(orders.at(-1).student_id,'student-senior');assert.equal(orders.at(-1).items[0].product_id,familySenior.id)
+  await family.getByLabel('Buying for',{exact:false}).selectOption('student-junior')
+  await family.getByRole('heading',{name:'Junior only blazer',exact:true}).waitFor()
+  assert.equal(await family.getByLabel('Size for Junior only blazer').inputValue(),'','Size choice resets after learner change')
+  assert.equal(await family.locator('.parent-cart-lines').count(),0)
+  const heldCatalog=new Promise(resolve=>{onJuniorCatalogHeld=resolve})
+  holdNextJuniorCatalog=true
+  await family.getByRole('button',{name:'Refresh catalog',exact:true}).click()
+  await heldCatalog
+  await family.getByLabel('Buying for',{exact:false}).selectOption('student-senior')
+  await family.getByRole('heading',{name:'Senior only blazer',exact:true}).waitFor()
+  const staleResponse=family.waitForResponse(response=>{const url=new URL(response.url());return url.pathname.endsWith('/inventory_products') && url.searchParams.get('campus')==='eq.junior'})
+  releaseJuniorCatalog();onJuniorCatalogHeld=null
+  await (await staleResponse).finished()
+  await family.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
+  assert.equal(await family.getByRole('heading',{name:'Junior only blazer',exact:true}).count(),0,'Late response cannot repopulate other-campus products')
+  await family.screenshot({path:'tmp/catalog-review/parent-senior-campus.png',fullPage:true})
+  await family.getByLabel('Buying for',{exact:false}).selectOption('student-missing')
+  await family.getByText('This learner needs a Junior or Senior campus assignment before uniforms can be ordered. Contact the school office.',{exact:true}).waitFor()
+  await family.getByText('1 × Legacy unassigned learner order — $9.00 each',{exact:true}).waitFor()
+  assert.equal(await family.getByRole('button',{name:'Add to cart',exact:true}).count(),0)
+  await family.getByLabel('Buying for',{exact:false}).selectOption('student-inactive')
+  await family.getByText('Uniform orders are only available for actively enrolled learners.',{exact:true}).waitFor()
+  await family.getByLabel('Buying for',{exact:false}).selectOption('student-unverified')
+  await family.getByText('This learner connection or campus changed. Reload your learners before ordering.',{exact:true}).waitFor()
+  assert.equal(await family.locator('.parent-product-card').count(),0)
+  await family.close()
   // Invalid files are rejected before storage writes.
   const validation=await page.evaluate(async()=>{
     const {prepareProductImage}=await import('/src/lib/productImages.js')

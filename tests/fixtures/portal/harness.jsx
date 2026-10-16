@@ -85,6 +85,10 @@ const supabase = {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
       return new Promise(resolve => { window.fixtureResolvePayment = () => resolve({ data: null, error: null }) })
     }
+    if (name === 'parent_shop_student_campus') {
+      const link = db.parent_student.find(row => row.student_id === payload.requested_student_id && row.verified_at)
+      return Promise.resolve({ data: link?.student?.status === 'active' ? link.student.campus : null, error: null })
+    }
     if (name === 'coursework_learners') return Promise.resolve({ data: learners, error: null })
     if (name === 'preview_admission_number') return Promise.resolve({ data: 'TEST-2026-004', error: null })
     return query(`rpc:${name}`)

@@ -3,7 +3,11 @@ import Card from '../ui/Card'
 
 const money = value => `$${Number(value || 0).toFixed(2)}`
 
-export default function ParentUniformOrderHistory({ supabase, parentId, studentId, refreshKey }) {
+export default function ParentUniformOrderHistory(props) {
+  return <LearnerOrderHistory {...props} key={`${props.parentId}:${props.studentId}`} />;
+}
+
+function LearnerOrderHistory({ supabase, parentId, studentId, refreshKey }) {
   const [orders, setOrders] = useState([])
   const [error, setError] = useState('')
   useEffect(() => {
