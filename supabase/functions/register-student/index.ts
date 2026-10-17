@@ -1,3 +1,4 @@
+import { provisionNewAccountRole } from '../_shared/provisionNewAccountRole.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
@@ -40,6 +41,7 @@ Deno.serve(async request => {
     if (accountError) throw accountError
     const { error: profileError } = await admin.from('profiles').upsert({ id: userId, role: 'student', phone: phoneNumber, full_name: student.full_name }, { onConflict: 'id' })
     if (profileError) throw profileError
+    await provisionNewAccountRole(admin, userId, 'student')
     return reply({ success: true, user_id: userId, message: 'Account created successfully. You can now login.' })
   } catch (error) {
     if (userId) await admin.auth.admin.deleteUser(userId)

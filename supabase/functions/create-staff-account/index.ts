@@ -1,3 +1,4 @@
+import { provisionNewAccountRole } from '../_shared/provisionNewAccountRole.js'
 import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -84,6 +85,7 @@ Deno.serve(async request => {
 
     const profile = await admin.from('profiles').update({ full_name: fullName, legal_full_name: legalFullName, working_title: workingTitle, phone, role, class_level: role === 'teacher' ? classLevel : null, class_stream: role === 'teacher' ? classStream : null, campus, must_change_password: true }).eq('id', createdUserId)
     if (profile.error) throw profile.error
+    await provisionNewAccountRole(admin, createdUserId, role)
     const account = await admin.from('staff_accounts').upsert({ user_id: createdUserId, role, phone_number: phone, name: fullName, class_assigned: classAssigned, campus, created_by: user.id }, { onConflict: 'user_id' })
     if (account.error) throw account.error
     if (role === 'teacher') {

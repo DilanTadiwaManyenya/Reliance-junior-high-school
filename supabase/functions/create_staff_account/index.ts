@@ -1,3 +1,4 @@
+import { provisionNewAccountRole } from '../_shared/provisionNewAccountRole.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
@@ -34,6 +35,7 @@ Deno.serve(async request => {
     createdUserId = created.user.id
     const profile = await admin.from('profiles').update({ full_name: name, phone: number, role, class_level: role === 'teacher' ? String(classAssigned).split(' ')[0] : null, class_stream: role === 'teacher' ? String(classAssigned).split(' ').slice(1).join(' ') || null : null, campus, must_change_password: true }).eq('id', createdUserId)
     if (profile.error) throw profile.error
+    await provisionNewAccountRole(admin, createdUserId, role)
     const account = await admin.from('staff_accounts').insert({ user_id: createdUserId, role, phone_number: number, name, class_assigned: classAssigned, campus, created_by: user.id })
     if (account.error) throw account.error
     return response({ success: true, data: { user_id: createdUserId, temp_password: tempPassword }, user_id: createdUserId, temp_password: tempPassword, message: 'Staff account created.' })

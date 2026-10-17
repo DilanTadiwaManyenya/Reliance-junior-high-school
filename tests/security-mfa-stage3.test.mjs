@@ -1,3 +1,4 @@
+import { provisionNewAccountRole } from '../supabase/functions/_shared/provisionNewAccountRole.js'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
@@ -44,6 +45,30 @@ test('Mandatory admin MFA blocks records and admin roles until aal2 while setup 
   for(const n of [2,3,4,5]){await act(n,'aal1');assert.equal(await count(),1,'non-admin role unaffected '+n)}
   await db.exec('reset role');await db.query("insert into user_roles values($1,'admin')",[id(2)]);await act(2,'aal1');assert.equal(await count(),0,'admin membership requires MFA even in teacher role')
   await act(2,'aal2');assert.equal(await count(),1)
+  await db.exec('reset role')
+  await db.query("insert into profiles(id,role,active_role) values($1,'parent','parent')",[id(601)])
+  await db.query("insert into user_roles values($1,'parent')",[id(601)])
+  const service={from(table){
+   assert.ok(['profiles','user_roles'].includes(table))
+   const state={}
+   const chain={
+    update(values){state.values=values;return chain},
+    eq(column,value){state[column]=value;return chain},
+    select(){return chain},
+    async single(){const result=await db.query('update profiles set role=$1,active_role=$2 where id=$3 returning id',[state.values.role,state.values.active_role,state.id]);return {data:result.rows[0],error:null}},
+    async upsert(row){await db.query('insert into user_roles values($1,$2) on conflict do nothing',[row.user_id,row.role]);return {error:null}},
+    delete(){return chain},
+    then(resolve,reject){db.query('delete from user_roles where user_id=$1 and role=$2',[state.user_id,state.role]).then(()=>resolve({error:null}),reject)},
+   }
+   return chain
+  }}
+
+  await provisionNewAccountRole(service,id(601),'accountant')
+  await provisionNewAccountRole(service,id(601),'accountant')
+  assert.deepEqual((await db.query('select role,active_role from profiles where id=$1',[id(601)])).rows[0],{role:'accountant',active_role:'accountant'})
+  assert.deepEqual((await db.query('select role from user_roles where user_id=$1',[id(601)])).rows,[{role:'accountant'}])
+  await assert.rejects(provisionNewAccountRole(service,id(601),'invalid'),/Invalid account role/)
+
  }finally{await db.close()}
 })
 test('Service-role Edge guards verify signed aal2 claims and fail closed on errors',async()=>{

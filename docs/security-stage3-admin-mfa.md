@@ -6,7 +6,7 @@
 
 Every account with an admin profile, active admin role or admin membership must complete authenticator verification before entering protected portal pages. A first-time admin enrols TOTP using a QR code or private setup key; subsequent password sign-ins require a six-digit authenticator code. Required password changes remain accessible before MFA setup. Parent, teacher, accountant and principal accounts without admin membership retain their existing sign-in flow.
 
-No administrator's factor is generated or enrolled by this delivery. QR codes, setup secrets and entered codes are held in component memory and are not written to local storage, analytics, application audit logs or source files. The page supports failed checks, wrong codes, retry, sign-out, multiple existing TOTP factors, and cleanup of this portal's abandoned unverified factors. It never deletes a verified factor. Codes require an actual aal2 session upgrade; a successful-looking API response alone is insufficient.
+No existing administrator's factor is generated or enrolled by this delivery. QR codes, setup secrets and entered codes are held in component memory and are not written to local storage, analytics, application audit logs or source files. The page supports failed checks, wrong codes, retry, sign-out, multiple existing TOTP factors, and cleanup of this portal's abandoned unverified factors. It never deletes a verified factor. Codes require an actual aal2 session upgrade; a successful-looking API response alone is insufficient.
 
 ## Enforcement and release order
 
@@ -40,3 +40,9 @@ See docs/admin-two-factor-guide.md. Recovery is performed by an authorised Supab
 Future protected tables must include the restrictive MFA policy; future privileged RPCs and service-role Edge operations must enforce this predicate or signed aal2 claims. This migration covers current tables/functions and the eight reviewed admin endpoints; it is not automatic protection for future additions. Broader audit completeness, dedicated test/live environments and school-wide go-live acceptance remain separate work.
 
 References: https://supabase.com/docs/guides/auth/auth-mfa/totp and https://supabase.com/docs/guides/auth/auth-mfa .
+
+## Verified activation
+
+Mandatory enforcement was activated after both a8df14c frontend deployment checks succeeded. The live acceptance script passed real TOTP enrolment and aal2 verification, password-only record/Edge denial, setup-profile readability, and recovered aal2 Main Admin access. The temporary acceptance account was deleted. Read-only final SQL verifies the active setting and cleanup.
+
+The first activation acceptance exposed a provider provisioning detail: the new Auth user had a Parent database profile despite trusted Auth metadata. Enforcement was automatically restored to its previous setting, and that test account was removed. New staff/learner service workflows now explicitly provision profiles.role, active_role and the matching user_roles membership, removing only the new account’s bootstrap Parent membership. This fixes future account creation; no existing accounts were reassigned. The corrected preflight proved the actual Admin database role before successful activation. Regression tests exercise this provisioning helper using isolated PostgreSQL.

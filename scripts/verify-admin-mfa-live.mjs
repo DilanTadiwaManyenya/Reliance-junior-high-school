@@ -1,3 +1,4 @@
+import { provisionNewAccountRole } from '../supabase/functions/_shared/provisionNewAccountRole.js'
 // Creates one temporary synthetic Auth account, then deletes it in finally.
 // --activate enables mandatory admin MFA ONLY after enrolment succeeds.
 // Project credentials, passwords, QR codes and TOTP secrets stay in memory.
@@ -31,13 +32,16 @@ try{
  const password=randomBytes(32).toString('base64url')+'aA1!'
  const email=`mfa-smoke-${randomUUID()}@portal.reliance.local`
  userId=must(await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{role:'admin'},user_metadata:{full_name:'Temporary MFA acceptance account'}})).user.id
+ await provisionNewAccountRole(admin,userId,'admin')
  must(await admin.from('profiles').update({campus:'all'}).eq('id',userId))
  must(await client.auth.signInWithPassword({email,password}))
  const passwordToken=must(await client.auth.getSession()).session.access_token
  const factor=must(await client.auth.mfa.enroll({factorType:'totp',friendlyName:'Temporary acceptance test',issuer:'Reliance acceptance'}))
  must(await client.auth.mfa.challengeAndVerify({factorId:factor.id,code:codeFor(factor.totp.secret)}))
  if(must(await client.auth.mfa.getAuthenticatorAssuranceLevel()).currentLevel!=='aal2')throw new Error('Live MFA did not upgrade the session.')
- console.log('PASS live TOTP enrolment, challenge and aal2 verification')
+ const assigned=must(await client.rpc('has_active_role',{expected_role:'admin'}));if(!assigned)throw new Error('New admin membership did not provision correctly.')
+ console.log('PASS trusted admin membership and live TOTP enrolment, challenge and aal2 verification')
+ if(process.argv.includes('--diagnose')){const p=await admin.from('profiles').select('role,active_role,campus,user_roles(role)').eq('id',userId).single();const m=await client.rpc('portal_mfa_satisfied');const r=await client.rpc('has_active_role',{expected_role:'admin'});console.log('MFA diagnostic',JSON.stringify({profile:p.data,mfa:m.data,adminRole:r.data,mfaError:m.error?.message,roleError:r.error?.message}))}
  if(activate&&!prior){must(await admin.from('portal_security_settings').update({require_admin_mfa:true}).eq('id',1));changed=true}
  if(activate||prior){
   const low=createClient(url,anon,{...options,global:{headers:{Authorization:`Bearer ${passwordToken}`}}})

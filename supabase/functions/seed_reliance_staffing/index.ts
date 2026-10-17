@@ -1,3 +1,4 @@
+import { provisionNewAccountRole } from '../_shared/provisionNewAccountRole.js'
 import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -42,6 +43,7 @@ Deno.serve(async request => {
         const { data: created, error } = await admin.auth.admin.createUser({ email: `portal-${number.slice(1)}@portal.reliance.local`, password, email_confirm: true, app_metadata: { role: 'teacher' }, user_metadata: { full_name: name, phone: number } })
         if (error || !created.user) throw error ?? new Error(`Could not create ${name}.`)
         id = created.user.id
+        await provisionNewAccountRole(admin, id, 'teacher')
         await admin.from('profiles').update({ full_name: name, phone: number, role: 'teacher', must_update_credentials: true, must_change_password: true }).eq('id', id)
         await admin.from('staff_accounts').insert({ user_id: id, role: 'teacher', phone_number: number, name, campus: 'senior', created_by: user.id })
         credentials.push({ name, temporary_phone: number, temporary_password: password })
