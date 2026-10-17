@@ -8,6 +8,13 @@ const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODUL
 const server = await createServer({ server: { host: '127.0.0.1', port: 0, hmr: false }, logLevel: 'error' })
 let browser
 let checks = 0
+async function teacherPage(options) {
+  const page = await browser.newPage(options)
+  // Local interaction checks must not depend on the external font service.
+  await page.route('https://fonts.googleapis.com/**', route => route.abort())
+  await page.route('https://fonts.gstatic.com/**', route => route.abort())
+  return page
+}
 const screenshotDir = process.env.TEACHER_MOBILE_SCREENSHOTS
 const scenarios = [
   { campus: 'senior', stream: 'Blue' },
@@ -22,7 +29,7 @@ try {
   if (screenshotDir) await mkdir(screenshotDir, { recursive: true })
   for (const width of [320, 390, 600, 768, 1024, 1440]) {
     for (const scenario of scenarios) {
-      const page = await browser.newPage({ viewport: { width, height: 844 }, ...(width <= 600 ? { isMobile: true, hasTouch: true } : {}) })
+      const page = await teacherPage({ viewport: { width, height: 844 }, ...(width <= 600 ? { isMobile: true, hasTouch: true } : {}) })
       const errors = []
       page.on('pageerror', error => errors.push(error.message))
       const params = new URLSearchParams({ ...scenario, section: 'coursework', workspace: 'subjects', allocation: 'allocation', subject: 'Combined Science', level: 'Form 1' })
@@ -96,7 +103,7 @@ try {
     }
   }
   for (const width of [320, 768]) for (const campus of ['junior', 'senior']) for (const section of ['dashboard', 'entry', 'roster']) {
-    const page = await browser.newPage({ viewport: { width, height: 844 } })
+    const page = await teacherPage({ viewport: { width, height: 844 } })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     const params = new URLSearchParams({ campus, class: 'Grade 1', section, workspace: section === 'roster' ? 'classes' : 'subjects', allocation: 'allocation', subject: 'Combined Science', level: 'Form 1', multi: '' })
@@ -115,8 +122,8 @@ try {
     await page.close()
   }
   // ECD teachers retain the developmental-markbook route instead of coursework.
-  const page = await browser.newPage({ viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true })
-  await page.goto(`${base}/tests/fixtures/teacher-workspace/index.html?campus=junior&class=ECD+A&section=coursework`)
+  const page = await teacherPage({ viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true })
+  await page.goto(`${base}/tests/fixtures/teacher-workspace/index.html?campus=junior&class=ECD+A&section=coursework`, { waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Open developmental markbook' }).waitFor()
   assert.equal(await page.locator('.coursework-page form').count(), 0)
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))

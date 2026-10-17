@@ -1,3 +1,4 @@
+import './lib/draftHistoryGuard'
 import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import RouteLoadBoundary from './components/RouteLoadBoundary'

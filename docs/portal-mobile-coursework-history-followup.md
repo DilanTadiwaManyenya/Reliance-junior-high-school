@@ -1,0 +1,13 @@
+# Stage 9 follow-up — coursework browser history protection
+
+17 October 2026. This closes the native same-document Back/Forward gap for Junior and Senior coursework marks. Existing button/selector confirmations and beforeunload protection remain.
+
+An eager history dispatcher is installed before BrowserRouter registers its listener, including when coursework pages load lazily. A dirty or saving coursework page registers a temporary guard. For the indexed entries managed by the installed React Router version, cancelling a traversal keeps the mounted draft and returns to its original entry with history.go. It does not push replacement entries or erase Forward history. Confirmed discard allows the router to leave. While a save is pending, traversal returns to the current entry without offering to discard an in-flight write; after saving, ordinary navigation proceeds without a prompt.
+
+The implementation was checked against the installed React Router 7.18.2 history implementation (integer history.state.idx). This dependency is covered by browser tests and should be rechecked on router upgrades. Unknown/unindexed history is not claimed as covered by the indexed guard; existing native beforeunload handling remains for document exits. Real mobile gestures, native confirmation presentation and all older markbooks still require acceptance. Only coursework marks are protected; this is not universal draft persistence for every form.
+
+The new test builds real history through portal actions, not manually forged history states. Both campuses cover repeated Back cancellation, Forward cancellation, confirmed discard in both directions, unchanged history length, zero academic writes on discard, pending-save return, exactly one completed save and clean Back after saving. A synthetic held-save fixture does not contact the school database. The test is included in test:teacher-mobile and therefore the aggregate acceptance command.
+
+No grades, academic calculations, saved mark payloads, roles or allocations were changed. Drafts remain in memory; no sensitive learner data is added to browser storage. No production history or orders were changed.
+
+Passed: full teacher suite (24 coursework layouts, 12 surrounding workspace views and ECD), existing failed-save/discard tests and new history tests for both campuses; all six core access/render tests; targeted lint and production build/loading/recovery/byte-budget checks. Initial sign-in JavaScript is 467,961 bytes, within the 600 KB budget. Teacher fixtures now block external fonts and wait for DOM readiness plus visible-content assertions; a prior ECD load-event timeout was recorded before that fixture correction. Authenticated hosted and physical-device checks remain pending.
