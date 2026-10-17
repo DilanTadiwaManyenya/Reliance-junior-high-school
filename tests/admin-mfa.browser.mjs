@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict'
+import { startPortalBrowser, portalLayoutMetrics } from './helpers/portal-browser.mjs'
+const runtime=await startPortalBrowser()
+try{
+ for(const width of [320,390,667,1280])for(const flow of ['setup','verify','error']){
+  const page=await runtime.browser.newPage({viewport:{width,height:667===width?390:844}})
+  await page.route('https://fonts.googleapis.com/**',route=>route.abort());await page.route('https://fonts.gstatic.com/**',route=>route.abort())
+  const errors=[];page.on('pageerror',e=>errors.push(e.message))
+  await page.goto(`${runtime.base}/tests/fixtures/portal/index.html?role=admin&mfa=${flow}`,{waitUntil:'domcontentloaded'})
+  const gate=page.locator('.admin-mfa');await gate.waitFor()
+  assert.equal(await page.locator('.staff-shell').count(),0,'admin data shell hidden until verified')
+  if(flow==='error')await gate.getByRole('button',{name:'Try again'}).click()
+  if(flow!=='verify'){
+   await gate.getByRole('button',{name:'Set up authenticator'}).click()
+   await gate.getByAltText('Authenticator setup QR code').waitFor()
+   assert.equal(await page.evaluate(()=>window.fixtureMfaEnrolls),1)
+   await gate.getByText('Cannot scan? Enter a setup key').click();assert.equal(await gate.getByLabel('Setup key').inputValue(),'SYNTHETICSETUPKEY')
+  }
+  const code=gate.getByLabel('Six-digit code');await code.fill('000000');await gate.getByRole('button',{name:'Verify and continue'}).click()
+  await gate.getByRole('alert').waitFor();assert.equal(await page.locator('.staff-shell').count(),0)
+  const metrics=await portalLayoutMetrics(page);assert.ok(metrics.documentWidth<=width+1);assert.deepEqual(metrics.clipped,[])
+  await code.fill('123456');await gate.getByRole('button',{name:'Verify and continue'}).click();await page.locator('.staff-shell').waitFor();await page.waitForFunction(()=>document.querySelectorAll('.admin-mfa').length===0);assert.equal(await gate.count(),0);assert.deepEqual(errors,[])
+  await page.close();console.log(`PASS MFA ${flow} ${width}px: gate, retry, invalid code, verified access and layout`)
+ }
+ const page=await runtime.browser.newPage();await page.goto(`${runtime.base}/tests/fixtures/portal/index.html?role=admin&mfa=verify&noUpgrade=1`,{waitUntil:'domcontentloaded'});await page.getByLabel('Six-digit code').fill('123456');await page.getByRole('button',{name:'Verify and continue'}).click();await page.getByRole('alert').waitFor();assert.equal(await page.locator('.staff-shell').count(),0);await page.close();console.log('PASS verification response without aal2 remains blocked')
+}finally{await runtime.close()}

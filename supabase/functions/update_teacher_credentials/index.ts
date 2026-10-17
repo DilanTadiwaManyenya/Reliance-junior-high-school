@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
@@ -18,8 +19,9 @@ Deno.serve(async request => {
     const input = await request.json()
     const { data: caller } = await admin.from('profiles').select('role, active_role, campus').eq('id', user.id).single()
 
+    if (caller?.role === 'admin') await requireAdminMfa(admin, token)
     let targetUserId = user.id
-    if (caller?.role === 'admin' && caller?.active_role === 'admin') {
+    if (caller?.role === 'admin' && caller?.active_role === 'admin' && ['junior','senior','all'].includes(caller?.campus ?? '')) {
       targetUserId = String(input.user_id || input.target_user_id || user.id)
     } else if (caller?.role !== 'teacher') {
       throw new Error('Only teachers or administrators can update credentials.')

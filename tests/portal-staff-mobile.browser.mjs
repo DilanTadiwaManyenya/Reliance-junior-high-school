@@ -44,6 +44,7 @@ try {
     const dialog = fees.getByRole('dialog')
     await dialog.waitFor()
     const modal = dialog.locator('.fee-modal')
+    await fees.waitForFunction(() => { const b=document.querySelector('.fee-modal')?.getBoundingClientRect(); return b && b.x>=0 && b.y>=0 && b.right<=321 && b.bottom<=481 })
     const bounds = await modal.boundingBox()
     assert.ok(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= 321 && bounds.y + bounds.height <= 481, `${name}: modal must fit the reduced viewport`)
     assert.equal(await fees.evaluate(() => document.body.style.overflow), 'hidden')

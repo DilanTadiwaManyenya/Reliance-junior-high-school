@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
@@ -41,6 +42,7 @@ Deno.serve(async request => {
     const { data: caller, error: callerError } = await admin.from('profiles').select('role, active_role, campus').eq('id', user.id).single()
     if (callerError || caller?.role !== 'admin' || caller?.active_role !== 'admin' || !['junior', 'senior', 'all'].includes(caller?.campus ?? '')) throw new Error('Switch to the Admin role before creating staff accounts.')
 
+    await requireAdminMfa(admin, token)
     const input = await request.json()
     const legalFullName = String(input.legalFullName ?? '').trim()
     const workingTitle = String(input.workingTitle ?? '').trim()

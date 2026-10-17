@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -16,9 +17,10 @@ Deno.serve(async (request) => {
     const serviceClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
     const { data: { user }, error: userError } = await serviceClient.auth.getUser(authorization.replace('Bearer ', ''))
     if (userError || !user) throw new Error('Authentication is required.')
-    const { data: admin } = await serviceClient.from('profiles').select('role').eq('id', user.id).single()
-    if (admin?.role !== 'admin') throw new Error('Only administrators can reset parent passwords.')
+    const { data: admin } = await serviceClient.from('profiles').select('role,active_role,campus').eq('id', user.id).single()
+    if (admin?.role !== 'admin' || admin?.active_role !== 'admin' || admin?.campus !== 'all') throw new Error('Only administrators can reset parent passwords.')
 
+    await requireAdminMfa(serviceClient, authorization.replace(/^Bearer\s+/i, ''))
     const { targetUserId, newPassword } = await request.json()
     if (!targetUserId) throw new Error('Select a parent account.')
     if (!newPassword || newPassword.length < 8) throw new Error('The new password must be at least 8 characters.')

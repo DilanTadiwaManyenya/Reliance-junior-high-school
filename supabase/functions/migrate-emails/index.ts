@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const normalizePhone = (raw: unknown) => {
@@ -36,11 +37,12 @@ Deno.serve(async (request) => {
 
     const { data: caller, error: callerError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role,active_role,campus')
       .eq('id', user.id)
       .single()
     if (callerError) throw callerError
-    if (String(caller?.role ?? '').toLowerCase() !== 'admin') {
+    await requireAdminMfa(supabase, token)
+    if (caller?.role !== 'admin' || caller?.active_role !== 'admin' || caller?.campus !== 'all') {
       throw new Error('Only administrators can run this migration.')
     }
 

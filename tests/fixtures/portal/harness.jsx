@@ -83,6 +83,15 @@ function query(table) {
   }
   return builder
 }
+let fixtureAal = params.has('mfa') ? 'aal1' : 'aal2'
+let fixtureChecks = 0
+const fixtureMfa = {
+ getAuthenticatorAssuranceLevel: async () => { fixtureChecks++; if(params.get('mfa')==='error' && fixtureChecks===1) return {error:new Error('Fixture connection failed')}; return {data:{currentLevel:fixtureAal},error:null} },
+ listFactors: async () => { const factors=params.get('mfa')==='verify' ? [{id:'verified-factor',status:'verified',factor_type:'totp',friendly_name:'Example authenticator'}] : []; return {data:{all:factors,totp:factors},error:null} },
+ enroll: async () => { window.fixtureMfaEnrolls=(window.fixtureMfaEnrolls||0)+1; return {data:{id:'pending-factor',totp:{qr_code:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"/%3E',secret:'SYNTHETICSETUPKEY'}},error:null} },
+ unenroll: async () => ({error:null}),
+ challengeAndVerify: async ({code}) => { if(code!=='123456')return {error:new Error('Code not accepted. Try the current code.')};fixtureAal=params.has('noUpgrade')?'aal1':'aal2';return {data:{},error:null} },
+}
 const supabase = {
   from: query,
   rpc(name, payload) {
@@ -100,7 +109,7 @@ const supabase = {
   },
   channel() { return { on() { return this }, subscribe() { return this } } }, removeChannel() {},
   functions: { invoke: async () => ({ data: { success: true }, error: null }) },
-  auth: { signOut: async () => ({ error: null }), signInWithPassword: async () => ({ data: { user: { id: staffId } }, error: null }), resetPasswordForEmail: async () => ({ error: null }), updateUser: async () => ({ error: null }) },
+  auth: { mfa: fixtureMfa, signOut: async () => ({ error: null }), signInWithPassword: async () => ({ data: { user: { id: staffId } }, error: null }), resetPasswordForEmail: async () => ({ error: null }), updateUser: async () => ({ error: null }) },
 }
 const paths = { admin: '/portal/staff', principal: '/portal/staff', accountant: '/portal/accountant', teacher: '/portal/teacher', parent: '/portal/dashboard' }
 const search = new URLSearchParams()

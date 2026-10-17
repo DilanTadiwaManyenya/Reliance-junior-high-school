@@ -1,0 +1,22 @@
+-- Synthetic PostgreSQL schema for security regression tests only.
+create role anon; create role authenticated; create role service_role;
+   create schema auth;
+   create function auth.uid() returns uuid language sql as $$select nullif(current_setting('test.uid',true),'')::uuid$$;
+   create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}',raw_app_meta_data jsonb default '{}');
+   create table profiles(id uuid primary key,full_name text,phone text,role text,active_role text,campus text,signature_initials text);
+   create table user_roles(user_id uuid,role text,primary key(user_id,role));
+   create table staff_accounts(user_id uuid,campus text);
+   create table students(id uuid primary key,full_name text,admission_number text,campus text,class_level text,class_stream text,enrolled_year int,auth_user_id uuid,status text);
+   create table parent_student(parent_id uuid,student_id uuid,verified_at timestamptz);
+   create table student_accounts(admission_number text);
+   create table parent_accounts(child_admission_number text);
+   create table school_classes(id uuid primary key,campus text,class_level text,class_stream text,active boolean,updated_at timestamptz);
+   create table school_class_corrections(source_class_id uuid,target_class_id uuid,source_class_level text,source_class_stream text,target_class_level text,target_class_stream text,learners_moved int,class_assignments_moved int,subject_assignments_moved int,coursework_assessments_moved int,corrected_by uuid);
+   create table teacher_class_assignments(teacher_id uuid,campus text,class_level text,class_stream text,unique(teacher_id,class_level,class_stream));
+   create table teacher_class_subject_assignments(teacher_id uuid,campus text,class_level text,class_stream text,subject text,created_at timestamptz default now(),unique(teacher_id,class_level,class_stream,subject));
+   create table coursework_assessments(id uuid,campus text,class_level text,class_stream text,teacher_id uuid,subject text);
+   create function admission_class_code(text,text) returns text language sql as $$select 'f1'$$;
+   create function next_admission_number(integer,text,text) returns text language sql security definer as $$select 'preview'$$;
+   create function verify_student_admission(text,date) returns boolean language sql security definer as $$select true$$;
+   create function verify_parent_admission(text,date) returns boolean language sql security definer as $$select true$$;
+   grant usage on schema public,auth to anon,authenticated,service_role;

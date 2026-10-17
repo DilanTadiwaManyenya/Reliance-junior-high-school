@@ -17,6 +17,10 @@ export async function openPortal(browser, base, scenario, width = 390, height = 
   page.on('pageerror', error => page.portalErrors.push(error.message))
   await page.goto(`${base}/tests/fixtures/portal/index.html?${new URLSearchParams(scenario)}`, { waitUntil: 'domcontentloaded' })
   await page.locator('h1').first().waitFor()
+  if (!scenario.mfa) {
+    await page.waitForFunction(() => !document.querySelector('.admin-mfa'))
+    await page.locator('h1').first().waitFor()
+  }
   return page
 }
 

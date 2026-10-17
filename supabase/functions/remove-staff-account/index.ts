@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = {
@@ -29,6 +30,7 @@ Deno.serve(async (request) => {
       throw new Error('Only the Main Admin can remove staff accounts.')
     }
 
+    await requireAdminMfa(admin, token)
     const { user_id: userId } = await request.json()
     if (!userId || userId === user.id) throw new Error('The Main Admin account cannot be removed here.')
 

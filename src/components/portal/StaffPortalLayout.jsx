@@ -1,7 +1,7 @@
 import PortalAccountContext from './PortalAccountContext'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import PortalSidebar from './PortalSidebar'
 import AccountantWorkspaceNav from './AccountantWorkspaceNav'
 import StaffTopBar from './StaffTopBar'
@@ -59,7 +59,6 @@ export default function StaffPortalLayout() {
 }
 
 function StaffPortalWorkspace() {
-  const reducedMotion = useReducedMotion()
   const { profile, user, supabase, roles } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -195,18 +194,13 @@ function StaffPortalWorkspace() {
         </AnimatePresence>
 
         {/* ── Main content ───────────────────────── */}
-        <motion.main
-          className="staff-main"
-          initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-        >
+        <main className="staff-main">
           <PortalAccountContext />
           {role === 'teacher' && !['dashboard', 'subject-allocations', 'coursework'].includes(section) && <div className="teacher-workspace-return"><button type="button" className="btn secondary" onClick={() => isJuniorTeacher || teacherWorkspace === 'classes' ? changeSection('dashboard') : clearSubjectGroup()}>{isJuniorTeacher ? '← My class' : teacherWorkspace === 'subjects' ? '← Subject allocations' : '← Class work'}</button></div>}
           {role !== 'teacher' && section !== sectionConfig.defaultSection && <div className="staff-workspace-return"><button type="button" className="btn secondary" onClick={goBack}>← Back</button></div>}
           {role === 'accountant' && <AccountantWorkspaceNav section={section} onChange={changeSection} />}
           <Outlet />
-        </motion.main>
+        </main>
 
       </div>
     </SectionContext.Provider>

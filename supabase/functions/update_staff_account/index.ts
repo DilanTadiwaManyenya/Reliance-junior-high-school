@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' }
@@ -11,8 +12,9 @@ Deno.serve(async request => {
     const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     const { data: { user } } = await admin.auth.getUser(token)
-    const { data: caller } = await admin.from('profiles').select('role').eq('id', user?.id).single()
-    if (!user || caller?.role !== 'admin') throw new Error('Only an administrator can update staff accounts.')
+    const { data: caller } = await admin.from('profiles').select('role,active_role,campus').eq('id', user?.id).single()
+    if (!user || caller?.role !== 'admin' || caller?.active_role !== 'admin' || caller?.campus !== 'all') throw new Error('Only an administrator can update staff accounts.')
+    await requireAdminMfa(admin, token)
     const input = await request.json(), staffId = String(input.user_id ?? '')
     if (!staffId) throw new Error('A staff account is required.')
     const { data: targetProfile } = await admin.from('profiles').select('is_protected').eq('id', staffId).maybeSingle()

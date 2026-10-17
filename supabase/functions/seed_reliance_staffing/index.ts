@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json' }
@@ -31,6 +32,7 @@ Deno.serve(async request => {
     const { data: { user } } = await admin.auth.getUser(token)
     const { data: caller } = await admin.from('profiles').select('role,active_role,campus').eq('id', user?.id).single()
     if (!user || caller?.role !== 'admin' || caller?.active_role !== 'admin' || caller?.campus !== 'all') throw new Error('Only the Main Admin can run this school-wide seed.')
+    await requireAdminMfa(admin, token)
     const byName = new Map<string, string>(), credentials: object[] = []
     for (let i = 0; i < teachers.length; i++) {
       const [name, classes] = teachers[i], number = `+263790${String(i + 1).padStart(6, '0')}`, password = `RlcTemp!2026-${String(i + 1).padStart(2, '0')}`

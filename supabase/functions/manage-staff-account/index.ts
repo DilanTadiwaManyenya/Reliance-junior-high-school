@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '../_shared/adminMfa.js'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const headers = {
@@ -52,6 +53,7 @@ Deno.serve(async (request) => {
       throw new Error('Switch to the Admin role before managing staff accounts.')
     }
 
+    await requireAdminMfa(admin, token)
     const input = await request.json()
     const userId = String(input.user_id ?? '')
     const action = String(input.action ?? '')
