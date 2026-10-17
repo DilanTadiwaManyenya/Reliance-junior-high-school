@@ -721,7 +721,14 @@ function DashboardHome({
             </button>
           </div>
         ) : (
-          <div className="portal-table-wrap">
+          <>
+          <ul className="dash-mobile-learners" aria-label="Recent learners">
+            {recent.map(row => <li key={row.id}>
+              <span className="dash-learner-avatar" aria-hidden="true">{row.full_name?.[0] ?? "?"}</span>
+              <div><strong>{row.full_name}</strong><small>Admission no. {row.admission_number || "—"}</small><div className="dash-mobile-learner-meta"><span>{row.class_level} · {row.class_stream || "No stream"}</span><StatusPill status={row.status} /></div></div>
+            </li>)}
+          </ul>
+          <div className="portal-table-wrap dash-desktop-learners">
             <table className="portal-table dash-preview-table">
               <thead>
                 <tr>
@@ -752,6 +759,7 @@ function DashboardHome({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

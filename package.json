@@ -12,7 +12,7 @@
     "test:report-print": "node tests/report-print.browser.mjs",
     "test:portal-parent-mobile": "node tests/portal-parent-mobile.browser.mjs && node tests/parent-learner-context.browser.mjs",
     "test:portal-workflows": "node tests/portal-workflows.browser.mjs && node tests/portal-finance-mobile.browser.mjs && node tests/shop-mobile-dialog.browser.mjs",
-    "test:portal-mobile": "npm run test:portal-foundation && npm run test:portal-navigation && npm run test:portal-staff-mobile && npm run test:portal-parent-mobile && npm run test:teacher-mobile && npm run test:portal-workflows",
+    "test:portal-mobile": "npm run test:portal-foundation && npm run test:portal-navigation && npm run test:portal-staff-mobile && npm run test:portal-parent-mobile && npm run test:teacher-mobile && npm run test:portal-workflows && npm run test:portal-composition",
     "test:portal-staff-mobile": "node tests/portal-staff-mobile.browser.mjs && node tests/portal-admin-mobile.browser.mjs",
     "test:portal-navigation": "node tests/portal-navigation.browser.mjs && node tests/portal-account-navigation.browser.mjs && node tests/portal-text-zoom.browser.mjs",
     "test:teacher-mobile": "node tests/teacher-mobile.browser.mjs && node tests/teacher-draft.browser.mjs && node tests/teacher-history-draft.browser.mjs",
@@ -22,7 +22,8 @@
     "test:portal-foundation": "node tests/portal-foundation.browser.mjs",
     "test:portal-loading": "npm run build && node tests/portal-route-loading.browser.mjs && node tests/portal-loading-performance.browser.mjs",
     "test:portal-boundaries": "node tests/portal-acceptance-boundaries.browser.mjs",
-    "test:portal-acceptance": "npm run test:portal && npm run test:portal-mobile && npm run test:portal-boundaries && npm run test:shop:campus && npm run test:shop:browser && npm run test:portal-loading"
+    "test:portal-acceptance": "npm run test:portal && npm run test:portal-mobile && npm run test:portal-boundaries && npm run test:shop:campus && npm run test:shop:browser && npm run test:portal-loading",
+    "test:portal-composition": "node tests/portal-mobile-composition.browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

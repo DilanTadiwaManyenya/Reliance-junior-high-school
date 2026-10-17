@@ -3,13 +3,13 @@ import { mkdir } from 'node:fs/promises'
 import { startPortalBrowser, openPortal, portalLayoutMetrics } from './helpers/portal-browser.mjs'
 const runtime=await startPortalBrowser()
 try {
- for(const width of [320,390,1280]) {
+ for(const width of [320,390,667,1280]) {
   for(const section of ['roster','staff','progress-reports']) {
    const page=await openPortal(runtime.browser,runtime.base,{role:'admin',section},width)
    const table=page.locator('.mobile-record-table')
    await table.locator('tbody tr').first().waitFor()
    assert.ok(await table.getByRole('columnheader').count()>=4)
-   if(width<=600) assert.equal(await table.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true,`${section} must reflow without horizontal scrolling`)
+   if(width<=767) assert.equal(await table.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true,`${section} must reflow without horizontal scrolling`)
    if(section==='roster') {
     await page.getByLabel('Search',{exact:true}).fill('Alexandra')
     assert.equal(await table.locator('tbody tr').count(),1)

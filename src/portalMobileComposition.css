@@ -1,0 +1,78 @@
+/* Phone composition: compact summaries and task lists, with desktop/print kept separate. */
+.dash-mobile-learners, .parent-record-mobile-arrow { display: none; }
+@media screen and (max-width: 767px) {
+  .staff-shell .staff-content-area .ui-card:not(.report-card) { padding: 16px; border-radius: 12px; box-shadow: 0 2px 6px #1b2a5608; }
+  .staff-shell .staff-content-area .portal-card-title { flex-direction: column; align-items: stretch; gap: 12px; }
+  .staff-shell .staff-content-area .portal-card-title > :is(.btn, .ui-button) { width: 100%; min-height: 44px; }
+  .staff-shell .professional-dashboard { padding: 16px; }
+  .staff-shell .professional-dashboard .dashboard-hero { padding: 16px; }
+  .staff-shell .professional-dashboard .dashboard-hero h1 { font-size: 1.5rem; line-height: 1.25; }
+  .staff-shell .professional-dashboard .dashboard-actions { display: grid; grid-template-columns: 1fr; }
+  .staff-shell .professional-dashboard .dashboard-stat-card { min-width: 0; padding: 14px; border-radius: 12px; }
+  .staff-shell .professional-dashboard .stat-label { font-size: .8125rem; line-height: 1.4; letter-spacing: 0; text-transform: none; }
+  .staff-shell .professional-dashboard .dashboard-stat-card strong { font-size: 1.5rem; overflow-wrap: anywhere; }
+  .staff-shell .dash-home, .staff-shell .junior-teacher-home { gap: 16px; }
+  .staff-shell .dash-page-title, .staff-shell .junior-teacher-home-hero h1 { font-size: 1.5rem; line-height: 1.2; }
+  .staff-shell .dash-page-sub, .staff-shell .junior-teacher-home-hero p { font-size: .875rem; line-height: 1.5; }
+  .staff-shell :is(.dash-stats-row, .junior-teacher-home-stats, .fees-stat-row), .staff-shell .professional-dashboard .dashboard-stat-grid { --phone-tile-min: max(8rem, calc((100% - 10px) / 2)); grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--phone-tile-min)), 1fr)); gap: 10px; }
+  .staff-shell .dash-stat-card { flex-direction: column; align-items: flex-start; gap: 10px; min-height: 0; padding: 14px; border: 1px solid #dce3ee; border-radius: 12px; box-shadow: 0 2px 6px #1b2a5608; }
+  .staff-shell .dash-stats-row > .dash-stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .staff-shell .dash-stat-card::after { content: none; }
+  .staff-shell .dash-stat-card:hover { transform: none; }
+  .staff-shell .dash-stat-icon { width: 32px; height: 32px; border-radius: 8px; }
+  .staff-shell .dash-stat-icon svg { width: 20px; height: 20px; }
+  .staff-shell .dash-stat-body { width: 100%; gap: 5px; }
+  .staff-shell .dash-stat-label { font-family: var(--font-ui, 'Public Sans', sans-serif); order: -1; font-size: .8125rem; line-height: 1.4; letter-spacing: 0; text-transform: none; }
+  .staff-shell .dash-stat-value { font-size: 1.5rem; line-height: 1.2; overflow-wrap: anywhere; }
+  .staff-shell .dash-stat-sub { font-size: .8125rem; line-height: 1.4; }
+  .staff-shell .dash-card { border-radius: 12px; box-shadow: 0 2px 6px #1b2a5608; }
+  .staff-shell .dash-card-header { padding: 16px; gap: 10px; }
+  .staff-shell .dash-card-title { font-size: 1.125rem; line-height: 1.3; }
+  .staff-shell .dash-card-subtitle { font-size: .875rem; line-height: 1.5; }
+  .staff-shell .dash-bar-chart { height: 180px; }
+  .staff-shell .dash-bar-group { font-size: .75rem; }
+  .staff-shell .dash-chart-key { font-size: .8125rem; }
+  .staff-shell .dash-distribution-body { height: auto; min-height: 0; align-items: stretch; justify-content: flex-start; }
+  .staff-shell .dash-desktop-learners { display: none; }
+  .staff-shell .dash-mobile-learners { display: grid; list-style: none; margin: 0; padding: 0 16px 16px; gap: 10px; }
+  .dash-mobile-learners li { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid #dce3ee; border-radius: 10px; }
+  .dash-mobile-learners li > div { min-width: 0; flex: 1; }
+  .dash-mobile-learners strong { display: block; color: #1b2a56; font-size: .9375rem; line-height: 1.4; overflow-wrap: anywhere; }
+  .dash-mobile-learners small { display: block; margin: 5px 0; color: #475569; font-size: .8125rem; line-height: 1.4; overflow-wrap: anywhere; }
+  .dash-mobile-learner-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .8125rem; line-height: 1.4; }
+  .staff-shell .junior-teacher-home-actions { display: grid; grid-template-columns: 1fr; width: 100%; gap: 10px; }
+  .staff-shell .junior-teacher-home-actions .ui-button { width: 100%; }
+  .staff-shell .junior-teacher-home-stats article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; padding: 14px; border-radius: 12px; }
+  .staff-shell .junior-teacher-home-stats article:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .staff-shell .junior-teacher-home-stats span { font-family: var(--font-ui, 'Public Sans', sans-serif); grid-column: 1; font-size: .8125rem; line-height: 1.4; letter-spacing: 0; text-transform: none; }
+  .staff-shell .junior-teacher-home-stats strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin: 0; font-size: 1.5rem; }
+  .staff-shell .junior-teacher-home-stats small { grid-column: 1; font-size: .8125rem; line-height: 1.4; }
+  .staff-shell .junior-teacher-class-grid article { padding: 16px; border-radius: 12px; }
+  .staff-shell .junior-teacher-class-grid article > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .staff-shell .junior-teacher-class-grid article button { min-height: 44px; min-width: 0; white-space: normal; }
+  .staff-shell .junior-teacher-class-grid article button:first-child { grid-column: 1 / -1; }
+  .staff-shell .fees-stat-card { flex-direction: column; gap: 8px; min-height: 0; padding: 14px; border-radius: 12px; }
+  .staff-shell .fees-stat-card > div { min-width: 0; max-width: 100%; }
+  .staff-shell .fees-stat-icon { width: 32px; height: 32px; }
+  .staff-shell .fees-stat-card p { font-size: .8125rem; line-height: 1.4; letter-spacing: 0; text-transform: none; }
+  .staff-shell .fees-stat-card strong { font-size: 1.5rem; line-height: 1.2; overflow-wrap: anywhere; }
+  .staff-shell .fees-stat-card span:last-child { font-size: .8125rem; line-height: 1.4; }
+  .parent-portal-shell > main > .section { padding-block: 20px; }
+  .parent-portal-shell .portal-content .parent-record-launcher { grid-template-columns: 1fr; grid-auto-rows: auto; align-items: start; gap: 10px; }
+  .parent-portal-shell .parent-record-link { min-width: 0; }
+  .parent-portal-shell .parent-record-launcher .parent-record-card.ui-card { position: relative; height: auto; min-height: 80px; padding: 16px 60px 16px 16px; border: 1px solid #dce3ee; border-radius: 12px; box-shadow: 0 2px 6px #1b2a5608; gap: 4px; }
+  .parent-portal-shell .parent-record-launcher .parent-record-card h2 { font-family: var(--font-ui, 'Public Sans', sans-serif); margin: 0; font-size: 1rem; line-height: 1.4; }
+  .parent-portal-shell .parent-record-card p { margin: 0; font-size: .875rem; line-height: 1.5; }
+  .parent-portal-shell .parent-record-card .parent-record-action { display: none; }
+  .parent-portal-shell .parent-record-mobile-arrow { display: grid; place-items: center; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: #eef2f8; color: #1b2a56; font-size: 1.25rem; }
+  .parent-portal-shell .parent-record-link.is-locked .parent-record-card { border-left: 3px solid #a6302f; }
+}
+
+@media screen and (max-width: 767px) {
+  .staff-shell .mobile-record-table tbody td.selection-column { display: flex; align-items: center; justify-content: flex-start; gap: 10px; text-align: left; }
+  .staff-shell .mobile-record-table td.selection-column::before { margin: 0; }
+  .staff-shell .mobile-record-table td.selection-column input { order: -1; flex: none; margin: 0; }
+  .staff-shell .mobile-record-table .fee-row-actions { grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
+  .staff-shell .mobile-record-table td:has(> .fee-row-actions) { display: block; }
+  .staff-shell .mobile-record-table td:has(> .fee-row-actions)::before { display: block; margin-bottom: 10px; text-align: left; }
+}

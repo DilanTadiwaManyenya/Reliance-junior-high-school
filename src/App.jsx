@@ -1,3 +1,4 @@
+import './portalMobileComposition.css'
 import './lib/draftHistoryGuard'
 import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
