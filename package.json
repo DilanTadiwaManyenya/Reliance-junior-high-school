@@ -24,7 +24,8 @@
     "test:portal-boundaries": "node tests/portal-acceptance-boundaries.browser.mjs",
     "test:portal-acceptance": "npm run test:portal && npm run test:portal-mobile && npm run test:portal-boundaries && npm run test:shop:campus && npm run test:shop:browser && npm run test:portal-loading",
     "test:portal-composition": "node tests/portal-mobile-composition.browser.mjs",
-    "test:security-campus": "node --test tests/security-campus-stage1.test.mjs"
+    "test:security-campus": "node --test tests/security-campus-stage1.test.mjs",
+    "test:security-rpc": "node --test tests/security-rpc-stage2.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

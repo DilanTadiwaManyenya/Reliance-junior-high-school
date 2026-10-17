@@ -29,7 +29,7 @@ Deno.serve(async request => {
     const { data: duplicate } = await admin.from('profiles').select('id').eq('phone', number).maybeSingle()
     if (duplicate) throw new Error('This phone number is already registered.')
     const tempPassword = temporaryPassword()
-    const { data: created, error: createError } = await admin.auth.admin.createUser({ email: `portal-${number.slice(1)}@portal.reliance.local`, password: tempPassword, email_confirm: true, user_metadata: { full_name: name, phone: number } })
+    const { data: created, error: createError } = await admin.auth.admin.createUser({ email: `portal-${number.slice(1)}@portal.reliance.local`, password: tempPassword, email_confirm: true, app_metadata: { role: role }, user_metadata: { full_name: name, phone: number } })
     if (createError || !created.user) throw createError ?? new Error('Unable to create the user.')
     createdUserId = created.user.id
     const profile = await admin.from('profiles').update({ full_name: name, phone: number, role, class_level: role === 'teacher' ? String(classAssigned).split(' ')[0] : null, class_stream: role === 'teacher' ? String(classAssigned).split(' ').slice(1).join(' ') || null : null, campus, must_change_password: true }).eq('id', createdUserId)

@@ -29,15 +29,15 @@ Deno.serve(async request => {
     const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     const { data: { user } } = await admin.auth.getUser(token)
-    const { data: caller } = await admin.from('profiles').select('role').eq('id', user?.id).single()
-    if (!user || caller?.role !== 'admin') throw new Error('Only an administrator can run this seed.')
+    const { data: caller } = await admin.from('profiles').select('role,active_role,campus').eq('id', user?.id).single()
+    if (!user || caller?.role !== 'admin' || caller?.active_role !== 'admin' || caller?.campus !== 'all') throw new Error('Only the Main Admin can run this school-wide seed.')
     const byName = new Map<string, string>(), credentials: object[] = []
     for (let i = 0; i < teachers.length; i++) {
       const [name, classes] = teachers[i], number = `+263790${String(i + 1).padStart(6, '0')}`, password = `RlcTemp!2026-${String(i + 1).padStart(2, '0')}`
       const { data: existing } = await admin.from('profiles').select('id').eq('full_name', name).eq('role', 'teacher').maybeSingle()
       let id = existing?.id
       if (!id) {
-        const { data: created, error } = await admin.auth.admin.createUser({ email: `portal-${number.slice(1)}@portal.reliance.local`, password, email_confirm: true, user_metadata: { full_name: name, phone: number } })
+        const { data: created, error } = await admin.auth.admin.createUser({ email: `portal-${number.slice(1)}@portal.reliance.local`, password, email_confirm: true, app_metadata: { role: 'teacher' }, user_metadata: { full_name: name, phone: number } })
         if (error || !created.user) throw error ?? new Error(`Could not create ${name}.`)
         id = created.user.id
         await admin.from('profiles').update({ full_name: name, phone: number, role: 'teacher', must_update_credentials: true, must_change_password: true }).eq('id', id)
