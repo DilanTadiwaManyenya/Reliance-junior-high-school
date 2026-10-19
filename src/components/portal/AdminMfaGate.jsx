@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
 import './adminMfa.css'
@@ -17,6 +17,19 @@ export default function AdminMfaGate({ children }) {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [copyNotice, setCopyNotice] = useState('')
+  const setupKey = useRef(null)
+  const copySetupKey = async () => {
+    setCopyNotice('')
+    try {
+      await navigator.clipboard.writeText(pending.totp.secret)
+      setCopyNotice('Setup key copied. Paste it into your authenticator app.')
+    } catch {
+      setupKey.current?.focus()
+      setupKey.current?.select()
+      setCopyNotice('Copy is unavailable in this browser. Press and hold the selected key, then choose Copy.')
+    }
+  }
   useEffect(() => {
     let alive = true
     const check = async () => {
@@ -71,7 +84,7 @@ export default function AdminMfaGate({ children }) {
     {status === 'loading' && <p role="status">Checking your secure sign-in…</p>}
     {status === 'error' && <button className="btn primary" onClick={() => { setError(''); setStatus('loading'); setRevision(value => value + 1) }}>Try again</button>}
     {status === 'enrol' && <><p>This uses free app-generated codes. No Twilio account or paid SMS service is needed.</p><p>Open Google Authenticator or Microsoft Authenticator on your phone, then choose Set up authenticator below and scan the QR code. Keep access to the app: you will need its codes for future sign-ins.</p><button className="btn primary" disabled={busy} onClick={enrol}>{busy ? 'Starting setup…' : 'Set up authenticator'}</button></>}
-    {pending && <div className="admin-mfa-setup"><p>Scan this QR code with your authenticator app, then enter its six-digit code below.</p><img src={pending.totp.qr_code} alt="Authenticator setup QR code" /><details><summary>Cannot scan? Enter a setup key</summary><label>Setup key<input readOnly value={pending.totp.secret} autoComplete="off" spellCheck={false} /></label><p>Account: Reliance Learning Centre. Use time-based codes. Keep this key private.</p></details></div>}
+    {pending && <div className="admin-mfa-setup"><p>Scan this QR code with your authenticator app, then enter its six-digit code below.</p><img src={pending.totp.qr_code} alt="Authenticator setup QR code" /><details><summary>On the same phone? Copy a setup key</summary><p>This key is generated for you. Copy it into Google Authenticator or Microsoft Authenticator; you do not type into this field.</p><label>Setup key<input ref={setupKey} readOnly value={pending.totp.secret} autoComplete="off" autoCapitalize="none" spellCheck={false} onClick={event => event.currentTarget.select()} /></label><button type="button" className="btn secondary" onClick={copySetupKey}>Copy setup key</button>{copyNotice && <p role="status">{copyNotice}</p>}<p>In your authenticator app, add an account using a setup key. Name it Reliance Learning Centre and choose time-based codes. Return here and type the app’s six-digit code in the field below. Keep this key private.</p></details></div>}
     {status === 'verify' && <form className="form" onSubmit={verify}>{!pending && verified.length > 1 && <label>Authenticator<select value={selected} onChange={event => setSelected(event.target.value)}>{verified.map(factor => <option key={factor.id} value={factor.id}>{factor.friendly_name || 'Authenticator'}</option>)}</select></label>}<label>Six-digit code<input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ''))} required /></label><button className="btn primary" disabled={busy || !selected}>{busy ? 'Verifying…' : 'Verify and continue'}</button></form>}
     <p className="muted">Lost access to your authenticator? Contact the school’s authorised system owner for identity-checked recovery. Password reset does not remove two-factor authentication.</p><button className="btn secondary" disabled={busy} onClick={() => { setPending(null); setCode(''); signOut().catch(failure => setError(failure.message || 'Unable to sign out. Try again.')) }}>Sign out</button>
   </div></section>
