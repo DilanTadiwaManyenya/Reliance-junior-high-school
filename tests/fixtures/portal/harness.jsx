@@ -121,12 +121,13 @@ function query(table) {
 }
 let fixtureAal = params.has('mfa') ? 'aal1' : 'aal2'
 let fixtureChecks = 0
+let fixturePendingFactor = params.has('mfaResume') ? {id:'pending-factor',status:'unverified',factor_type:'totp',friendly_name:'Reliance admin 1790000000000',created_at:'2026-10-19T10:00:00Z'} : null
 const fixtureMfa = {
  getAuthenticatorAssuranceLevel: async () => { fixtureChecks++; if(params.get('mfa')==='error' && fixtureChecks===1) return {error:new Error('Fixture connection failed')}; return {data:{currentLevel:fixtureAal},error:null} },
- listFactors: async () => { const factors=params.get('mfa')==='verify' ? [{id:'verified-factor',status:'verified',factor_type:'totp',friendly_name:'Example authenticator'}] : []; return {data:{all:factors,totp:factors},error:null} },
+ listFactors: async () => { const factors=params.get('mfa')==='verify' ? [{id:'verified-factor',status:'verified',factor_type:'totp',friendly_name:'Example authenticator'}] : [];if(fixturePendingFactor)factors.push(fixturePendingFactor);return {data:{all:factors,totp:factors},error:null} },
  enroll: async () => { window.fixtureMfaEnrolls=(window.fixtureMfaEnrolls||0)+1; return {data:{id:'pending-factor',totp:{uri:'otpauth://totp/Reliance:fixture?secret=SYNTHETICSETUPKEY&issuer=Reliance',qr_code:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"/%3E',secret:'SYNTHETICSETUPKEY'}},error:null} },
- unenroll: async () => ({error:null}),
- challengeAndVerify: async ({code}) => { if(code!=='123456')return {error:new Error('Code not accepted. Try the current code.')};fixtureAal=params.has('noUpgrade')?'aal1':'aal2';return {data:{},error:null} },
+ unenroll: async () => {window.fixtureMfaRemovals=(window.fixtureMfaRemovals||0)+1;fixturePendingFactor=null;return {error:null}},
+ challengeAndVerify: async ({code,factorId}) => {window.fixtureVerifiedFactor=factorId;if(code!=='123456')return {error:new Error('Code not accepted. Try the current code.')};fixtureAal=params.has('noUpgrade')?'aal1':'aal2';return {data:{},error:null} },
 }
 const supabase = {
   from: query,

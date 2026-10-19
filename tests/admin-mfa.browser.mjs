@@ -45,5 +45,25 @@ try{
   await code.fill('123456');await gate.getByRole('button',{name:'Verify and continue'}).click();await page.locator('.staff-shell').waitFor();await page.waitForFunction(()=>document.querySelectorAll('.admin-mfa').length===0);assert.equal(await gate.count(),0);assert.deepEqual(errors,[])
   await page.close();console.log(`PASS MFA ${flow} ${width}px: gate, retry, invalid code, verified access and layout`)
  }
+ for(const width of [320,390,667,1280]){
+  const resume=await runtime.browser.newPage({viewport:{width,height:844}})
+  await resume.goto(`${runtime.base}/tests/fixtures/portal/index.html?role=admin&mfa=setup&mfaResume=1`,{waitUntil:'domcontentloaded'})
+  await resume.getByRole('heading',{name:'Finish authenticator setup',exact:true}).waitFor()
+  assert.equal(await resume.getByRole('button',{name:'Set up authenticator',exact:true}).count(),0)
+  await resume.reload();await resume.getByLabel('Six-digit code').waitFor()
+  assert.equal(await resume.evaluate(()=>window.fixtureMfaEnrolls||0),0)
+  assert.equal(await resume.evaluate(()=>window.fixtureMfaRemovals||0),0)
+  assert.equal(await resume.getByLabel('Setup key',{exact:true}).count(),0,'do not persist the setup secret for reload recovery')
+  await resume.getByLabel('Six-digit code').fill('000000');await resume.getByRole('button',{name:'Verify and continue'}).click();await resume.getByRole('alert').waitFor()
+  assert.equal(await resume.getByRole('heading',{name:'Finish authenticator setup',exact:true}).isVisible(),true)
+  await resume.getByLabel('Six-digit code').fill('123456');await resume.getByRole('button',{name:'Verify and continue'}).click();await resume.locator('.staff-shell').waitFor()
+  assert.equal(await resume.evaluate(()=>window.fixtureVerifiedFactor),'pending-factor');await resume.close()
+  console.log(`PASS unfinished MFA setup resumes after reload at ${width}px without replacing its key`)
+ }
+ const restart=await runtime.browser.newPage();await restart.goto(`${runtime.base}/tests/fixtures/portal/index.html?role=admin&mfa=setup&mfaResume=1`)
+ await restart.getByText('Haven’t added Reliance to your app yet?',{exact:true}).click();await restart.getByRole('button',{name:'Review starting a new setup'}).click()
+ assert.equal(await restart.evaluate(()=>window.fixtureMfaRemovals||0),0,'reviewing restart cannot delete an unfinished setup')
+ await restart.getByRole('button',{name:'Set up authenticator',exact:true}).click();await restart.getByAltText('Authenticator setup QR code').waitFor()
+ assert.equal(await restart.evaluate(()=>window.fixtureMfaRemovals),1);await restart.close();console.log('PASS explicit restart replaces only the unfinished portal setup')
  const page=await runtime.browser.newPage();await page.goto(`${runtime.base}/tests/fixtures/portal/index.html?role=admin&mfa=verify&noUpgrade=1`,{waitUntil:'domcontentloaded'});await page.getByLabel('Six-digit code').fill('123456');await page.getByRole('button',{name:'Verify and continue'}).click();await page.getByRole('alert').waitFor();assert.equal(await page.locator('.staff-shell').count(),0);await page.close();console.log('PASS verification response without aal2 remains blocked')
 }finally{await runtime.close()}
