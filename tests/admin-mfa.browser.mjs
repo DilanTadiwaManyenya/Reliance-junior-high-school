@@ -2,6 +2,15 @@ import assert from 'node:assert/strict'
 import { startPortalBrowser, portalLayoutMetrics } from './helpers/portal-browser.mjs'
 const runtime=await startPortalBrowser()
 try{
+ for(const width of [320,390,667,1280]){
+  const disabled=await runtime.browser.newPage({viewport:{width,height:844}})
+  await disabled.goto(`${runtime.base}/tests/fixtures/portal/index.html?role=admin&mfa=error&mfaDisabled=1`)
+  await disabled.locator('.staff-shell').waitFor()
+  assert.equal(await disabled.locator('.admin-mfa').count(),0)
+  assert.equal(await disabled.evaluate(()=>window.fixtureMfaEnrolls||0),0)
+  await disabled.close();console.log(`PASS paused MFA allows password-only admin access at ${width}px`)
+ }
+ const unavailable=await runtime.browser.newPage();await unavailable.goto(`${runtime.base}/tests/fixtures/portal/index.html?role=admin&mfaSettingsError=1`);await unavailable.getByRole('alert').waitFor();assert.equal(await unavailable.locator('.staff-shell').count(),0);await unavailable.close();console.log('PASS unavailable security settings fail closed')
  for(const width of [320,390,667,1280])for(const flow of ['setup','verify','error']){
   const page=await runtime.browser.newPage({viewport:{width,height:667===width?390:844}})
   await page.route('https://fonts.googleapis.com/**',route=>route.abort());await page.route('https://fonts.gstatic.com/**',route=>route.abort())

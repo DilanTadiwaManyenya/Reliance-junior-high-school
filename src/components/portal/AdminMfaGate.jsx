@@ -38,6 +38,9 @@ export default function AdminMfaGate({ children }) {
     let alive = true
     const check = async () => {
       try {
+        const settings = await bounded(supabase.from('portal_security_settings').select('require_admin_mfa').eq('id', 1).single())
+        if (settings.error || typeof settings.data?.require_admin_mfa !== 'boolean') throw new Error('Unable to check sign-in requirements. Please retry.')
+        if (!settings.data.require_admin_mfa) { if (alive) setStatus('ready'); return }
         const assurance = await bounded(supabase.auth.mfa.getAuthenticatorAssuranceLevel())
         if (assurance.error) throw assurance.error
         if (assurance.data?.currentLevel === 'aal2') { if (alive) setStatus('ready'); return }

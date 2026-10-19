@@ -33,6 +33,7 @@ const assignments = [{ id: 'allocation', teacher_id: staffId, class_level: campu
 const profile = { id: staffId, full_name: 'Ms Example Account With A Longer Display Name', legal_full_name: 'Example Account', working_title: 'Ms', phone: '+263771234567', role, active_role: role, campus, portal_access_enabled: true, must_change_password: params.has('mustChange'), teacher_class_assignments: assignments, teacher_class_subject_assignments: assignments }
 const assessment = { id: 'assessment', teacher_id: staffId, campus: 'senior', class_level: 'Form 1', class_stream: 'Blue', subject: 'Combined Science', title: 'Week 4 assessment with a longer descriptive title', assessment_type: 'weekly', total_marks: 50, assessment_date: today, term: '3', academic_year: 2026 }
 const db = {
+  portal_security_settings: [{id:1,require_admin_mfa:!params.has('mfaDisabled')}],
   students: learners,
   profiles: [profile, { ...profile, id: 'teacher', role: 'teacher', active_role: 'teacher', campus: 'senior', full_name: 'Ms Example Teacher', is_protected: false }],
   parent_student: params.has('empty') ? [] : learners.map(student => ({ parent_id: staffId, student_id: student.id, verified_at: today, student })),
@@ -108,6 +109,7 @@ function query(table) {
     insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this }, update(value) { operation = 'update'; payload = value; return this }, delete() { operation = 'delete'; return this },
     then(resolve, reject) {
       let data = (db[table] || []).filter(row => filters.every(filter => filter(row)))
+      if(table==='portal_security_settings'&&params.has('mfaSettingsError'))return Promise.resolve({data:null,error:{message:'Synthetic requirements unavailable'}}).then(resolve,reject)
       if(table==='report_period_contexts') data=data.filter(row=>role==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||row.campus===campus))
       data=data.slice(start,end+1)
       if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
