@@ -20,6 +20,7 @@ import JuniorTeacherMarkbook from "../../components/portal/JuniorTeacherMarkbook
 import SlideOver from "../../components/ui/SlideOver";
 import ActivityLog from "../../components/portal/ActivityLog";
 import ClassManager from "../../components/portal/ClassManager";
+import YearRolloverReadiness from "../../components/portal/YearRolloverReadiness";
 import TeacherAttendanceHistory from "../../components/portal/TeacherAttendanceHistory";
 import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
 import AccountantLearnerProfiles from "../../components/portal/AccountantLearnerProfiles";
@@ -1595,6 +1596,9 @@ export default function StaffDashboard() {
         />
       </div>
     );
+
+  if (section === "year-planning" && isAdmin)
+    return <div className="staff-content-area"><YearRolloverReadiness supabase={supabase} campusScope={adminCampusScope || "all"} /></div>;
 
   if (section === "settings")
     return (

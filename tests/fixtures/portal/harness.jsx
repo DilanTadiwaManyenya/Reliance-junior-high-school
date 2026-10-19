@@ -66,6 +66,8 @@ if (params.has('printFixture')) {
 }
 window.fixtureWrites = []
 window.fixtureHistoryError = params.has('historyError')
+window.fixtureRolloverError = params.has('rolloverError')
+window.fixtureRolloverCalls = []
 function query(table) {
   let operation = 'select', payload, single = false, start = 0, end = Infinity
   const filters = []
@@ -98,6 +100,18 @@ const fixtureMfa = {
 const supabase = {
   from: query,
   rpc(name, payload) {
+    if (name === 'preview_year_rollover') {
+      window.fixtureRolloverCalls.push(payload)
+      const sourceCampus=payload.p_campus
+      const data=Array.from({length:sourceCampus==='junior'?52:3},(_,index)=>({
+        id:`${sourceCampus}-planning-${index}`,full_name:sourceCampus==='senior'?`Senior Example Learner ${index}`:index===51?'Brian Example':'Alexandra Example Learner With A Longer Name',
+        admission_number:`TEST-${sourceCampus}-${index}`,campus:sourceCampus,source_level:sourceCampus==='junior'?'Grade 1':'Form 1',source_stream:'Blue',target_level:sourceCampus==='junior'?'Grade 2':'Form 2',target_campus:sourceCampus,
+        candidates:[{id:`${sourceCampus}-destination`,class_level:sourceCampus==='junior'?'Grade 2':'Form 2',class_stream:'Blue',campus:sourceCampus,capacity:50}],review_status:index%2?'stream_review':'standard_review',
+      })).filter(row=>`${row.full_name} ${row.admission_number}`.toLowerCase().includes(payload.p_search.toLowerCase()))
+      const standard=data.filter(row=>row.review_status==='standard_review').length
+      const result=window.fixtureRolloverError?{data:null,error:{message:'Synthetic unavailable preview'}}:{data:{source_year:2026,target_year:2027,campus:sourceCampus,total:data.length,standard_count:standard,review_count:data.length-standard,missing_target_count:0,rows:data.slice(payload.p_offset,payload.p_offset+payload.p_limit)},error:null}
+      return {abortSignal(){return this},then(resolve,reject){return Promise.resolve(result).then(resolve,reject)}}
+    }
     if (params.has('delayPayment') && name === 'record_learner_fee_payment') {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
       return new Promise(resolve => { window.fixtureResolvePayment = () => resolve({ data: null, error: null }) })
