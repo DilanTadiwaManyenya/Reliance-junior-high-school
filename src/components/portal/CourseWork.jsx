@@ -1,3 +1,4 @@
+import { useReportingPeriodDefault } from '../../hooks/useReportingPeriodDefault'
 import { useCourseworkDraftGuard } from '../../hooks/useCourseworkDraftGuard'
 import { useEffect, useMemo, useState } from 'react'
 import Button from '../ui/Button'
@@ -8,7 +9,7 @@ import { useAuth } from '../../context/useAuth'
 import { useSection } from './StaffPortalLayout'
 
 const currentTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1))
-const blankAssessment = () => ({ title: '', assessment_type: 'weekly', total_marks: '100', assessment_date: new Date().toISOString().slice(0, 10), term: currentTerm(), academic_year: new Date().getFullYear() })
+const blankAssessment = (period) => ({ title: '', assessment_type: 'weekly', total_marks: '100', assessment_date: new Date().toISOString().slice(0, 10), term: period?.term ? String(period.term) : currentTerm(), academic_year: period?.academic_year || new Date().getFullYear() })
 
 export default function CourseWork() {
   const { supabase, user, profile } = useAuth()
@@ -17,6 +18,7 @@ export default function CourseWork() {
   const [students, setStudents] = useState([])
   const [assessments, setAssessments] = useState([])
   const [form, setForm] = useState(blankAssessment)
+  const reportingPeriod = useReportingPeriodDefault(supabase, profile?.campus, setForm)
   const [marks, setMarks] = useState({})
   const [savedMarks, setSavedMarks] = useState({})
   const [selected, setSelected] = useState('')
@@ -78,6 +80,7 @@ export default function CourseWork() {
 
   const create = async event => {
     event.preventDefault()
+    if (!reportingPeriod.period) return setError(reportingPeriod.error || 'Wait for the current reporting period.')
     if (marksDirty && !window.confirm('You have unsaved coursework marks. Create another assessment and discard those changes?')) return
     setError(''); setNotice('')
     if (!hasSubjectScope) return setError('Return to Subject allocations and choose one of your current subject assignments.')
@@ -100,7 +103,7 @@ export default function CourseWork() {
     }).select().single()
     setSaving(false)
     if (requestError) return setError(requestError.message)
-    setAssessments(rows => [data, ...rows]); setSelected(data.id); setMarks({}); setSavedMarks({}); setForm(blankAssessment())
+    setAssessments(rows => [data, ...rows]); setSelected(data.id); setMarks({}); setSavedMarks({}); setForm(blankAssessment(reportingPeriod.period))
     setNotice(`Assessment created for ${scopeLabel}. Enter marks below, then save once.`)
   }
 
@@ -118,13 +121,14 @@ export default function CourseWork() {
   }
 
   return <section className="coursework-page">
+    {reportingPeriod.loading ? <p role="status">Loading current reporting period…</p> : reportingPeriod.error ? <PortalNotice tone="error">{reportingPeriod.error}</PortalNotice> : <p className="portal-notice">New assessments: Term {reportingPeriod.period.term} {reportingPeriod.period.academic_year}</p>}
     <header className="grade-entry-heading"><Button type="button" variant="secondary" className="coursework-back" onClick={clearSubjectGroup}>← Subject allocations</Button><p className="eyebrow">Subject workspace</p><h1>Course Work</h1><p>{hasSubjectScope ? `${scopeLabel} — only learners in this allocation can be assessed.` : 'Choose a subject allocation before creating or entering course work.'}</p></header>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}
     {loading && <PortalNotice>Loading your subject allocations…</PortalNotice>}
     {!loading && !allocations.length && <PortalNotice tone="error">No subject allocations are assigned to you yet. Ask the Main Admin to add your subject allocation.</PortalNotice>}
     {!loading && !hasSubjectScope && <PortalNotice tone="error">This course-work link does not match one of your active allocations. Return to Subject allocations and select the class, subject, and stream again.</PortalNotice>}
     {hasSubjectScope && <div className="coursework-scope"><span>Active allocation</span><strong>{scopeLabel}</strong><small>{scopeStream ? 'This assessment is restricted to the selected stream.' : 'This assessment covers the whole assigned form.'}</small></div>}
-    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label className="coursework-context-field">Subject and form<input readOnly value={scopeLabel} placeholder="Choose a subject allocation" /></label><p className="muted" style={{ gridColumn: '1 / -1', margin: 0 }}>{scopeStream ? `This assessment will include only active learners in ${selectedAllocation?.class_level} · ${scopeStream}.` : 'This assessment will include every active learner in your whole-form allocation.'}</p><label>Assessment title<input required value={form.title} onChange={e => setForm(value => ({ ...value, title: e.target.value }))} placeholder="e.g. Week 4 fractions test" disabled={!hasSubjectScope} /></label><label>Type<select value={form.assessment_type} onChange={e => setForm(value => ({ ...value, assessment_type: e.target.value }))} disabled={!hasSubjectScope}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={e => setForm(value => ({ ...value, total_marks: e.target.value }))} disabled={!hasSubjectScope} /></label><label>Date<input required type="date" value={form.assessment_date} onChange={e => setForm(value => ({ ...value, assessment_date: e.target.value }))} disabled={!hasSubjectScope} /></label><Button type="submit" disabled={saving || !hasSubjectScope}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
+    <Card><form className="form portal-form" onSubmit={create}><h2>1. Create an assessment</h2><label className="coursework-context-field">Subject and form<input readOnly value={scopeLabel} placeholder="Choose a subject allocation" /></label><p className="muted" style={{ gridColumn: '1 / -1', margin: 0 }}>{scopeStream ? `This assessment will include only active learners in ${selectedAllocation?.class_level} · ${scopeStream}.` : 'This assessment will include every active learner in your whole-form allocation.'}</p><label>Assessment title<input required value={form.title} onChange={e => setForm(value => ({ ...value, title: e.target.value }))} placeholder="e.g. Week 4 fractions test" disabled={!hasSubjectScope} /></label><label>Type<select value={form.assessment_type} onChange={e => setForm(value => ({ ...value, assessment_type: e.target.value }))} disabled={!hasSubjectScope}><option value="weekly">Weekly assessment</option><option value="monthly">Monthly assessment</option><option value="exam">Exam</option></select></label><label>Total marks<input required min="1" type="number" value={form.total_marks} onChange={e => setForm(value => ({ ...value, total_marks: e.target.value }))} disabled={!hasSubjectScope} /></label><label>Date<input required type="date" value={form.assessment_date} onChange={e => setForm(value => ({ ...value, assessment_date: e.target.value }))} disabled={!hasSubjectScope} /></label><Button type="submit" disabled={saving || !hasSubjectScope || !reportingPeriod.period}>{saving ? 'Creating…' : 'Create assessment'}</Button></form></Card>
     <Card><div className="coursework-heading"><div><h2>2. Enter marks</h2><p>Select an assessment from this allocation to see marks entered and marks still missing.</p></div><label>Assessment<select value={selected} onChange={e => setSelected(e.target.value)} disabled={!hasSubjectScope}><option value="">Choose assessment</option>{scopedAssessments.map(row => <option key={row.id} value={row.id}>{row.title} · {row.assessment_date}</option>)}</select></label></div>{hasSubjectScope && !scopedAssessments.length && <p className="muted">No assessments have been created for this allocation yet.</p>}{loadingMarks && selected && <p role="status">Loading assessment learners and marks…</p>}{selectedAssessment && !loadingMarks && <CourseworkMarks students={students} marks={marks} totalMarks={selectedAssessment.total_marks} saving={saving} dirty={marksDirty} onMarkChange={(id, value) => { setNotice(''); setMarks(current => ({ ...current, [id]: value })) }} onSave={saveMarks} />}</Card>
   </section>
 }

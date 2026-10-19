@@ -28,6 +28,7 @@ const allocation = { id: 'allocation', teacher_id: 'teacher', class_level: class
 const profile = { role: 'teacher', active_role: 'teacher', full_name: 'Ms Mobile Test', campus, teacher_class_assignments: [allocation], teacher_class_subject_assignments: [allocation] }
 const learners = ['Alexandra Example Learner With A Longer Name', 'Brian Example', 'Chipo Example'].map((full_name, i) => ({ id: `learner-${i}`, full_name, class_level: classLevel, class_stream: stream, admission_number: `TEST-2026-00${i+1}`, campus, status: 'active' }))
 const db = {
+  reporting_periods: params.has('noCurrentPeriod')?[]:[{campus,is_current:true,state:'open',academic_year:Number(params.get('registryYear')||2026),term:Number(params.get('registryTerm')||3)}],
   students: learners,
   teacher_class_subject_assignments: [allocation],
   coursework_assessments: [{ id: 'assessment', teacher_id: 'teacher', campus, class_level: classLevel, class_stream: stream || null, subject, report_component: component, title: 'Week 4 classroom assessment with a longer descriptive title', assessment_date: '2026-10-15', total_marks: 50, term: '3', academic_year: 2026 }],
@@ -40,7 +41,7 @@ const supabase = {
     let operation = 'select', payload, single = false
     const filters = []
     const query = {
-      select() { return this }, eq(key, value) { filters.push([key, value]); return this }, order() { return this }, in() { return this }, limit() { return this }, gte() { return this }, lte() { return this }, or() { return this }, maybeSingle() { single = true; return this }, single() { single = true; return this },
+      select() { return this }, abortSignal() { return this }, eq(key, value) { filters.push([key, value]); return this }, order() { return this }, in() { return this }, limit() { return this }, gte() { return this }, lte() { return this }, or() { return this }, maybeSingle() { single = true; return this }, single() { single = true; return this },
       insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this },
       then(resolve, reject) {
         if (table === 'coursework_marks' && operation !== 'select' && window.fixtureHoldMarks) {

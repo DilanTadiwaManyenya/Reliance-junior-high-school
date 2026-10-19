@@ -77,6 +77,8 @@ function contextFor(student,year=2026,term=3,level=student.class_level,stream=st
 }
 db.report_period_contexts=learners.map(student=>contextFor(student))
 db.year_rollover_batches=[]
+db.reporting_periods=['junior','senior'].map(c=>({id:`period-${c}`,campus:c,academic_year:2026,term:3,state:'open',is_current:true,revision:1}))
+db.reporting_period_events=[]
 if(params.has('historyPromotion')){
  const student=learners[0],junior=params.get('historyPromotion')==='junior-senior'
  student.class_level=junior?'Form 1':'Lower Six';student.campus='senior';student.class_stream=junior?'Blue':'Sciences'
@@ -129,6 +131,13 @@ const fixtureMfa = {
 const supabase = {
   from: query,
   rpc(name, payload) {
+    if(name==='change_reporting_period'){
+      window.fixtureWrites.push({table:`rpc:${name}`,payload})
+      let row=db.reporting_periods.find(r=>r.campus===payload.p_campus&&r.academic_year===payload.p_year&&r.term===payload.p_term)
+      if(!row){row={id:crypto.randomUUID(),campus:payload.p_campus,academic_year:payload.p_year,term:payload.p_term,state:'open',is_current:false,revision:1};db.reporting_periods.push(row)}else{row.revision++;if(payload.p_action==='close'){row.state='closed';row.is_current=false}else if(payload.p_action==='reopen')row.state='open';else if(payload.p_action==='set_current'){db.reporting_periods.filter(r=>r.campus===row.campus).forEach(r=>{r.is_current=false});row.is_current=true}}
+      db.reporting_period_events.unshift({id:crypto.randomUUID(),campus:row.campus,created_at:today,actor_name:profile.full_name,action:payload.p_action,reason:payload.p_reason})
+      return Promise.resolve({data:{...row},error:null})
+    }
     if(name==='review_year_rollover'){
       const data={campus:payload.p_campus,total:learners.filter(s=>s.campus===payload.p_campus).length,rows:learners.filter(s=>s.campus===payload.p_campus).map(s=>({...s,source_year:2026,target_year:2027,expected_version:'fixture-version',history_reviewed:params.has('rolloverReviewed'),eligible_year:true,suggested_level:s.campus==='junior'?'Grade 2':'Form 2'})),classes:[...db.school_classes,...['junior','senior'].map(c=>({id:`next-${c}`,campus:c,class_level:c==='junior'?'Grade 2':'Form 2',class_stream:c==='junior'?'':'Blue',capacity:50,current_occupancy:0}))].filter(c=>campus==='all'||c.campus===campus)}
       return {abortSignal(){return this},then(resolve,reject){return Promise.resolve({data,error:null}).then(resolve,reject)}}

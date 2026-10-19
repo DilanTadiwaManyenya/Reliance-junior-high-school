@@ -37,6 +37,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
         { id: 'classes', label: 'Classes', iconKey: 'staff', show: activeRole === 'admin' },
         { id: 'year-planning', label: 'Year rollover readiness', iconKey: 'roster', show: activeRole === 'admin' && ['all','junior','senior'].includes(profile?.campus) },
         { id: 'year-rollover', label: 'Reviewed year rollover', iconKey: 'roster', show: activeRole === 'admin' && ['all','junior','senior'].includes(profile?.campus) },
+        { id: 'reporting-periods', label: 'Terms & marks locking', iconKey: 'roster', show: activeRole === 'admin' && ['all','junior','senior'].includes(profile?.campus) },
       ].filter(i => i.show)
     },
     {

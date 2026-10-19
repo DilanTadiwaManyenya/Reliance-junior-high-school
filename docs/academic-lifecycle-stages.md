@@ -20,6 +20,8 @@ Delivered in Stage 8; see stage8-controlled-rollover.md. Source-year contexts re
 
 Use a campus/year/term registry with controlled open/close/reopen actions and recorded reasons. Enforce closed-period writes in the database for all affected report/mark paths, including assessments, individual marks, Junior components and development ratings. Reopening requires the existing administrator/campus/MFA checks and an audit event. Move current-period defaults to the registry deliberately rather than changing calendar-derived defaults in unrelated modules at once.
 
+Delivered in Stage 9; see stage9-reporting-periods.md. New coursework defaults use the registry; other calendar and fee defaults retain their existing behavior. Rollout leaves existing periods open and retains no acceptance edits.
+
 ## Following acceptance
 
 Complete end-to-end report exports, Zimbabwe configuration, live/test separation, backup/restore evidence and role-specific handover/go-live checks against the user's original audit. These are separate acceptance items, not implied complete by an individual stage. Each implementation stage includes focused SQL, live verification, appropriate automated checks, its own commit/push and both hosted deployment results.
