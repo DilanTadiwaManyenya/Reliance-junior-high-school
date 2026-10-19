@@ -1,0 +1,22 @@
+.record-history-switch { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 20px; }
+.record-history-switch button { min-height:44px; padding:10px 16px; border:1px solid #ccd5e4; border-radius:8px; color:#172b59; background:#fff; font:inherit; cursor:pointer; }
+.record-history-switch button[aria-pressed="true"] { color:#fff; background:#172b59; }
+.record-history { min-width:0; }
+.record-history-filters { display:grid; grid-template-columns:2fr 1.5fr 1fr 1fr auto; align-items:end; gap:12px; margin:20px 0; }
+.record-history-filters label { display:grid; gap:6px; min-width:0; font-weight:600; }
+.record-history-filters input,.record-history-filters select { width:100%; min-width:0; min-height:44px; padding:10px; border:1px solid #ccd5e4; border-radius:8px; font:inherit; font-size:16px; background:#fff; color:#172b59; }
+.record-history-list { display:grid; gap:16px; margin:16px 0; }
+.record-history-event { min-width:0; padding:20px; overflow-wrap:anywhere; }
+.record-history-event-heading { display:flex; justify-content:space-between; align-items:start; gap:12px; flex-wrap:wrap; }
+.record-history-event h2 { margin:0; font-size:1.1rem; }
+.record-history-event p { margin:8px 0; }
+.record-history-event time,.record-history-context { color:#53647c; font-size:.9rem; }
+.record-history-event summary { cursor:pointer; min-height:44px; padding:12px 0; font-weight:700; }
+.record-history-event dl { margin:0; }
+.record-history-field { display:grid; grid-template-columns:1fr 2fr 2fr; gap:12px; padding:12px 0; border-top:1px solid #e4e9f1; }
+.record-history-field dt { font-weight:700; }
+.record-history-field dd { min-width:0; margin:0; white-space:pre-wrap; }
+.record-history-field dd span { display:block; color:#53647c; font-size:.8rem; margin-bottom:4px; }
+@media(max-width:1000px) { .record-history-filters { grid-template-columns:1fr 1fr; } }
+@media(max-width:600px) { .record-history-filters { grid-template-columns:1fr; } .record-history-event { padding:16px; } .record-history-field { grid-template-columns:1fr; gap:8px; } .record-history-switch button { flex:1; } }
+@media print { .record-history-switch,.record-history-filters { display:none; } .record-history-event { break-inside:avoid; } }

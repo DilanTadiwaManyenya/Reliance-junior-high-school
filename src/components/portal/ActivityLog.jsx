@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, RotateCcw, Search, SlidersHorizontal, UsersRound } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
+import RecordChangeHistory from './RecordChangeHistory'
 
 const tabs = { parents: ['parent'], students: ['student'], staff: ['admin', 'principal', 'teacher', 'accountant'] }
 const relativeTime = date => {
@@ -12,6 +13,13 @@ const humanActivity = row => {
   return /^Viewed\s+\//i.test(text) ? `Opened ${text.replace(/^Viewed\s+\/portal\/?/i, '').replaceAll('-', ' ') || 'portal workspace'}` : text
 }
 export default function ActivityLog({ campusScope = null }) {
+  const [view, setView] = useState('activity')
+  return <><div className="record-history-switch" aria-label="Audit view">
+    <button type="button" aria-pressed={view === 'activity'} onClick={() => setView('activity')}>Portal activity</button>
+    <button type="button" aria-pressed={view === 'changes'} onClick={() => setView('changes')}>Record changes</button>
+  </div>{view === 'changes' ? <RecordChangeHistory campusScope={campusScope} /> : <PortalActivityLog campusScope={campusScope} />}</>
+}
+function PortalActivityLog({ campusScope }) {
   const { supabase } = useAuth(); const [tab, setTab] = useState('staff'); const [rows, setRows] = useState([]); const [query, setQuery] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(true)
   const scopeName = campusScope ? `${campusScope[0].toUpperCase()}${campusScope.slice(1)} campus` : 'All school'
   const scopeDescription = campusScope ? `Your audit scope is locked to ${scopeName}. Records outside this campus are not available.` : 'Review school-wide portal events and quickly trace who did what.'

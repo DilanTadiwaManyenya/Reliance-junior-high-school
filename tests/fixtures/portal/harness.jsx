@@ -53,6 +53,7 @@ const db = {
   school_expenses: [{ id: 'expense', expense_date: today, category: 'Stationery', description: 'Classroom books and materials for the new school term', supplier: 'Example supplier', amount: 40, status: 'pending', campus: 'senior', created_at: today }],
   announcements: [{ id: 'announcement', title: 'Term update for parents and staff', body: 'A longer school announcement to check wrapping and reading on mobile screens.', content: 'School term update.', audience: 'all', created_at: today }],
   audit_logs: [{ id: 'audit', actor_role: 'admin', description: 'Updated an example learner record', action_type: 'update', created_at: today }],
+  school_record_changes: Array.from({ length: 51 }, (_, index) => ({ id: `change-${index}`, created_at: new Date(Date.now() - index * 60000).toISOString(), source_table: index % 3 === 0 ? 'academic_records' : index % 3 === 1 ? 'students' : 'attendance', operation: 'UPDATE', actor_name: 'Example Teacher With A Longer Display Name', actor_role: 'teacher', learner_name: index === 50 ? 'Brian Example' : 'Alexandra Example Learner With A Longer Name', campus: campus === 'all' ? 'senior' : campus, context: { subject: 'Combined Science', term: '3', year: 2026 }, old_values: { score: 60 }, new_values: { score: 75 }, changed_fields: ['score'] })),
 }
 if (params.has('printFixture')) {
   const base = { student_id: 'learner-0', term: '3', year: 2026, created_at: today }
@@ -64,17 +65,19 @@ if (params.has('printFixture')) {
   db.report_card_comments = [{ ...base, form_teacher_comment: comment.repeat(2), principal_comment: comment.repeat(2), head_signature_initials: 'E.A.', co_curricular_activities: 'Athletics, music, chess and school leadership activities.' }]
 }
 window.fixtureWrites = []
+window.fixtureHistoryError = params.has('historyError')
 function query(table) {
   let operation = 'select', payload, single = false, start = 0, end = Infinity
   const filters = []
   const builder = {
     select() { return this }, eq(key, value) { filters.push(row => String(row[key]) === String(value)); return this },
     in(key, values) { filters.push(row => values.includes(row[key])); return this }, match(values) { Object.entries(values).forEach(([key, value]) => this.eq(key, value)); return this },
-    not() { return this }, neq() { return this }, is() { return this }, ilike() { return this }, or() { return this }, filter() { return this }, gte() { return this }, lte() { return this }, gt() { return this }, lt() { return this }, order() { return this }, limit() { return this },
+    not() { return this }, neq() { return this }, is() { return this }, ilike(key,value) { if(table==='school_record_changes') {const needle=value.slice(1,-1).replace(/\\([\\%_])/g,'$1').toLowerCase();filters.push(row=>String(row[key]||'').toLowerCase().includes(needle))} return this }, or() { return this }, filter() { return this }, gte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])>=Date.parse(value));return this }, lte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])<=Date.parse(value));return this }, gt() { return this }, lt() { return this }, order() { return this }, limit() { return this },
     range(from, to) { start = from; end = to; return this }, single() { single = true; return this }, maybeSingle() { single = true; return this }, abortSignal() { return this },
     insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this }, update(value) { operation = 'update'; payload = value; return this }, delete() { operation = 'delete'; return this },
     then(resolve, reject) {
       let data = (db[table] || []).filter(row => filters.every(filter => filter(row))).slice(start, end + 1)
+      if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if (table === 'academic_records' && window.fixtureParentError) return Promise.resolve({ data: null, error: { message: 'Synthetic learner records unavailable' } }).then(resolve, reject)
       if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
       if (operation !== 'select') { window.fixtureWrites.push({ table, operation, payload }); data = [{ id: 'created', ...payload }] }
