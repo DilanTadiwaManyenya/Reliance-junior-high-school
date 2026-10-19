@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/useAuth'
 import './recordChangeHistory.css'
 
-const sources = { students: 'Learner details', academic_records: 'Senior marks', attendance: 'Attendance', coursework_marks: 'Coursework marks', junior_component_marks: 'Junior marks', junior_developmental_ratings: 'Development ratings' }
+const sources = { students: 'Learner details', academic_records: 'Senior marks', attendance: 'Attendance', coursework_marks: 'Coursework marks', junior_component_marks: 'Junior marks', junior_developmental_ratings: 'Development ratings', report_period_contexts: 'Historical report context' }
 const label = field => field.replaceAll('_', ' ').replace(/^./, letter => letter.toUpperCase())
 const display = value => value === null || value === undefined ? 'Not set' : typeof value === 'object' ? JSON.stringify(value) : String(value)
 const pageSize = 50

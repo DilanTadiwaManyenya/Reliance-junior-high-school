@@ -1,3 +1,4 @@
+import ReportClassHistory from '../../components/portal/ReportClassHistory'
 import MobileRecordTable from '../../components/portal/MobileRecordTable'
 import InventoryPOS from "../../components/portal/InventoryPOS";
 import ExpensesCashbook from "../../components/portal/ExpensesCashbook";
@@ -1509,6 +1510,9 @@ export default function StaffDashboard() {
 
   if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
     return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : managerCampusScope ? `${managerCampusScope === "junior" ? "Junior" : "Senior"} School` : "All school"} query={progressQuery} onQueryChange={setProgressQuery} onOpenProgress={student => openLearnerProfile(student, { initialTab: isTeacher ? "Summary" : "Academics", origin: "progress-reports" })} /></div>;
+  if (section === "historical-reports" && (manager || isAccountant))
+    return <div className="staff-content-area"><ReportClassHistory supabase={supabase} campusScope={managerCampusScope || "all"} canReview={isAdmin} /></div>;
+
   /* Accountant: show fees dashboard */
   if (accountant)
     return (

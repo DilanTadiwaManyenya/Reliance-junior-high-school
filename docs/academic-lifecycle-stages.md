@@ -8,6 +8,8 @@ Deliver a read-only administrator review of the current active roster, suggested
 
 Before applying promotions, capture each learner's class, stream and campus for each academic year/reporting period. Make report headers, curriculum, grades, teacher allocations, rankings and access rules use the selected historical context. Admission numbers remain permanent identifiers; enrolled_year remains the admission year. Clearly distinguish inferred legacy context from confirmed school records. An old report must not become a new class's report after a learner moves.
 
+Delivered in Stage 7; see stage7-historical-report-contexts.md for verification and the school review workflow. Existing contexts remain inferred until confirmed against school registers. No permanent promotions have been applied.
+
 ## Stage 8 — controlled promotion and year rollover
 
 Add school-reviewed promotion, retention, completion and transfer decisions, with an explicit destination class/stream. Main Admin handles Junior→Senior transitions. Sixth Form entrance and final-year completion require school decisions. Preview totals and capacity before applying; reject changed/stale source rows, double application and unauthorized campus changes. Apply eligible decisions atomically with a permanent operation trail and a reviewed correction workflow. Existing reports, admissions and fee histories remain intact. Fee creation needs a separate explicit school policy, never an automatic duplicate charge.

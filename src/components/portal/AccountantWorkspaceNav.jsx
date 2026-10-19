@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 const tabs = [
   ['fees', 'Finance'], ['learner-profiles', 'Learner profiles'],
   ['progress-reports', 'Academic progress'], ['expenses', 'Expenses & Cashbook'],
-  ['inventory', 'Point of sale'],
+  ['inventory', 'Point of sale'], ['historical-reports', 'Historical reports'],
 ]
 export default function AccountantWorkspaceNav({ section, onChange }) {
   const menu = useRef(null)

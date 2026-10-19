@@ -30,7 +30,8 @@
     "test:security": "node --test tests/security-campus-stage1.test.mjs tests/security-rpc-stage2.test.mjs tests/security-mfa-stage3.test.mjs && node tests/admin-mfa.browser.mjs",
     "test:student-registration": "node --test tests/student-registration.test.mjs",
     "test:record-history": "node --test tests/school-record-history.test.mjs && node tests/school-record-history.browser.mjs",
-    "test:rollover-readiness": "node --test tests/year-rollover-readiness.test.mjs && node tests/year-rollover-readiness.browser.mjs"
+    "test:rollover-readiness": "node --test tests/year-rollover-readiness.test.mjs && node tests/year-rollover-readiness.browser.mjs",
+    "test:historical-reports": "node --test tests/historical-reports.test.mjs && node tests/historical-reports.browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

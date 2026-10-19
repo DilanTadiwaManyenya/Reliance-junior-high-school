@@ -1,4 +1,5 @@
 import { getJuniorReportBook, getSubjectsByGradeStream } from '../../../src/utils/CurriculumData'
+import { calculateGrade } from '../../../src/utils/GradeCalculator'
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, useLocation } from 'react-router-dom'
@@ -64,7 +65,32 @@ if (params.has('printFixture')) {
   db.junior_developmental_ratings = (blueprint?.areas || []).map(development_area => ({ ...base, development_area, rating: 4 }))
   db.report_card_comments = [{ ...base, form_teacher_comment: comment.repeat(2), principal_comment: comment.repeat(2), head_signature_initials: 'E.A.', co_curricular_activities: 'Athletics, music, chess and school leadership activities.' }]
 }
+// Synthetic frozen context payloads; actual RLS and capture functions are tested in PostgreSQL.
+function frozenRules(level,stream) {
+ const scale=[]
+ for(let mark=100;mark>=0;mark--){const grade=calculateGrade(mark,level);if(scale.at(-1)?.grade===grade.grade)scale.at(-1).minimum=mark;else scale.push({...grade,minimum:mark})}
+ return {subjects:getSubjectsByGradeStream(level,stream),junior_book:getJuniorReportBook(level),grading_scale:scale}
+}
+function contextFor(student,year=2026,term=3,level=student.class_level,stream=student.class_stream,side=student.campus) {
+ return {id:`context-${student.id}-${year}-${term}`,student_id:student.id,academic_year:year,term,campus:side,class_level:level,class_stream:stream,learner_name:student.full_name,admission_number:student.admission_number,enrolled_year:student.enrolled_year,active_when_captured:true,
+  report_rules:frozenRules(level,stream),class_teacher:{teacher_name:'Recorded class teacher',signature_initials:'R.C.',assigned_at:'2026-01-01'},subject_teachers:getSubjectsByGradeStream(level,stream).map(subject=>({subject,teacher_name:'Recorded subject teacher',signature_initials:'R.S.'})),provenance:'captured',staffing_verified_at:today,captured_at:today}
+}
+db.report_period_contexts=learners.map(student=>contextFor(student))
+if(params.has('historyPromotion')){
+ const student=learners[0],junior=params.get('historyPromotion')==='junior-senior'
+ student.class_level=junior?'Form 1':'Lower Six';student.campus='senior';student.class_stream=junior?'Blue':'Sciences'
+ const old=contextFor(student,2026,3,junior?'Grade 1':'Form 4','Blue',junior?'junior':'senior')
+ old.provenance='legacy_inferred';old.staffing_verified_at=null
+ const current=contextFor(student,2027,1)
+ current.subject_teachers=current.subject_teachers.map(row=>({...row,teacher_name:'New year teacher'}))
+ db.report_period_contexts=[current,old,...db.report_period_contexts.filter(row=>row.student_id!==student.id)]
+ db.academic_records=[{id:'new-math',student_id:student.id,subject:'Mathematics',score:75,term:'1',year:2027,created_at:today},...(!junior?[{id:'old-math',student_id:student.id,subject:'Mathematics',score:75,term:'3',year:2026,created_at:today}]:[])]
+ db.junior_component_marks=junior?getJuniorReportBook('Grade 1').subjects.flatMap(subject=>subject.components.map(component=>({id:subject.subject+component,student_id:student.id,subject:subject.subject,component,score:8,possible_mark:10,year:2026,term:'3'}))):[]
+}
 window.fixtureWrites = []
+window.fixtureReportError = params.has('reportError')
+window.fixtureReportCalls = []
+window.fixtureReviewCalls = []
 window.fixtureHistoryError = params.has('historyError')
 window.fixtureRolloverError = params.has('rolloverError')
 window.fixtureRolloverCalls = []
@@ -74,11 +100,13 @@ function query(table) {
   const builder = {
     select() { return this }, eq(key, value) { filters.push(row => String(row[key]) === String(value)); return this },
     in(key, values) { filters.push(row => values.includes(row[key])); return this }, match(values) { Object.entries(values).forEach(([key, value]) => this.eq(key, value)); return this },
-    not() { return this }, neq() { return this }, is() { return this }, ilike(key,value) { if(table==='school_record_changes') {const needle=value.slice(1,-1).replace(/\\([\\%_])/g,'$1').toLowerCase();filters.push(row=>String(row[key]||'').toLowerCase().includes(needle))} return this }, or() { return this }, filter() { return this }, gte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])>=Date.parse(value));return this }, lte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])<=Date.parse(value));return this }, gt() { return this }, lt() { return this }, order() { return this }, limit() { return this },
+    not() { return this }, neq() { return this }, is() { return this }, ilike(key,value) { if(['school_record_changes','report_period_contexts'].includes(table)) {const needle=value.slice(1,-1).replace(/\\([\\%_])/g,'$1').toLowerCase();filters.push(row=>String(row[key]||'').toLowerCase().includes(needle))} return this }, or() { return this }, filter() { return this }, gte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])>=Date.parse(value));return this }, lte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])<=Date.parse(value));return this }, gt() { return this }, lt() { return this }, order() { return this }, limit() { return this },
     range(from, to) { start = from; end = to; return this }, single() { single = true; return this }, maybeSingle() { single = true; return this }, abortSignal() { return this },
     insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this }, update(value) { operation = 'update'; payload = value; return this }, delete() { operation = 'delete'; return this },
     then(resolve, reject) {
-      let data = (db[table] || []).filter(row => filters.every(filter => filter(row))).slice(start, end + 1)
+      let data = (db[table] || []).filter(row => filters.every(filter => filter(row)))
+      if(table==='report_period_contexts') data=data.filter(row=>role==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||row.campus===campus))
+      data=data.slice(start,end+1)
       if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if (table === 'academic_records' && window.fixtureParentError) return Promise.resolve({ data: null, error: { message: 'Synthetic learner records unavailable' } }).then(resolve, reject)
       if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
@@ -100,6 +128,19 @@ const fixtureMfa = {
 const supabase = {
   from: query,
   rpc(name, payload) {
+    if(name==='read_report_period') {
+      window.fixtureReportCalls.push(payload)
+      const c=db.report_period_contexts.find(row=>row.student_id===payload.p_student&&row.academic_year===payload.p_year&&row.term===payload.p_term)
+      const permitted=c&&(role==='parent'?db.parent_student.some(link=>link.student_id===c.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||campus===c.campus))
+      const match=row=>row.student_id===payload.p_student&&Number(row.year||row.academic_year||new Date(row.created_at||Date.now()).getFullYear())===payload.p_year&&String(row.term).replace('Term ','')===String(payload.p_term)
+      const result=window.fixtureReportError||!permitted?{data:null,error:{message:'Synthetic unavailable historical report'}}:{data:{context:c,academics:db.academic_records.filter(match),componentMarks:(db.junior_component_marks||[]).filter(match),developmentalRatings:(db.junior_developmental_ratings||[]).filter(match),reportComments:(db.report_card_comments||[]).filter(match),attendance:db.attendance.filter(row=>row.student_id===payload.p_student),sports:db.sports_records.filter(match),awards:db.student_awards.filter(match),fees:db.fee_balances.filter(row=>row.student_id===payload.p_student),termSettings:db.term_settings,reportFees:db.report_term_fee_settings},error:null}
+      return {abortSignal(){return this},then(resolve,reject){return Promise.resolve(result).then(resolve,reject)}}
+    }
+    if(name==='review_report_contexts') {
+      window.fixtureReviewCalls.push(payload)
+      for(const row of db.report_period_contexts.filter(row=>payload.p_ids.includes(row.id))){row.confirmed_at=new Date().toISOString();if(payload.p_refresh_staffing)row.staffing_verified_at=new Date().toISOString()}
+      return Promise.resolve({data:payload.p_ids.length,error:null})
+    }
     if (name === 'preview_year_rollover') {
       window.fixtureRolloverCalls.push(payload)
       const sourceCampus=payload.p_campus

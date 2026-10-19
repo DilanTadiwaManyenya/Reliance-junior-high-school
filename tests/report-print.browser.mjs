@@ -5,7 +5,7 @@ const runtime=await startPortalBrowser()
 await mkdir('tmp/pdfs/report-print',{recursive:true})
 try {
 for(const role of ['parent','admin','accountant']) for(const learnerClass of ['ECD A','ECD B','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Form 1','Form 2','Form 3','Form 4','Lower Six','Upper Six']) {
- const page=await openPortal(runtime.browser,runtime.base,{role,learnerClass,printFixture:'',...(role==='parent'?{route:'/portal/learner/learner-0/academics'}:{section:role==='admin'?'roster':'learner-profiles'})},role==='admin'?1280:role==='accountant'?320:390)
+ const page=await openPortal(runtime.browser,runtime.base,{role,learnerClass,printFixture:'',...(role==='accountant'?{campus:/^(Grade|ECD)/.test(learnerClass)?'junior':'senior'}:{}),...(role==='parent'?{route:'/portal/learner/learner-0/academics'}:{section:role==='admin'?'roster':'learner-profiles'})},role==='admin'?1280:role==='accountant'?320:390)
  if(role!=='parent') {
   await page.getByRole('button',{name:role==='admin'?/Open profile for Alexandra/:'Open profile',exact:role!=='admin'}).first().click()
   await page.getByRole('navigation',{name:'Learner profile sections'}).getByRole('button',{name:'Academics',exact:true}).click()

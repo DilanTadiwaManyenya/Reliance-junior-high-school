@@ -1,0 +1,66 @@
+import assert from 'node:assert/strict'
+import {mkdir} from 'node:fs/promises'
+import {startPortalBrowser,openPortal,portalLayoutMetrics} from './helpers/portal-browser.mjs'
+const runtime=await startPortalBrowser()
+try{
+ for(const width of [320,390,667,1280])for(const historyPromotion of ['junior-senior','olevel-alevel']){
+  const page=await openPortal(runtime.browser,runtime.base,{role:'parent',historyPromotion,route:'/portal/learner/learner-0/academics'},width)
+  await page.locator('.report-card').waitFor()
+  await page.getByLabel('Report year',{exact:true}).selectOption('2026')
+  if(historyPromotion==='junior-senior'){
+   await page.locator('.junior-report-book').waitFor()
+   assert.match(await page.locator('.junior-report-meta').innerText(),/Grade 1/)
+   assert.match(await page.locator('.junior-report-comments').innerText(),/Recorded class teacher/)
+  }else{
+   await page.locator('.report-dashboard').waitFor()
+   assert.match(await page.locator('.report-card-meta').innerText(),/Form 4/)
+   const row=page.locator('.report-table tbody tr').filter({has:page.getByRole('cell',{name:'Mathematics',exact:true})})
+   assert.equal((await row.locator('td').nth(3).innerText()).trim(),'A','old O-Level scale is preserved')
+   assert.match(await row.innerText(),/Recorded subject teacher/)
+  }
+  assert.match(await page.locator('.report-context-notice').innerText(),/school verification pending/)
+  await page.emulateMedia({media:'print'});await page.evaluate(()=>window.dispatchEvent(new Event('beforeprint')))
+  assert.equal(await page.locator('[data-print-report]').count(),1)
+  assert.match(await page.locator('[data-print-report]').innerText(),/verification pending/)
+  await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));await page.emulateMedia({media:'screen'})
+  const metrics=await portalLayoutMetrics(page)
+  assert.ok(metrics.documentWidth<=width+1,JSON.stringify(metrics));assert.deepEqual(metrics.clipped,[]);assert.deepEqual(metrics.smallFields,[])
+  if(width===390&&historyPromotion==='junior-senior'){await mkdir('tmp/historical-reports-review',{recursive:true});await page.screenshot({path:'tmp/historical-reports-review/old-junior-390.png'})}
+  await page.getByLabel('Report year',{exact:true}).selectOption('2027')
+  await page.locator('.report-dashboard').waitFor()
+  assert.match(await page.locator('.report-card-meta').innerText(),historyPromotion==='junior-senior'?/Form 1/:/Lower Six/)
+  if(historyPromotion==='olevel-alevel'){
+   const row=page.locator('.report-table tbody tr').filter({has:page.getByRole('cell',{name:'Mathematics',exact:true})})
+   assert.equal((await row.locator('td').nth(3).innerText()).trim(),'B','new A-Level period uses its own scale')
+   assert.match(await row.innerText(),/New year teacher/)
+  }
+  assert.deepEqual(page.portalErrors,[]);await page.close()
+  console.log(`PASS ${historyPromotion} ${width}px: period class, curriculum, grade rules, staffing and print provenance`)
+ }
+ const admin=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'historical-reports',historyPromotion:'junior-senior'},390)
+ await admin.locator('.report-context-entry').first().waitFor()
+ await admin.locator('.report-context-entry').first().getByRole('checkbox').check()
+ await admin.getByLabel('Review reason',{exact:true}).fill('Verified against the original class register')
+ await admin.getByLabel(/Use current teacher assignments/).check()
+ await admin.getByRole('button',{name:'Save reviewed contexts',exact:true}).click()
+ await admin.getByText('1 reporting contexts reviewed.',{exact:true}).waitFor()
+ assert.match(await admin.locator('.report-context-entry').first().innerText(),/School-confirmed class/)
+ assert.equal(await admin.evaluate(()=>window.fixtureReviewCalls.length),1)
+ assert.equal(await admin.evaluate(()=>window.fixtureWrites.some(row=>['students','fee_balances','academic_records'].includes(row.table))),false)
+ await admin.close();console.log('PASS administrator review confirms metadata with a reason; learner/fees/marks remain untouched')
+ for(const role of ['accountant','principal']){
+  const page=await openPortal(runtime.browser,runtime.base,{role,campus:'junior',section:'historical-reports',historyPromotion:'junior-senior'},390)
+  await page.locator('.report-context-entry').first().waitFor()
+  assert.equal(await page.getByRole('checkbox').count(),0)
+  await page.getByRole('button',{name:'View historical report',exact:true}).first().click()
+  await page.locator('.junior-report-book').waitFor()
+  assert.equal(await page.getByRole('button',{name:'Save official report notes',exact:true}).count(),0)
+  assert.equal(await page.evaluate(()=>window.fixtureReviewCalls.length),0)
+  await page.close()
+ }
+ console.log('PASS campus accountant/principal historical access remains read-only')
+ const error=await openPortal(runtime.browser,runtime.base,{role:'parent',reportError:'1',route:'/portal/learner/learner-0/academics'},390)
+ await error.getByRole('alert').waitFor();await error.evaluate(()=>{window.fixtureReportError=false})
+ await error.getByRole('button',{name:'Refresh report',exact:true}).click();await error.locator('.report-card').waitFor();await error.close()
+ console.log('PASS unavailable report fails closed and refresh recovers')
+}finally{await runtime.close()}

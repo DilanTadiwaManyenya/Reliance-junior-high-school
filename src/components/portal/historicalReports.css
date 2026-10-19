@@ -1,0 +1,14 @@
+.historical-report-controls,.report-context-filters { display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin:16px 0; }
+.historical-report-controls label,.report-context-filters label { display:grid; gap:6px; min-width:0; }
+.historical-report-controls select,.report-context-filters :is(select,input),.report-context-review :is(input,select,textarea) { min-height:44px; min-width:0; padding:10px; border:1px solid #ccd5e4; border-radius:8px; font:inherit; font-size:16px; background:#fff; color:#172b59; }
+.report-context-notice { margin:12px 16px; padding:12px; border:1px solid #dfb04b; color:#694510; background:#fff8e7; font-size:.85rem; }
+.report-context-list { display:grid; gap:12px; margin:20px 0; }
+.report-context-entry { min-width:0; padding:16px; overflow-wrap:anywhere; }
+.report-context-entry h2 { font-size:1.1rem; margin-top:0; }
+.report-context-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.report-context-review { display:grid; gap:12px; padding:16px; margin:16px 0; border:1px solid #ccd5e4; background:#fff; border-radius:10px; }
+.report-context-review label { display:grid; gap:6px; min-width:0; }
+.report-context-review .review-checkbox { display:flex; align-items:center; gap:10px; }
+.report-context-review textarea { width:100%; box-sizing:border-box; }
+@media(max-width:600px) { .historical-report-controls,.report-context-filters { display:grid; grid-template-columns:1fr; }.historical-report-controls select,.report-context-filters :is(input,select) { width:100%; box-sizing:border-box; } }
+@media print { .report-context-notice { break-inside:avoid; } }

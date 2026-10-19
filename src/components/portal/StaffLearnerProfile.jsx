@@ -421,6 +421,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       {!teacherView && activeTab === "Academics" && (
         <AcademicReportCard
           student={student}
+          reportRevision={academicRevision}
           academics={state.academics}
           juniorComponentMarks={state.juniorComponentMarks}
           juniorDevelopmentalRatings={state.juniorDevelopmentalRatings}
