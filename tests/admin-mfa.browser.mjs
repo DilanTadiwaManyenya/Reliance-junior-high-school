@@ -11,9 +11,16 @@ try{
   assert.equal(await page.locator('.staff-shell').count(),0,'admin data shell hidden until verified')
   if(flow==='error')await gate.getByRole('button',{name:'Try again'}).click()
   if(flow!=='verify'){
+   const android=gate.getByRole('link',{name:'Install Google Authenticator for Android',exact:true})
+   const iphone=gate.getByRole('link',{name:'Install Google Authenticator for iPhone',exact:true})
+   assert.equal(await android.getAttribute('href'),'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2')
+   assert.equal(await iphone.getAttribute('href'),'https://apps.apple.com/app/google-authenticator/id388497605')
+   for(const store of [android,iphone]){assert.equal(await store.getAttribute('target'),'_blank');assert.match(await store.getAttribute('rel'),/noreferrer/)}
    await gate.getByRole('button',{name:'Set up authenticator'}).click()
    await gate.getByAltText('Authenticator setup QR code').waitFor()
    assert.equal(await page.evaluate(()=>window.fixtureMfaEnrolls),1)
+   assert.equal(await android.isVisible(),true,'store help remains available after enrollment without restarting setup')
+   await gate.getByRole('heading',{name:'3. Enter the code from your app',exact:true}).waitFor()
    await gate.getByText('On the same phone? Copy a setup key').click();assert.equal(await gate.getByLabel('Setup key').inputValue(),'SYNTHETICSETUPKEY')
    await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.copiedFixtureKey=value}}})})
    await gate.getByRole('button',{name:'Copy setup key',exact:true}).click()
