@@ -36,6 +36,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
         { id: 'historical-reports', label: 'Historical reports', iconKey: 'roster', show: manager || accountant },
         { id: 'classes', label: 'Classes', iconKey: 'staff', show: activeRole === 'admin' },
         { id: 'year-planning', label: 'Year rollover readiness', iconKey: 'roster', show: activeRole === 'admin' && ['all','junior','senior'].includes(profile?.campus) },
+        { id: 'year-rollover', label: 'Reviewed year rollover', iconKey: 'roster', show: activeRole === 'admin' && ['all','junior','senior'].includes(profile?.campus) },
       ].filter(i => i.show)
     },
     {

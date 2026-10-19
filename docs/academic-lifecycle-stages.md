@@ -14,6 +14,8 @@ Delivered in Stage 7; see stage7-historical-report-contexts.md for verification 
 
 Add school-reviewed promotion, retention, completion and transfer decisions, with an explicit destination class/stream. Main Admin handles Junior→Senior transitions. Sixth Form entrance and final-year completion require school decisions. Preview totals and capacity before applying; reject changed/stale source rows, double application and unauthorized campus changes. Apply eligible decisions atomically with a permanent operation trail and a reviewed correction workflow. Existing reports, admissions and fee histories remain intact. Fee creation needs a separate explicit school policy, never an automatic duplicate charge.
 
+Delivered in Stage 8; see stage8-controlled-rollover.md. Source-year contexts require school confirmation before real application. Rollout acceptance uses a rollback transaction and retains no real placements.
+
 ## Stage 9 — terms and marks locking
 
 Use a campus/year/term registry with controlled open/close/reopen actions and recorded reasons. Enforce closed-period writes in the database for all affected report/mark paths, including assessments, individual marks, Junior components and development ratings. Reopening requires the existing administrator/campus/MFA checks and an audit event. Move current-period defaults to the registry deliberately rather than changing calendar-derived defaults in unrelated modules at once.

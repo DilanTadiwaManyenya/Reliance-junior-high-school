@@ -1,4 +1,5 @@
 import ReportClassHistory from '../../components/portal/ReportClassHistory'
+import YearRolloverWorkflow from '../../components/portal/YearRolloverWorkflow'
 import MobileRecordTable from '../../components/portal/MobileRecordTable'
 import InventoryPOS from "../../components/portal/InventoryPOS";
 import ExpensesCashbook from "../../components/portal/ExpensesCashbook";
@@ -1603,6 +1604,9 @@ export default function StaffDashboard() {
 
   if (section === "year-planning" && isAdmin)
     return <div className="staff-content-area"><YearRolloverReadiness supabase={supabase} campusScope={adminCampusScope || "all"} /></div>;
+
+  if (section === "year-rollover" && isAdmin)
+    return <div className="staff-content-area"><YearRolloverWorkflow supabase={supabase} campusScope={adminCampusScope || "all"} /></div>;
 
   if (section === "settings")
     return (

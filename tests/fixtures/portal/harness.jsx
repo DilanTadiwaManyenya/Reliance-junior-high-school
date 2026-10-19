@@ -76,6 +76,7 @@ function contextFor(student,year=2026,term=3,level=student.class_level,stream=st
   report_rules:frozenRules(level,stream),class_teacher:{teacher_name:'Recorded class teacher',signature_initials:'R.C.',assigned_at:'2026-01-01'},subject_teachers:getSubjectsByGradeStream(level,stream).map(subject=>({subject,teacher_name:'Recorded subject teacher',signature_initials:'R.S.'})),provenance:'captured',staffing_verified_at:today,captured_at:today}
 }
 db.report_period_contexts=learners.map(student=>contextFor(student))
+db.year_rollover_batches=[]
 if(params.has('historyPromotion')){
  const student=learners[0],junior=params.get('historyPromotion')==='junior-senior'
  student.class_level=junior?'Form 1':'Lower Six';student.campus='senior';student.class_stream=junior?'Blue':'Sciences'
@@ -128,6 +129,21 @@ const fixtureMfa = {
 const supabase = {
   from: query,
   rpc(name, payload) {
+    if(name==='review_year_rollover'){
+      const data={campus:payload.p_campus,total:learners.filter(s=>s.campus===payload.p_campus).length,rows:learners.filter(s=>s.campus===payload.p_campus).map(s=>({...s,source_year:2026,target_year:2027,expected_version:'fixture-version',history_reviewed:params.has('rolloverReviewed'),eligible_year:true,suggested_level:s.campus==='junior'?'Grade 2':'Form 2'})),classes:[...db.school_classes,...['junior','senior'].map(c=>({id:`next-${c}`,campus:c,class_level:c==='junior'?'Grade 2':'Form 2',class_stream:c==='junior'?'':'Blue',capacity:50,current_occupancy:0}))].filter(c=>campus==='all'||c.campus===campus)}
+      return {abortSignal(){return this},then(resolve,reject){return Promise.resolve({data,error:null}).then(resolve,reject)}}
+    }
+    if(name==='apply_year_rollover'){
+      window.fixtureWrites.push({table:`rpc:${name}`,payload})
+      if(!payload.p_preview){
+        if(params.has('rolloverLostResponse')&&!window.fixtureLostRollover){window.fixtureLostRollover=true;return Promise.resolve({data:null,error:{message:'Network request failed'}})}
+        db.year_rollover_batches.push({id:payload.p_batch_id,created_at:today,reason:payload.p_reason,state:'applied',campus:payload.p_campus})
+      }
+      return Promise.resolve({data:{batch_id:payload.p_batch_id,count:payload.p_decisions.length,applied:!payload.p_preview,capacity:[{class_id:'next-junior',campus:payload.p_campus,class_level:payload.p_campus==='junior'?'Grade 2':'Form 2',projected_occupancy:1,capacity:50}]},error:null})
+    }
+    if(name==='reverse_year_rollover'){
+      window.fixtureWrites.push({table:`rpc:${name}`,payload});const batch=db.year_rollover_batches.find(b=>b.id===payload.p_batch_id);if(batch){batch.state='reversed';batch.reversal_reason=payload.p_reason}return Promise.resolve({data:1,error:null})
+    }
     if(name==='read_report_period') {
       window.fixtureReportCalls.push(payload)
       const c=db.report_period_contexts.find(row=>row.student_id===payload.p_student&&row.academic_year===payload.p_year&&row.term===payload.p_term)

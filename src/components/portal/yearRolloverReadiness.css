@@ -12,3 +12,8 @@
 .rollover-card dl>div { display:grid; grid-template-columns:1fr 2fr; gap:12px; padding:10px 0; border-top:1px solid #e4e9f1; }
 .rollover-card dt { font-weight:700; }.rollover-card dd { margin:0; min-width:0; }
 @media(max-width:700px) { .rollover-cards,.rollover-summary { grid-template-columns:1fr; }.rollover-filters { display:grid; grid-template-columns:1fr; }.rollover-filters label { min-width:0; }.rollover-card { padding:16px; }.rollover-card dl>div { grid-template-columns:1fr; gap:4px; } }
+
+.rollover-workflow-fields { border:0; padding:0; margin:0; min-width:0; display:grid; gap:14px; }
+.rollover-workflow-fields label,.rollover-card label { display:grid; gap:6px; min-width:0; }
+.rollover-workflow-fields :is(select,input,textarea),.rollover-card textarea { min-width:0; max-width:100%; box-sizing:border-box; padding:10px; border:1px solid #ccd5e4; border-radius:8px; font:inherit; font-size:16px; min-height:44px; }
+.rollover-reference { overflow-wrap:anywhere; }

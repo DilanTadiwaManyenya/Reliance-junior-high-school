@@ -31,7 +31,8 @@
     "test:student-registration": "node --test tests/student-registration.test.mjs",
     "test:record-history": "node --test tests/school-record-history.test.mjs && node tests/school-record-history.browser.mjs",
     "test:rollover-readiness": "node --test tests/year-rollover-readiness.test.mjs && node tests/year-rollover-readiness.browser.mjs",
-    "test:historical-reports": "node --test tests/historical-reports.test.mjs && node tests/historical-reports.browser.mjs"
+    "test:historical-reports": "node --test tests/historical-reports.test.mjs && node tests/historical-reports.browser.mjs",
+    "test:rollover-workflow": "node --test tests/year-rollover-workflow.test.mjs && node tests/year-rollover-workflow.browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
