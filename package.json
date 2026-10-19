@@ -27,7 +27,8 @@
     "test:security-campus": "node --test tests/security-campus-stage1.test.mjs",
     "test:security-rpc": "node --test tests/security-rpc-stage2.test.mjs",
     "test:security-mfa": "node --test tests/security-mfa-stage3.test.mjs && node tests/admin-mfa.browser.mjs",
-    "test:security": "node --test tests/security-campus-stage1.test.mjs tests/security-rpc-stage2.test.mjs tests/security-mfa-stage3.test.mjs && node tests/admin-mfa.browser.mjs"
+    "test:security": "node --test tests/security-campus-stage1.test.mjs tests/security-rpc-stage2.test.mjs tests/security-mfa-stage3.test.mjs && node tests/admin-mfa.browser.mjs",
+    "test:student-registration": "node --test tests/student-registration.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

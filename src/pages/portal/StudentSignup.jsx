@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { normalizeStudentAdmission, validStudentAdmission, validStudentBirthDate } from '../../../shared/studentRegistration.js'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from '../../components/portal/PortalNotice'
@@ -7,10 +8,7 @@ import { buildStudentPortalEmail } from '../../../shared/portalAuth'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 import { useSchoolClasses } from '../../hooks/useSchoolClasses'
 
-// 26f146 = 2026 · senior Form 1 · learner 46; 26g500 is Junior Grade 5.
-// ECD keeps its existing eA/eB school code.
-const admissionPattern = /^\d{2}(?:[fg][1-7]|e[ab])\d{2}$/i
-const strongPassword = value => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(value)
+const strongPassword = value => value.length <= 128 && /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(value)
 
 export default function StudentSignup() {
   const { supabase } = useAuth()
@@ -28,10 +26,10 @@ export default function StudentSignup() {
   }
   const validate = () => {
     const next = {}
-    if (!strongPassword(form.password)) next.password = 'Use at least 8 characters with uppercase, lowercase, and a number.'
+    if (!strongPassword(form.password)) next.password = 'Use 8–128 characters with uppercase, lowercase, and a number.'
     if (form.password !== form.confirmPassword) next.confirmPassword = 'Passwords do not match.'
-    if (!admissionPattern.test(form.admissionNumber.trim())) next.admissionNumber = 'Use the school admission number, e.g. 26f146 (Senior) or 26g500 (Junior).'
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.dateOfBirth) || Number.isNaN(Date.parse(`${form.dateOfBirth}T00:00:00Z`))) next.dateOfBirth = 'Choose a valid date of birth.'
+    if (!validStudentAdmission(normalizeStudentAdmission(form.admissionNumber))) next.admissionNumber = 'Use the school admission number, e.g. 26f146 (Senior) or 26g500 (Junior).'
+    if (!validStudentBirthDate(form.dateOfBirth)) next.dateOfBirth = 'Choose a valid date of birth.'
     if (!levels.includes(form.classLevel)) next.classLevel = 'Choose a class level.'
     if (streams.length ? !streams.includes(form.classStream) : form.classStream !== 'N/A') next.classStream = 'Choose a class stream.'
     if (!form.acceptedTerms) next.acceptedTerms = 'You must accept the terms and conditions.'
@@ -43,13 +41,17 @@ export default function StudentSignup() {
     if (Object.keys(nextErrors).length) return
     setSubmitting(true)
     try {
-      await supabase.auth.signOut({ scope: 'local' })
-      const admissionNumber = form.admissionNumber.trim().replace(
-        /^(\d{2})([fg])/i,
-        (_, year, campusCode) => `${year}${campusCode.toLowerCase()}`,
-      )
-      const { data, error } = await supabase.functions.invoke('register_student', { body: { password: form.password, admission_number: admissionNumber, date_of_birth: form.dateOfBirth, class_level: form.classLevel, class_stream: form.classStream } })
-      if (error || !data?.success) throw new Error(data?.message || 'We could not create your account. Please try again.')
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
+      if (signOutError) throw new Error('Unable to clear the previous session. Please try again.')
+      const admissionNumber = normalizeStudentAdmission(form.admissionNumber)
+      const { data, error } = await supabase.functions.invoke('register-student', { body: { password: form.password, admission_number: admissionNumber, date_of_birth: form.dateOfBirth, class_level: form.classLevel, class_stream: form.classStream } })
+      if (error || !data?.success) {
+        let message = data?.message
+        if (!message && error?.context instanceof Response) {
+          try { message = (await error.context.json())?.message } catch { /* Use the safe fallback below. */ }
+        }
+        throw new Error(message || 'We could not create your account. Please try again.')
+      }
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: buildStudentPortalEmail(admissionNumber), password: form.password })
       if (signInError) throw new Error('Your account was created. Please sign in to continue.')
       navigate('/portal/student-dashboard', { replace: true })
@@ -61,7 +63,7 @@ export default function StudentSignup() {
     <label>Admission number <span className="required-mark">*</span><input autoCapitalize="none" maxLength="6" placeholder="e.g. 26f146" value={form.admissionNumber} onChange={update('admissionNumber')} /></label>{errors.admissionNumber && <p className="field-error">{errors.admissionNumber}</p>}
     <label>Date of birth <span className="required-mark">*</span><input type="date" value={form.dateOfBirth} onChange={update('dateOfBirth')} /></label>{errors.dateOfBirth && <p className="field-error">{errors.dateOfBirth}</p>}
     <label>Class level <span className="required-mark">*</span><select value={form.classLevel} onChange={update('classLevel')} disabled={classesLoading}><option value="">{classesLoading ? 'Loading classes…' : 'Select class level'}</option>{levels.map(level => <option key={level} value={level}>{level}</option>)}</select></label>{errors.classLevel && <p className="field-error">{errors.classLevel}</p>}
-    <label>Class stream <span className="required-mark">*</span><select value={form.classStream} onChange={update('classStream')} disabled={!form.classLevel || !streams.length}><option value="">{form.classLevel ? (streams.length ? 'Select class stream' : 'N/A (single ECD class)') : 'Choose a class level first'}</option>{!streams.length && form.classLevel && <option value="N/A">N/A (single ECD class)</option>}{streams.map(stream => <option key={stream} value={stream}>{stream}</option>)}</select></label>{errors.classStream && <p className="field-error">{errors.classStream}</p>}
+    <label>Class stream <span className="required-mark">*</span><select value={form.classStream} onChange={update('classStream')} disabled={!form.classLevel || !streams.length}><option value="">{form.classLevel ? (streams.length ? 'Select class stream' : 'N/A (no stream)') : 'Choose a class level first'}</option>{!streams.length && form.classLevel && <option value="N/A">N/A (no stream)</option>}{streams.map(stream => <option key={stream} value={stream}>{stream}</option>)}</select></label>{errors.classStream && <p className="field-error">{errors.classStream}</p>}
     <label className="terms-check"><input type="checkbox" checked={form.acceptedTerms} onChange={update('acceptedTerms')} /> I accept the terms and conditions <span className="required-mark">*</span></label>{errors.acceptedTerms && <p className="field-error">{errors.acceptedTerms}</p>}
-    <button className="btn primary" disabled={submitting}>{submitting && <span className="button-spinner" aria-hidden="true" />} {submitting ? 'Creating accountï¿½' : 'Create account'}</button></form><p>Already registered? <Link to="/portal/student-login">Sign in</Link></p></section></main>
+    <button className="btn primary" disabled={submitting}>{submitting && <span className="button-spinner" aria-hidden="true" />} {submitting ? 'Creating account…' : 'Create account'}</button></form><p>Already registered? <Link to="/portal/student-login">Sign in</Link></p></section></main>
 }

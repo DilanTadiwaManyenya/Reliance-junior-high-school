@@ -1,3 +1,4 @@
+import { studentPortalEmail } from './studentRegistration.js'
 const INTERNATIONAL_PHONE = /^\+[1-9]\d{7,14}$/
 
 /** Canonical phone form for portal authentication and profile storage. */
@@ -16,5 +17,4 @@ export const buildPortalEmail = (phone: unknown) => {
 
 // Student access is identified by the school admission number, so a learner
 // does not need to own or share a phone in order to use the portal.
-export const buildStudentPortalEmail = (admissionNumber: unknown) =>
-  `student-${String(admissionNumber ?? '').trim()}@portal.reliance.local`
+export const buildStudentPortalEmail = studentPortalEmail
