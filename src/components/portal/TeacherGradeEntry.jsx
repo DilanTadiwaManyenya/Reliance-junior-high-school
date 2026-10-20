@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CURRICULUM_STRUCTURE, getSubjectGroupsByGradeStream } from '../../utils/CurriculumData'
 import { calculateGrade } from '../../utils/GradeCalculator'
+import { useGradeBands } from '../../hooks/useGradeBands'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
 import { parseClassKey } from './ClassSelector'
@@ -14,6 +15,7 @@ const blankSports = { sport: '', participated: true, term: currentSchoolTerm(), 
 
 export default function TeacherGradeEntry() {
   const { supabase, user, profile } = useAuth()
+  const gradeBands = useGradeBands(supabase)
   const [students, setStudents] = useState([]); const [studentId, setStudentId] = useState(''); const [tab, setTab] = useState('academic')
   const [academic, setAcademic] = useState(blankAcademic); const [sports, setSports] = useState(blankSports); const [subjectGroup, setSubjectGroup] = useState('')
   const [savedMarks, setSavedMarks] = useState([])
@@ -33,7 +35,7 @@ export default function TeacherGradeEntry() {
   const selectedGroupSubjects = subjectGroups[subjectGroup] ?? []
   const curriculumSubjects = useMemo(() => Object.values(subjectGroups).flat(), [subjectGroups])
   const gradingMark = academic.exam_mark === '' ? academic.percentage : academic.exam_mark
-  const outcome = selected ? calculateGrade(gradingMark, selected.class_level) : null
+  const outcome = selected ? calculateGrade(gradingMark, selected.class_level, gradeBands) : null
   const updateAcademic = field => event => setAcademic(value => ({ ...value, [field]: event.target.value }))
   useEffect(() => {
     let active = true

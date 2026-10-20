@@ -10,7 +10,7 @@ const validate = (rows, groups) => { for (const group of groups) { const items =
 
 export default function GradeBands({ campusScope = 'all' }) {
   const { supabase } = useAuth(); const juniorOnly = campusScope === 'junior'; const groups = juniorOnly ? ALL_GROUPS.slice(0, 1) : ALL_GROUPS; const [rows, setRows] = useState([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [notice, setNotice] = useState(''); const [error, setError] = useState(''); const [level, setLevel] = useState(juniorOnly ? 'Grade 1' : 'Form 1'); const [score, setScore] = useState('')
-  const outcome = useMemo(() => calculateGrade(score, level), [score, level])
+  const outcome = useMemo(() => calculateGrade(score, level, rows), [score, level, rows])
   const load = async () => { setLoading(true); let query = supabase.from('grade_bands').select('*').order('band_group').order('maximum_score', { ascending: false }); if (juniorOnly) query = query.eq('band_group', 'primary'); const { data, error: requestError } = await query; setRows(requestError ? [] : data || []); setError(requestError?.message || ''); setLoading(false) }
   useEffect(() => { load() }, [supabase, campusScope])
   const update = (id, field, value) => setRows(current => current.map(row => row.id === id ? { ...row, [field]: value } : row))

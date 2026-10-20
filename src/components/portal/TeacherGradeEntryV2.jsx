@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateGrade } from '../../utils/GradeCalculator'
+import { useGradeBands } from '../../hooks/useGradeBands'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
 import TeacherSavedMarksExport from './TeacherSavedMarksExport'
@@ -10,6 +11,7 @@ const blank = () => ({ subject: '', percentage: '', exam_mark: '', term: schoolT
 
 export default function TeacherGradeEntryV2() {
   const { supabase, profile } = useAuth()
+  const gradeBands = useGradeBands(supabase)
   const { selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId } = useSection()
   const [students, setStudents] = useState([])
   const [studentId, setStudentId] = useState('')
@@ -58,7 +60,7 @@ export default function TeacherGradeEntryV2() {
   const visibleStudentKey = visibleStudentIds.join(',')
   const learner = visible.find(row => row.id === studentId)
   const mark = form.exam_mark === '' ? form.percentage : form.exam_mark
-  const outcome = learner ? calculateGrade(mark, learner.class_level) : null
+  const outcome = learner ? calculateGrade(mark, learner.class_level, gradeBands) : null
   const change = field => event => setForm(value => ({ ...value, [field]: event.target.value }))
 
   useEffect(() => {

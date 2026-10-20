@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calculateGrade } from "../../utils/GradeCalculator";
+import { useGradeBands } from "../../hooks/useGradeBands";
 import { getJuniorReportBook } from "../../utils/CurriculumData";
 import { useAuth } from "../../context/useAuth";
 import PortalNotice from "./PortalNotice";
@@ -29,6 +30,7 @@ const blank = () => ({
 
 export default function JuniorTeacherMarkbook() {
   const { supabase, profile, user } = useAuth();
+  const gradeBands = useGradeBands(supabase);
   const { activeClassFilter, setActiveClassFilter, setActiveClassKey } =
     useSection();
   const assignedClasses = useMemo(
@@ -138,10 +140,10 @@ export default function JuniorTeacherMarkbook() {
     !isGradeOneTwo &&
     (isGradeThreeSeven
       ? combinedPossible === 100
-        ? calculateGrade(combinedPercentage, learner?.class_level || classLevel)
+        ? calculateGrade(combinedPercentage, learner?.class_level || classLevel, gradeBands)
         : null
       : percentage != null
-        ? calculateGrade(percentage, learner?.class_level || classLevel)
+        ? calculateGrade(percentage, learner?.class_level || classLevel, gradeBands)
         : null);
   const change = (field) => (event) =>
     setForm((value) => ({ ...value, [field]: event.target.value }));

@@ -4,9 +4,24 @@ export function isPrimaryLevel(level = '') { return level.startsWith('Grade ') |
 export function isOLevel(level = '') { return /^Form [1-4]$/.test(level) }
 
 /** Converts an assessed percentage to the school's applicable outcome. */
-export function calculateGrade(percentage, gradeLevel) {
+export function calculateGrade(percentage, gradeLevel, configuredBands = null) {
   const score = number(percentage)
   if (!Number.isFinite(score) || score < 0 || score > 100) return null
+  if (Array.isArray(configuredBands)) {
+    const group = isPrimaryLevel(gradeLevel) ? 'primary' : isOLevel(gradeLevel) ? 'olevel' : 'alevel'
+    const band = configuredBands
+      .filter(item => item.band_group === group)
+      .find(item => score >= Number(item.minimum_score) && score <= Number(item.maximum_score))
+    if (band) {
+      const outcome = { grade: String(band.grade), points: band.points == null ? null : Number(band.points), description: String(band.description || '') }
+      if (group === 'primary') {
+        const unit = Number(String(band.grade).match(/\d+/)?.[0])
+        if (Number.isFinite(unit)) outcome.unit = unit
+      }
+      return outcome
+    }
+    return null
+  }
   if (isPrimaryLevel(gradeLevel)) {
     const bands = [[85, 1, 'Excellent'], [77, 2, 'Very Good'], [70, 3, 'Good'], [60, 4, 'Satisfactory'], [50, 5, 'Fair'], [40, 6, 'Pass - Lower'], [30, 7, 'Pass - Low'], [20, 8, 'Fail'], [0, 9, 'Fail - Very Low']]
     const [, unit, description] = bands.find(([minimum]) => score >= minimum)
