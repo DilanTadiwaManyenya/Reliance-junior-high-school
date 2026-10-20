@@ -3,12 +3,12 @@
 ## Implemented in this stage
 
 - Added a portal-wide offline and connection-restored notice, including at phone width. It reports the browser/device network state and never retries or queues a write. For uncertain payments, POS sales, marks or other actions, staff must inspect the result before retrying.
-- Added repository-level ignore rules for new `.env` and `.env.*` files, while allowing a safe `.env.example`. The existing `.env` is tracked, but contains only the public `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` settings. I left it tracked because Vercel environment variables could not be inspected and removing it without confirming those settings may disconnect the live portal. Confirm those two values exist in both Vercel projects, then remove `.env` from Git in a follow-up. A source scan found no service-role key/JWT-looking secret in `src/` or `public/`; server-only Edge Functions read privileged keys from Supabase's server environment.
+- Added repository-level ignore rules for new `.env` and `.env.*` files, while allowing a safe `.env.example`. After verifying the public `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` settings in Production and Preview on both Vercel projects, removed the tracked `.env` in commit `58996ea` (`Remove tracked environment configuration`). The local `.env` file was preserved. A source scan found no service-role key/JWT-looking secret in `src/` or `public/`; server-only Edge Functions read privileged keys from Supabase's server environment.
 - Existing login/profile and data workflows already expose bounded timeout/failure states and explicit retries. POS checkout and year rollover preserve their same-request idempotency behavior after an uncertain response. The new notice is explanatory only and does not change those flows.
 
 ## Environment inventory
 
-- Git branch: `master`; the two configured Vercel deployment checks on recent pushes both pass. Vercel environment settings were not readable through an installed Vercel CLI, so verify preview/production environment variables in the Vercel dashboard before calling those separate test/live environments.
+- Git branch: `master`; commit `58996ea` is deployed and Ready on both Vercel production projects (`reliance-junior-high-school` and `reliance-junior-and-high-school-ugvj`). The public Supabase URL and anon key are configured for Production and Preview on both projects. These Vercel settings do not create a separate backend: both currently target the single Supabase project listed below, so Preview is not an isolated test database.
 - Supabase account listing returned one active project, `ejrtmdvnumjwikehzrrk`, in `eu-central-1`; no Supabase preview branches exist.
 - This workspace has no `supabase/config.toml`, and Docker is unavailable, so a local Supabase stack and local end-to-end database restore could not be run. Existing PGlite/fixture tests are isolated synthetic data, not a separate hosted test project.
 - The source uses only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the browser. `SUPABASE_SERVICE_ROLE_KEY` references are server-side Edge Functions only. Do not put a service-role key in any `VITE_` variable.
@@ -40,4 +40,4 @@ The available Supabase CLI restore-to-new-project feature and preview-branch com
 - `npm run test:portal` passed all 6 portal profile, access recovery and teacher access checks.
 - Existing focused request failure, recovery, idempotency and reporting tests remain the safety net for database-backed operations.
 
-Stage 14 is partial until the owner confirms the intended backup coverage/destination and enables an isolated restore target. Keep production credentials and real learner data out of local fixture tests.
+Stage 14 is partial until the owner confirms backup coverage and a protected destination, and an isolated restore target is available for a restore drill. The Vercel frontend configuration and production deployment checks are verified. Keep production credentials and real learner data out of local fixture tests.
