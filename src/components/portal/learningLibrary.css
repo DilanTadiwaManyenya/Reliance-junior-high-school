@@ -1,0 +1,41 @@
+.learning-library { width: 100%; max-width: 1200px; margin-inline: auto; min-width: 0; display: grid; gap: 20px; }
+.learning-library *, .learning-library *::before, .learning-library *::after { box-sizing: border-box; }
+.learning-library h2, .learning-library h3 { margin-block: 0 10px; overflow-wrap: anywhere; }
+.library-scope { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 18px; background: #edf2f9; border: 1px solid #cbd6e8; border-radius: 12px; }
+.learning-library label { display: grid; gap: 7px; min-width: 0; font-weight: 600; }
+.learning-library input, .learning-library select, .learning-library textarea { width: 100%; max-width: 100%; min-width: 0; min-height: 44px; font: inherit; font-size: 16px; color: #1d2b55; background: white; padding: 11px; border: 1px solid #b8c6de; border-radius: 8px; }
+.learning-library textarea { resize: vertical; }
+.library-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.library-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.library-wide { grid-column: 1 / -1; }
+.library-fields small { font-weight: 400; color: #52627c; line-height: 1.6; }
+.library-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.learning-library .btn { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.library-selected-file { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: #eef7ef; padding: 12px; margin-top: 14px; border-radius: 8px; overflow-wrap: anywhere; }
+.library-selected-file > span { min-width: 0; flex: 1 1 200px; }
+.library-list-heading { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; }
+.library-list-heading h2 { margin-right: auto; }
+.library-notes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.library-note { min-width: 0; display: flex; flex-direction: column; align-items: start; }
+.library-note h3 { margin-top: 12px; }
+.library-note-period, .library-file-summary { color: #52627c; font-size: .9rem; overflow-wrap: anywhere; line-height: 1.6; }
+.library-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.library-state { display: inline-flex; border-radius: 20px; padding: 4px 10px; font-size: .8rem; font-weight: 600; text-transform: capitalize; background: #edf2f9; }
+.library-state-published { background: #e1f2e7; color: #205437; }
+.library-state-archived { background: #f3e8dc; color: #77451e; }
+.library-progress { padding: 12px; border-radius: 8px; background: #edf2f9; margin: 0; }
+.library-download { margin-top: 14px; }
+.library-pagination { display: flex; align-items: center; justify-content: center; gap: 16px; }
+@media (max-width: 640px) {
+  .learning-library { gap: 16px; }
+  .learning-library .dash-page-header { display: grid; gap: 12px; }
+  .library-scope { display: grid; gap: 10px; padding: 14px; }
+  .library-fields, .library-notes-grid { grid-template-columns: minmax(0, 1fr); }
+  .library-actions { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr); }
+  .library-actions .btn { width: 100%; }
+  .library-list-heading { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  .library-list-heading h2 { margin-bottom: 0; }
+  .library-form input[type=file] { padding: 8px; overflow: hidden; }
+  .library-pagination { gap: 10px; }
+  .library-pagination .btn { flex: 1; padding-inline: 12px; }
+}

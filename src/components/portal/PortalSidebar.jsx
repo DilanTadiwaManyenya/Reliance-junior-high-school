@@ -23,6 +23,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: activeRole !== 'teacher' || !teacherInSubjectWorkspace },
         { id: 'entry', label: activeRole === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: activeRole === 'admin' || teacherInSubjectWorkspace || juniorTeacher },
         { id: 'coursework', label: 'Course Work', iconKey: 'entry', show: teacherInSubjectWorkspace || (juniorTeacher && !ecdOnlyJuniorTeacher) },
+        { id: 'library', label: 'Learning library', iconKey: 'roster', show: teacherInSubjectWorkspace || juniorTeacher },
         { id: 'progress-reports', label: 'Progress reports', iconKey: 'roster', show: ['admin', 'accountant'].includes(activeRole) },
         { id: 'settings', label: 'Account settings', iconKey: 'staff', show: true }
       ].filter(i => i.show)

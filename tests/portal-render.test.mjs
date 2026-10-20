@@ -25,9 +25,11 @@ test('Portal rendering follows the active role and profile failures remain recov
     const auth = { profile, activeRole: 'teacher', user: { id: 'staff' }, supabase: null, roles: ['admin', 'teacher'], loading: false }
     const sidebar = render(Sidebar, auth, { teacherWorkspace: 'classes' })
     assert.match(sidebar, /Markbook/)
+    assert.match(sidebar, /Learning library/)
     assert.doesNotMatch(sidebar, /School administration|Inventory &amp; POS|Report settings|Bulk learner export/)
     const ecd = render(Dashboard, auth)
     assert.match(ecd, /Developmental markbook/)
+    assert.match(ecd, /Learning library/)
     assert.doesNotMatch(ecd, />Course Work</)
     const grade = render(Dashboard, { ...auth, profile: { ...profile, teacher_class_assignments: [{ class_level: 'Grade 1', class_stream: '' }] } })
     assert.match(grade, />Course Work</)

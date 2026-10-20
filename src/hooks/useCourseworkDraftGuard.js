@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 const buttons = '.sidebar-nav-item, .teacher-workspace-switch button, .coursework-back, .top-bar-back, .teacher-workspace-return button, .top-bar-logout, .top-bar-site-link'
 const selects = '.coursework-heading select, [data-draft-navigation], .top-bar-role-switcher select, .top-bar-class-control select'
 
-export function useCourseworkDraftGuard(dirty, saving) {
+export function useCourseworkDraftGuard(dirty, saving, message = 'You have unsaved coursework marks. Leave this view and discard those changes?') {
   const historyPosition = useRef({ index: null, restoring: false })
   useEffect(() => {
     const position = historyPosition.current
@@ -15,7 +15,7 @@ export function useCourseworkDraftGuard(dirty, saving) {
     const protect = event => {
       const target = event.target.closest(event.type === 'change' ? selects : buttons)
       if (!target) return
-      if (saving || !window.confirm('You have unsaved coursework marks. Leave this view and discard those changes?')) {
+      if (saving || !window.confirm(message)) {
         event.preventDefault()
         event.stopImmediatePropagation()
         if (target.tagName === 'SELECT' && previous.has(target)) target.value = previous.get(target)
@@ -34,7 +34,7 @@ export function useCourseworkDraftGuard(dirty, saving) {
         return
       }
       if (nextIndex === position.index) return
-      if (saving || !window.confirm('You have unsaved coursework marks. Leave this view and discard those changes?')) {
+      if (saving || !window.confirm(message)) {
         event.stopImmediatePropagation()
         position.restoring = true
         window.history.go(position.index - nextIndex)
@@ -51,5 +51,5 @@ export function useCourseworkDraftGuard(dirty, saving) {
       unregisterHistory()
       window.removeEventListener('beforeunload', beforeUnload)
     }
-  }, [dirty, saving])
+  }, [dirty, saving, message])
 }

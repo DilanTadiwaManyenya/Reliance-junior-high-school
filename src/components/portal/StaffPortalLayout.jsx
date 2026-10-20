@@ -68,7 +68,7 @@ function StaffPortalWorkspace() {
   const sectionConfig = {
     admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'classes', 'year-planning', 'year-rollover', 'reporting-periods', 'historical-reports', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'historical-reports', 'activity'] },
-    teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'subject-allocations', 'roster', 'entry', 'coursework', 'settings'] },
+    teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'subject-allocations', 'roster', 'entry', 'coursework', 'library', 'settings'] },
     accountant: { defaultSection: 'fees',      allowed: ['fees', 'learner-profiles', 'expenses', 'inventory', 'progress-reports', 'historical-reports'] },
   }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
   const isJuniorTeacher = role === 'teacher' && profile?.campus === 'junior'
@@ -115,7 +115,7 @@ function StaffPortalWorkspace() {
   const changeSection = nextSection => {
     if (role !== 'teacher') return navigateToSection(nextSection)
 
-    const subjectSections = ['subject-allocations', 'entry', 'coursework']
+    const subjectSections = ['subject-allocations', 'entry', 'coursework', 'library']
     const nextWorkspace = !isJuniorTeacher && subjectSections.includes(nextSection)
       ? 'subjects'
       : nextSection === 'roster' ? 'classes' : teacherWorkspace
@@ -203,7 +203,7 @@ function StaffPortalWorkspace() {
         {/* ── Main content ───────────────────────── */}
         <main className="staff-main">
           <PortalAccountContext />
-          {role === 'teacher' && !['dashboard', 'subject-allocations', 'coursework'].includes(section) && <div className="teacher-workspace-return"><button type="button" className="btn secondary" onClick={() => isJuniorTeacher || teacherWorkspace === 'classes' ? changeSection('dashboard') : clearSubjectGroup()}>{isJuniorTeacher ? '← My class' : teacherWorkspace === 'subjects' ? '← Subject allocations' : '← Class work'}</button></div>}
+          {role === 'teacher' && !['dashboard', 'subject-allocations', 'coursework', 'library'].includes(section) && <div className="teacher-workspace-return"><button type="button" className="btn secondary" onClick={() => isJuniorTeacher || teacherWorkspace === 'classes' ? changeSection('dashboard') : clearSubjectGroup()}>{isJuniorTeacher ? '← My class' : teacherWorkspace === 'subjects' ? '← Subject allocations' : '← Class work'}</button></div>}
           {role !== 'teacher' && section !== sectionConfig.defaultSection && <div className="staff-workspace-return"><button type="button" className="btn secondary" onClick={goBack}>← Back</button></div>}
           {role === 'accountant' && <AccountantWorkspaceNav section={section} onChange={changeSection} />}
           <Outlet />
