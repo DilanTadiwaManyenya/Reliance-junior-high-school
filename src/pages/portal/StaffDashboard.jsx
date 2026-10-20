@@ -35,6 +35,7 @@ import GradeBands from "../../components/portal/GradeBands";
 import ProgressReports from "../../components/portal/ProgressReports";
 import CourseWork from "../../components/portal/CourseWork";
 import JuniorCourseWork from "../../components/portal/JuniorCourseWork";
+import LibrarySupport from "../../components/portal/LibrarySupport";
 import AdminNewsletters from "../../components/portal/AdminNewsletters";
 import TeacherLearningLibrary from "../../components/portal/TeacherLearningLibrary";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
@@ -1532,6 +1533,8 @@ export default function StaffDashboard() {
   if (section === "historical-reports" && (manager || isAccountant))
     return <div className="staff-content-area"><ReportClassHistory supabase={supabase} campusScope={managerCampusScope || "all"} canReview={isAdmin} /></div>;
 
+  if (section === "library-support" && (isAdmin || accountant))
+    return <div className="staff-content-area"><LibrarySupport key={`${activeRole}:${profile?.campus}`} /></div>;
   /* Accountant: show fees dashboard */
   if (accountant)
     return (

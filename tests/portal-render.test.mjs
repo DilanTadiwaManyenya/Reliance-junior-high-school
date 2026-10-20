@@ -27,6 +27,13 @@ test('Portal rendering follows the active role and profile failures remain recov
     assert.match(sidebar, /Markbook/)
     assert.match(sidebar, /Learning library/)
     assert.doesNotMatch(sidebar, /School administration|Inventory &amp; POS|Report settings|Bulk learner export/)
+    assert.doesNotMatch(sidebar, /Library oversight/)
+    for (const [role, campus] of [['admin', 'all'], ['admin', 'junior'], ['accountant', 'senior']]) {
+      const supportAuth = { ...auth, activeRole: role, profile: { ...profile, active_role: role, role, campus } }
+      const support = render(Dashboard, supportAuth, {}, { section: 'library-support' })
+      assert.match(support, /Library oversight/)
+      assert.doesNotMatch(support, /type="file"/)
+    }
     const ecd = render(Dashboard, auth)
     assert.match(ecd, /Developmental markbook/)
     assert.match(ecd, /Learning library/)

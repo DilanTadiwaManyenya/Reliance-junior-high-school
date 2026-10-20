@@ -66,10 +66,10 @@ function StaffPortalWorkspace() {
   const searchParams = new URLSearchParams(location.search)
   const requestedSection = searchParams.get('section')
   const sectionConfig = {
-    admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'newsletters', 'classes', 'year-planning', 'year-rollover', 'reporting-periods', 'historical-reports', 'activity'] },
+    admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'newsletters', 'library-support', 'classes', 'year-planning', 'year-rollover', 'reporting-periods', 'historical-reports', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'historical-reports', 'activity'] },
     teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'subject-allocations', 'roster', 'entry', 'coursework', 'library', 'settings'] },
-    accountant: { defaultSection: 'fees',      allowed: ['fees', 'learner-profiles', 'expenses', 'inventory', 'progress-reports', 'historical-reports'] },
+    accountant: { defaultSection: 'fees',      allowed: ['fees', 'learner-profiles', 'expenses', 'inventory', 'progress-reports', 'historical-reports', 'library-support'] },
   }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
   const isJuniorTeacher = role === 'teacher' && profile?.campus === 'junior'
   const invalidRequestedSection = Boolean(requestedSection && (!sectionConfig.allowed.includes(requestedSection) || (isJuniorTeacher && requestedSection === 'subject-allocations')))
