@@ -26,7 +26,7 @@ export default function OperationsExports({ supabase, profile, kinds }) {
       }, { signal: controller.signal })
       controller.signal.throwIfAborted()
       const sheets = reportSheets(kind, records)
-      const details = { School: 'Reliance Learning Centre', Report: reportOptions[kind][0], Currency: 'USD', Campus: campus || 'authorised campuses', Scope: 'All dates; all statuses; database-authorised records only', 'Source records': String(records.length), 'Generated at': new Date().toISOString(), ...reportTotals(kind, records), Note: 'Read-only paged extract. Not an issued invoice or receipt. Refresh after concurrent edits.' }
+      const details = { School: 'Reliance Learning Centre', Report: reportOptions[kind][0], Currency: 'USD and ZWG (separate totals; no conversion)', Campus: campus || 'authorised campuses', Scope: 'All dates; all statuses; database-authorised records only', 'Source records': String(records.length), 'Generated at': new Date().toISOString(), ...reportTotals(kind, records), Note: 'Read-only paged extract. Not an issued invoice or receipt. Refresh after concurrent edits.' }
       const filename = `reliance-${kind}-${campus||'authorised'}-${new Date().toISOString().slice(0,10)}`
       if (format === 'xlsx') await downloadWorkbook(sheets, details, `${filename}.xlsx`, controller.signal)
       else downloadCsv([...Object.entries(details), [], ...sheets.flatMap(sheet => [[sheet.name], ...sheet.rows, []])], `${filename}.csv`)
@@ -40,7 +40,7 @@ export default function OperationsExports({ supabase, profile, kinds }) {
   }
   return <section className="shop-panel" aria-label="Finance and operations exports">
     <h2>Download records</h2>
-    <p>All dates and statuses within your campus access, in USD. These downloads include saved records; they do not issue invoices or receipts.</p>
+    <p>All dates and statuses within your campus access. USD and ZWG totals are reported separately with no conversion. These downloads include saved records; they do not issue invoices or receipts.</p>
     <div className="shop-toolbar"><label>Report<select aria-label="Export report" value={kind} disabled={busy} onChange={e => { setKind(e.target.value); setError(''); setMessage('') }}>{kinds.map(value => <option key={value} value={value}>{reportOptions[value][0]}</option>)}</select></label>
       <button disabled={busy} onClick={() => exportReport('csv')}>{busy ? 'Preparing…' : 'Download CSV'}</button>
       <button disabled={busy} onClick={() => exportReport('xlsx')}>Download Excel</button>

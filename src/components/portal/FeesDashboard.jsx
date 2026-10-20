@@ -25,11 +25,12 @@ import {
   CLASS_LEVELS,
 } from "../../data/classOptions";
 import { useSchoolClasses } from "../../hooks/useSchoolClasses";
+import { FINANCE_CURRENCIES, formatMoney } from "../../lib/currency";
 
 const CURRENT_YEAR = 2026;
 const CURRENT_TERM = "Term 3";
 const TERMS = ["Term 1", "Term 2", "Term 3"];
-const money = (value) => `$${Number(value ?? 0).toFixed(2)}`;
+const money = (value, currency = "USD") => formatMoney(value, currency);
 const defaultFee = (level) => getFeeAmount(level);
 const initials = (name) =>
   (name ?? "?")
@@ -171,7 +172,7 @@ function PaymentModal({ student, onClose, onSave, saving }) {
               ? "Credit after update (overpaid)"
               : "Balance after this payment"}
           </span>
-          <strong>{money(balance)}</strong>
+          <strong>{money(balance, student.currency)}</strong>
         </div>
         <div className="fee-modal-actions">
           <button
@@ -333,7 +334,7 @@ function EnrolmentModal({ supabase, onClose, onSaved, classLevels, streamsForLev
   );
 }
 
-function FeeStructureModal({ mapping, onClose, onSave, saving }) {
+function FeeStructureModal({ mapping, currency, onClose, onSave, saving }) {
   const modalRef = useRef(null);
   useModalFocus(true, modalRef, () => { if (!saving) onClose(); });
   const [bands, setBands] = useState([...mapping]);
@@ -364,8 +365,8 @@ function FeeStructureModal({ mapping, onClose, onSave, saving }) {
         <div className="fee-modal-head">
           <div>
             <p className="fee-modal-eyebrow">School Settings</p>
-            <h2 id="fee-structure-dialog-title">Fee Structure</h2>
-            <p>Update total term fees for each class band.</p>
+            <h2 id="fee-structure-dialog-title">{currency} fee structure</h2>
+            <p>Set each class band in {currency}. No exchange conversion is applied.</p>
           </div>
           <button type="button" disabled={saving} className="fee-icon-button" onClick={onClose} aria-label="Close fee structure dialog">
             ×
@@ -377,7 +378,7 @@ function FeeStructureModal({ mapping, onClose, onSave, saving }) {
         >
           {bands.map((band) => (
             <label key={band.band_id}>
-              {band.band_name}
+              {band.band_name} ({currency})
               <input
                 type="number"
                 min="0"
@@ -416,6 +417,7 @@ function MasterTable({
   quickStatus,
   campusScope,
   scopeLabel,
+  currency,
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -582,9 +584,9 @@ function MasterTable({
               <th>Admission ID</th>
               <th>Class / Grade</th>
               {!campusScope && <th>Campus</th>}
-              <th className="currency">Total term fee</th>
-              <th className="currency">Amount paid</th>
-              <th className="currency">Balance owed</th>
+              <th className="currency">Total term fee ({currency})</th>
+              <th className="currency">Amount paid ({currency})</th>
+              <th className="currency">Balance owed ({currency})</th>
               <th>Fee status</th>
               <th>Enrolment</th>
               {!readOnly && <th className="actions-column">Actions</th>}
@@ -640,14 +642,14 @@ function MasterTable({
                         </span>
                       </td>
                     )}
-                    <td className="currency">{money(student.totalFees)}</td>
+                    <td className="currency">{money(student.totalFees, student.currency)}</td>
                     <td className="currency paid-value">
-                      {money(student.amountPaid)}
+                      {money(student.amountPaid, student.currency)}
                     </td>
                     <td
                       className={`currency balance-value ${student.balance > 0 ? "owing" : student.balance < 0 ? "credit" : ""}`}
                     >
-                      {money(student.balance)}
+                      {money(student.balance, student.currency)}
                     </td>
                     <td>
                       <span className={`fee-status ${meta.card}`}>
@@ -760,6 +762,7 @@ export default function FeesDashboard({
   const [feeMapping, setFeeMapping] = useState([]);
   const [term, setTerm] = useState(CURRENT_TERM);
   const [year, setYear] = useState(CURRENT_YEAR);
+  const [currency, setCurrency] = useState("USD");
 
   const [error, setError] = useState("");
   const [feeLoading, setFeeLoading] = useState(true);
@@ -805,25 +808,25 @@ export default function FeesDashboard({
     }
   }, [toast]);
 
-  const getDynamicFee = (classLevel) => {
+  const getDynamicFee = (classLevel, feeCurrency = currency) => {
     const level = String(classLevel || "")
       .toLowerCase()
       .trim();
     if (level.includes("ecd"))
-      return feeMapping.find((m) => m.band_name === "ECD A & B")?.amount || 0;
+      return feeMapping.find((m) => m.band_name === "ECD A & B" && m.currency === feeCurrency)?.amount || 0;
     if (level.includes("grade"))
-      return feeMapping.find((m) => m.band_name === "Grade 1-7")?.amount || 0;
+      return feeMapping.find((m) => m.band_name === "Grade 1-7" && m.currency === feeCurrency)?.amount || 0;
     if (level === "form 1" || level === "form 2")
-      return feeMapping.find((m) => m.band_name === "Form 1-2")?.amount || 0;
+      return feeMapping.find((m) => m.band_name === "Form 1-2" && m.currency === feeCurrency)?.amount || 0;
     if (level === "form 3" || level === "form 4")
-      return feeMapping.find((m) => m.band_name === "Form 3-4")?.amount || 0;
+      return feeMapping.find((m) => m.band_name === "Form 3-4" && m.currency === feeCurrency)?.amount || 0;
     if (
       level.includes("form 5") ||
       level.includes("form 6") ||
       level.includes("six")
     )
       return (
-        feeMapping.find((m) => m.band_name === "Lower & Upper Six")?.amount || 0
+        feeMapping.find((m) => m.band_name === "Lower & Upper Six" && m.currency === feeCurrency)?.amount || 0
       );
     return 0;
   };
@@ -832,15 +835,16 @@ export default function FeesDashboard({
     () =>
       students.filter(student => !campusScope || student.campus === campusScope).map((student) => {
         const fee = feeRecords.find(
-          (record) => record.student_id === student.id,
+          (record) => record.student_id === student.id && record.currency === currency,
         );
         const totalFees = fee
           ? Number(fee.total_fees)
-          : getDynamicFee(student.class_level);
+          : getDynamicFee(student.class_level, currency);
         const amountPaid = fee ? Number(fee.amount_paid) : 0;
         const balance = totalFees - amountPaid;
         return {
           ...student,
+          currency,
           totalFees,
           amountPaid,
           balance,
@@ -854,7 +858,7 @@ export default function FeesDashboard({
                   : "unpaid",
         };
       }),
-    [students, feeRecords, feeMapping, campusScope],
+    [students, feeRecords, feeMapping, campusScope, currency],
   );
   const stats = useMemo(
     () => ({
@@ -891,6 +895,7 @@ export default function FeesDashboard({
       p_student_id: student.id, p_term: term, p_academic_year: year,
       p_amount: Number(form.amount), p_paid_on: form.paid_on,
       p_payment_method: form.payment_method, p_reference_number: form.reference_number || null,
+      p_currency: student.currency,
       p_total_fees: Number(student.totalFees),
     });
     if (saveError) {
@@ -901,7 +906,7 @@ export default function FeesDashboard({
     setSaving(false);
     logActivity(supabase, user, profile, {
       actionType: "update",
-      description: `Recorded ${money(form.amount)} payment for ${student.full_name}`,
+      description: `Recorded ${money(form.amount, student.currency)} payment for ${student.full_name}`,
       targetTable: "fee_balances",
       targetId: student.id,
     });
@@ -910,6 +915,14 @@ export default function FeesDashboard({
     loadFees();
   };
 
+  const openStructure = () => {
+    const current = feeMapping.filter((band) => band.currency === currency);
+    const usd = feeMapping.filter((band) => band.currency === "USD");
+    const rows = current.length ? current : usd.map((band) => ({ ...band, amount: "" }));
+    setStructureBands(rows.map((band) => ({ ...band, amount: band.amount === "" ? "" : Number(band.amount) })));
+    setShowStructureModal(true);
+  };
+  const [structureBands, setStructureBands] = useState(null);
   const saveStructure = async (bands) => {
     setSavingStructure(true);
     setError("");
@@ -918,10 +931,12 @@ export default function FeesDashboard({
       .upsert(
         bands.map((b) => ({
           band_id: b.band_id,
-          amount: b.amount,
+          currency,
+          amount: Number(b.amount),
           band_name: b.band_name,
           updated_at: new Date().toISOString(),
         })),
+        { onConflict: "band_id,currency" },
       );
     setSavingStructure(false);
     if (saveError) {
@@ -934,6 +949,7 @@ export default function FeesDashboard({
       targetTable: "fee_structure_mapping",
     });
     setShowStructureModal(false);
+    setStructureBands(null);
     setToast("Fee structure updated");
     loadFees();
   };
@@ -943,16 +959,16 @@ export default function FeesDashboard({
       "Admission ID",
       "Class",
       "Campus",
-      "Total Term Fee USD",
-      "Amount Paid USD",
-      "Balance Owed USD",
+      `Total Term Fee ${currency}`,
+      `Amount Paid ${currency}`,
+      `Balance Owed ${currency}`,
       "Status",
     ];
     const reportRows = [
       ['School', 'Reliance Learning Centre'],
       ['Campus', campusScope || 'all-school'],
       ['Period', `${term} ${year}`],
-      ['Currency', 'USD'],
+      ['Currency', currency],
       ['Scope', 'Current filtered or selected learner rows'],
       ['Learners', rows.length],
       ['Generated at', new Date().toISOString()],
@@ -981,7 +997,7 @@ export default function FeesDashboard({
     {
       label: "Full payments",
       value: stats.full.length,
-      note: `${stats.full.length} student${stats.full.length === 1 ? "" : "s"} settled · ${money(credits)} in credits`,
+      note: `${stats.full.length} student${stats.full.length === 1 ? "" : "s"} settled · ${money(credits, currency)} in credits`,
       icon: LuCircleCheck,
       tone: "success",
     },
@@ -1001,7 +1017,7 @@ export default function FeesDashboard({
     },
     {
       label: "Total outstanding balance",
-      value: money(outstanding),
+      value: money(outstanding, currency),
       note: `${stats.half.length + stats.unpaid.length} students with a balance`,
       icon: LuWallet,
       tone: "slate",
@@ -1044,13 +1060,19 @@ export default function FeesDashboard({
               ))}
             </select>
           </label>
+          <label>
+            Currency
+            <select aria-label="Fee currency" value={currency} onChange={(event) => setCurrency(event.target.value)}>
+              {FINANCE_CURRENCIES.map((code) => <option key={code} value={code}>{code}</option>)}
+            </select>
+          </label>
           {isMainAdmin && (
             <>
               <button
                 className="fee-button fee-button-secondary"
-                onClick={() => setShowStructureModal(true)}
+                onClick={openStructure}
               >
-                Edit fee structure
+                Edit {currency} fee structure
               </button>
               <button
                 className="fee-button fee-button-secondary"
@@ -1122,6 +1144,7 @@ export default function FeesDashboard({
           quickStatus={quickStatus}
           campusScope={campusScope}
           scopeLabel={scopeLabel}
+          currency={currency}
         />
       )}
       {editTarget && (
@@ -1144,10 +1167,11 @@ export default function FeesDashboard({
           streamsForLevel={streamsForLevel}
         />
       )}
-      {showStructureModal && (
+      {showStructureModal && structureBands && (
         <FeeStructureModal
-          mapping={feeMapping}
-          onClose={() => setShowStructureModal(false)}
+          mapping={structureBands}
+          currency={currency}
+          onClose={() => { setShowStructureModal(false); setStructureBands(null); }}
           onSave={saveStructure}
           saving={savingStructure}
         />

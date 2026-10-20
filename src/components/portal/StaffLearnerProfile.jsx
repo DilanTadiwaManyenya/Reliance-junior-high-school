@@ -4,6 +4,7 @@ import PortalNotice from "./PortalNotice";
 import AcademicReportCard from "./AcademicReportCard";
 import TeacherAttendanceHistory from "./TeacherAttendanceHistory";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
+import { formatMoney } from "../../lib/currency";
 
 const tabs = [
   "Summary",
@@ -13,10 +14,15 @@ const tabs = [
   "Behaviour",
   "Fees",
 ];
-const money = (value) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    Number(value || 0),
-  );
+const money = (value, currency = "USD") => formatMoney(value, currency);
+const moneyByCurrency = (rows, amountFor) => {
+  const totals = rows.reduce((result, row) => {
+    const currency = row.currency || "USD";
+    result[currency] = (result[currency] || 0) + amountFor(row);
+    return result;
+  }, {});
+  return Object.entries(totals).filter(([, amount]) => amount !== 0).map(([currency, amount]) => money(amount, currency)).join(" · ") || money(0);
+};
 const date = (value) =>
   value
     ? new Intl.DateTimeFormat("en-ZW", { dateStyle: "medium" }).format(
@@ -130,7 +136,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         teacherView ? unavailableToTeacher : supabase.from("term_settings").select("*"),
         teacherView ? unavailableToTeacher : supabase
           .from("report_term_fee_settings")
-          .select("academic_year, term, class_level, amount"),
+          .select("academic_year, term, class_level, amount, currency"),
         teacherView
           ? Promise.resolve({ data: [], error: null })
           : supabase.rpc("report_subject_teachers_for_student", { requested_student_id: student.id }),
@@ -233,17 +239,9 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
         )
       : null;
     const passed = marks.filter((mark) => mark >= 50).length;
-    const owing = state.fees.reduce(
-      (total, row) =>
-        total + Math.max(0, Number(row.total_fees) - Number(row.amount_paid)),
-      0,
-    );
-    const credit = state.fees.reduce(
-      (total, row) =>
-        total +
-        Math.abs(Math.min(0, Number(row.total_fees) - Number(row.amount_paid))),
-      0,
-    );
+    const owing = moneyByCurrency(state.fees, row => Math.max(0, Number(row.total_fees) - Number(row.amount_paid)));
+    const credit = moneyByCurrency(state.fees, row => Math.abs(Math.min(0, Number(row.total_fees) - Number(row.amount_paid))));
+    const hasCredit = state.fees.some(row => Number(row.amount_paid) > Number(row.total_fees));
     return {
       present,
       absent,
@@ -253,6 +251,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
       subjectCount: marks.length,
       owing,
       credit,
+      hasCredit,
     };
   }, [state]);
 
@@ -371,14 +370,14 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
             </Card>}
             {!teacherView && <Card>
               <span>
-                {summary.credit ? "Overpayment credit" : "Outstanding fees"}
+                {summary.hasCredit ? "Overpayment credit" : "Outstanding fees"}
               </span>
               <strong
-                className={summary.credit ? "learner-profile-credit" : ""}
+                className={summary.hasCredit ? "learner-profile-credit" : ""}
               >
-                {summary.credit
-                  ? `-${money(summary.credit)}`
-                  : money(summary.owing)}
+                {summary.hasCredit
+                  ? summary.credit
+                  : summary.owing}
               </strong>
               <small>
                 {state.fees.length} fee period
@@ -503,9 +502,9 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                     </strong>
                     <br />
                     <span className="muted">
-                      Fee: {money(row.total_fees)} · Paid:{" "}
-                      {money(row.amount_paid)} · Balance:{" "}
-                      {money(Number(row.total_fees) - Number(row.amount_paid))}
+                      Fee: {money(row.total_fees, row.currency || "USD")} · Paid:{" "}
+                      {money(row.amount_paid, row.currency || "USD")} · Balance:{" "}
+                      {money(Number(row.total_fees) - Number(row.amount_paid), row.currency || "USD")}
                     </span>
                   </p>
                 ))}
@@ -521,7 +520,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                 {state.payments.map((row) => (
                   <p key={row.id}>
                     <strong>
-                      {money(row.amount)} · {date(row.paid_on)}
+                      {money(row.amount, row.currency || "USD")} · {date(row.paid_on)}
                     </strong>
                     <br />
                     <span className="muted">

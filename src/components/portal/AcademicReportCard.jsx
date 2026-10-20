@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { isSeniorLevel } from '../../data/classOptions'
 import { calculateReportGrade } from '../../lib/reportContext'
 import HistoricalReportCard from './HistoricalReportCard'
-import { totalOwing } from './LearnerRecords'
+import { feeOwingSummary, totalOwing } from '../../lib/learnerFees'
 import { getSubjectReportComment } from '../../data/reportComments'
 import seniorLogo from '../../assets/images/reliance-senior-crest.webp'
 import juniorReportLogo from '../../assets/images/reliance-junior-crest.webp'
@@ -53,7 +53,7 @@ function ReportCardContent({ student, academics = [], juniorComponentMarks = [],
   }, [academics,period])
   useEffect(() => {
     let active = true
-    if (!isSenior || !supabase || !student?.id) { setSeniorReportSummary(null); return () => { active = false } }
+    if (!isSenior || !supabase || !student?.id) return () => { active = false }
     supabase.rpc('senior_report_summary', { requested_student_id: student.id, requested_term: Number(selectedTerm), requested_year: Number(year) }).then(({ data, error }) => {
       if (!active) return
       setSeniorReportSummary(error ? null : data?.[0] || null)
@@ -73,7 +73,10 @@ function ReportCardContent({ student, academics = [], juniorComponentMarks = [],
   const overallOutcome = termAverage == null ? null : calculateGrade(termAverage, student.class_level)
   const reportForTerm = report[`${year}-${selectedTerm}`] || {}
   const nextTermBeginsOn = isSenior ? reportForTerm.senior_next_term_begins_on || reportForTerm.next_term_begins_on : reportForTerm.junior_next_term_begins_on || reportForTerm.next_term_begins_on
-  const configuredNextTermFee = reportFees.find(row => String(row.academic_year) === year && String(row.term) === selectedTerm && row.class_level === student.class_level)?.amount ?? nextTermFee
+  const configuredNextTermFees = reportFees.filter(row => String(row.academic_year) === year && String(row.term) === selectedTerm && row.class_level === student.class_level)
+  const nextTermFeeLabel = configuredNextTermFees.length
+    ? configuredNextTermFees.map(row => money(row.amount, row.currency || 'USD')).join(' · ')
+    : nextTermFee != null ? money(nextTermFee, 'USD') : 'To be confirmed'
   const attendanceForYear = attendance.filter(row => String(row.date || '').startsWith(year))
   const attendanceSummary = attendanceForYear.reduce((summary, row) => ({ ...summary, total: summary.total + 1, present: summary.present + (row.status === 'present' || row.status === 'late' ? 1 : 0) }), { total: 0, present: 0 })
   const attendanceRate = attendanceSummary.total ? Math.round((attendanceSummary.present / attendanceSummary.total) * 100) : null
@@ -87,7 +90,7 @@ function ReportCardContent({ student, academics = [], juniorComponentMarks = [],
     window.print()
   }
 
-  if (locked && !adminAccess) return <section className="report-card report-card-locked"><h2>Academic report card</h2><p><strong>Academic results locked — balance owing: {money(totalOwing(fees))}.</strong></p><p>If you want to view the report results, please kindly pay up your fees with the school office.</p></section>
+  if (locked && !adminAccess) return <section className="report-card report-card-locked"><h2>Academic report card</h2><p><strong>Academic results locked — balance owing: {feeOwingSummary(fees)}.</strong></p><p>If you want to view the report results, please kindly pay up your fees with the school office.</p></section>
   if (!isSenior) return <JuniorReportBook student={student} componentMarks={juniorComponentMarks} developmentalRatings={juniorDevelopmentalRatings} reportComments={reportComments} classTeacher={classTeacher} juniorReportSummary={juniorReportSummary} attendance={attendance} fees={fees} report={report} reportFees={reportFees} adminAccess={adminAccess} supabase={supabase} onReportCommentSaved={onReportCommentSaved} period={period} reportRules={reportRules} contextNotice={contextNotice} allowReportEditing={allowReportEditing} />
   return <section className="report-card report-dashboard" id="academic-report-card">
     <img className="report-watermark" src={schoolLogo} alt="" aria-hidden="true" />
@@ -97,7 +100,7 @@ function ReportCardContent({ student, academics = [], juniorComponentMarks = [],
     <div className="portal-table-wrap" tabIndex={0} role="region" aria-label="Academic report marks"><table className="portal-table report-table"><thead><tr><th>Learning Area</th><th>Term Mark</th><th>Exam Mark</th><th>Grade</th><th>Facilitator's Comment</th><th>Facilitator</th><th>Sign</th></tr></thead><tbody>{rows.map(row => { const termMark = row.term_mark ?? row.percentage ?? row.score; const examMark = row.exam_mark; const hasTermMark = termMark !== undefined && termMark !== null && termMark !== ''; const hasExamMark = examMark !== undefined && examMark !== null && examMark !== ''; const hasRecordedMark = hasTermMark || hasExamMark; const finalMark = hasExamMark ? Number(examMark) : termMark; const grade = row.grade || (hasRecordedMark ? calculateGrade(finalMark, student.class_level)?.grade : ''); const savedComment = String(row.comment || '').trim(); const generatedComment = hasRecordedMark && grade ? getSubjectReportComment({ studentId: student.id, subject: row.subject, term: selectedTerm, year, grade }) : null; const facilitatorComment = savedComment ? { text: savedComment, language: 'teacher' } : generatedComment; const assignedTeacher = assignedTeacherBySubject.get(subjectKey(row.subject)); const signature = hasRecordedMark ? assignedTeacher?.signature || '—' : '—'; const signatureTitle = !hasRecordedMark ? 'Subject mark pending' : assignedTeacher ? `Verified initials for ${assignedTeacher.name}` : 'No teacher assigned'; return <tr key={row.subject}><td>{row.subject}</td><td>{termMark ?? '—'}</td><td>{examMark ?? '—'}</td><td>{grade || '—'}</td><td className={`report-facilitator-comment${facilitatorComment?.language === 'shona' ? ' is-shona' : ''}`}>{facilitatorComment?.text}</td><td>{assignedTeacher?.name || 'Awaiting allocation'}</td><td className="report-sign-cell" aria-label={`Assigned teacher signature for ${row.subject}`} title={signatureTitle}>{signature}</td></tr> })}</tbody></table></div>
     {!rows.length && <p className="muted">No enrolled subjects or academic records have been published for this term.</p>}
     <section className="report-learner-summary report-dashboard-secondary"><article><span>Conduct &amp; behavior</span><strong>✓ {behavior.length ? `${behavior.filter(row => row.severity === 'positive').length} positive note${behavior.filter(row => row.severity === 'positive').length === 1 ? '' : 's'} recorded` : 'No notes recorded'}</strong><small>{attendanceRate == null ? 'Attendance records are not yet available.' : `Attendance: ${attendanceRate}% (${attendanceSummary.present}/${attendanceSummary.total})`}</small></article><article><span>Awards &amp; sports</span>{highlights.length ? <ul className="report-highlights-list">{highlights.map((highlight, index) => <li key={`${highlight.label}-${index}`}>{highlight.label}</li>)}</ul> : <small>No awards or sport highlights recorded for this term.</small>}</article></section>
-    <footer className="report-next"><span><b>Next Term Begins On:</b> {date(nextTermBeginsOn)}</span><span><b>Next Term Fees:</b> {configuredNextTermFee != null ? money(configuredNextTermFee) : 'To be confirmed'}</span></footer>
+    <footer className="report-next"><span><b>Next Term Begins On:</b> {date(nextTermBeginsOn)}</span><span><b>Next Term Fees:</b> {nextTermFeeLabel}</span></footer>
   </section>
 }
 

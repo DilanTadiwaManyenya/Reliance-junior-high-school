@@ -3,7 +3,7 @@ import { reportContextNotice } from '../../lib/reportContext'
 import './historicalReports.css'
 import AcademicDownloads from './AcademicDownloads'
 import { academicSheets } from '../../lib/academicExport'
-import { totalOwing } from './LearnerRecords'
+import { totalOwing } from '../../lib/learnerFees'
 
 export default function HistoricalReportCard({ render: Report, initialPeriod, reportRevision=0, ...props }) {
   const {supabase,student}=props

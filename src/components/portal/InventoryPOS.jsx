@@ -35,11 +35,9 @@ import ProductPhotoEditor from "./ProductPhotoEditor";
 import ProductVariants from "./ProductVariants";
 import { catalogStockItems } from "../../lib/shopCatalog";
 import { validateProductImage, uploadProductImage, removeProductImage, copyProductImageForCampus } from "../../lib/productImages";
+import { FINANCE_CURRENCIES, formatMoney } from "../../lib/currency";
 
-const money = (value) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    Number(value || 0),
-  );
+const money = (value, currency = "USD") => formatMoney(value, currency);
 const blank = {
   name: "",
   image_url: null,
@@ -48,6 +46,7 @@ const blank = {
   campus: "",
   selling_price: "",
   cost_price: "",
+  currency: "USD",
   quantity_on_hand: "0",
   reorder_level: "5",
 };
@@ -221,6 +220,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+  const [reportCurrency, setReportCurrency] = useState("USD");
   const [form, setForm] = useState(null);
   const [imageBusy, setImageBusy] = useState(false);
   const [variantBusy, setVariantBusy] = useState(false);
@@ -388,10 +388,14 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     ) / 100;
   const invalid = lines.some(
     (l) => !l.product?.active || l.quantity > l.product.quantity_on_hand,
-  );
+  ) || new Set(lines.map(line => line.product?.currency || "USD")).size > 1;
   const frozen = busy || !!pending || !!legacyPending;
   const add = (p) => {
     if (frozen) return;
+    if (lines.length && (lines[0].product?.currency || "USD") !== (p.currency || "USD")) {
+      setError(`This basket uses ${lines[0].product?.currency || "USD"}. Clear it before adding a ${p.currency || "USD"} item.`);
+      return;
+    }
     setCart((current) => {
       const existing = current.find((l) => l.id === p.id);
       return existing
@@ -404,7 +408,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     });
   };
   const period = sales.filter(
-    (s) => !month || s.created_at.slice(0, 7) === month,
+    (s) => (!month || s.created_at.slice(0, 7) === month) && (s.currency || "USD") === reportCurrency,
   );
   const revenue = period.reduce((sum, s) => sum + Number(s.total), 0);
   const costKnown = period.every((s) =>
@@ -420,7 +424,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     0,
   );
   const exportCSV = (rows, filename) => downloadCsv([
-    ['School', 'Reliance Learning Centre'], ['Currency', 'USD'],
+    ['School', 'Reliance Learning Centre'], ['Currency', filename.includes('stock') ? 'Per product row (USD or ZWG)' : reportCurrency],
     ['Campus access', profile?.campus || 'authorised'],
     ['Catalog campus filter', campusView], ['Stock filter', status],
     ['Month (sales/P&L)', month || 'all time'], ['Search', query],
@@ -491,24 +495,25 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       }),
     [helpCategory, helpQuery],
   );
-  const inventoryCost = active.reduce(
+  const currencyProducts = active.filter(product => (product.currency || "USD") === reportCurrency);
+  const inventoryCost = currencyProducts.reduce(
     (sum, product) => sum + Number(product.cost_price || 0) * Number(product.quantity_on_hand || 0),
     0,
   );
-  const inventoryRetail = active.reduce(
+  const inventoryRetail = currencyProducts.reduce(
     (sum, product) => sum + Number(product.selling_price || 0) * Number(product.quantity_on_hand || 0),
     0,
   );
   const topProducts = useMemo(() => {
     const totals = new Map();
-    sales.forEach((sale) => sale.pos_sale_items.forEach((item) => {
+    sales.filter(sale => (sale.currency || "USD") === reportCurrency).forEach((sale) => sale.pos_sale_items.forEach((item) => {
       const current = totals.get(item.product_name) || { name: item.product_name, units: 0, revenue: 0 };
       current.units += Number(item.quantity || 0);
       current.revenue += Number(item.line_total || 0);
       totals.set(item.product_name, current);
     }));
     return [...totals.values()].sort((a, b) => b.units - a.units || b.revenue - a.revenue).slice(0, 5);
-  }, [sales]);
+  }, [sales, reportCurrency]);
   const salesTrend = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 6 }, (_, offset) => {
@@ -517,10 +522,10 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       return {
         key,
         label: date.toLocaleString("en", { month: "short" }),
-        revenue: sales.filter((sale) => sale.created_at.slice(0, 7) === key).reduce((sum, sale) => sum + Number(sale.total || 0), 0),
+        revenue: sales.filter((sale) => sale.created_at.slice(0, 7) === key && (sale.currency || "USD") === reportCurrency).reduce((sum, sale) => sum + Number(sale.total || 0), 0),
       };
     });
-  }, [sales]);
+  }, [sales, reportCurrency]);
   const maxTrendRevenue = Math.max(1, ...salesTrend.map((point) => point.revenue));
   const checkout = () =>
     run(async () => {
@@ -704,6 +709,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
         name: form.name.trim(),
         sku: form.sku.trim() || null,
         category: form.category.trim(),
+        currency: form.currency || "USD",
         image_url: form.image_url || null,
         selling_price: Number(form.selling_price),
         cost_price: Number(form.cost_price),
@@ -802,6 +808,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
         </button>
       </header>
       <OperationsExports supabase={supabase} profile={profile} kinds={canManageProducts ? ['stock','sales',...(admin ? ['orders'] : [])] : ['sales','orders']} />
+      {tab !== "pos" && <label className="shop-currency-filter">View currency<select aria-label="POS report currency" value={reportCurrency} onChange={event => setReportCurrency(event.target.value)}>{FINANCE_CURRENCIES.map(code => <option key={code}>{code}</option>)}</select><small>Totals and reports stay separate by currency.</small></label>}
       <nav className="shop-tabs" aria-label="Shop sections">
         {tabs
           .filter(([id]) =>
@@ -860,7 +867,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             />
             <Stat
               label="All-time sales"
-              value={money(sales.reduce((n, s) => n + Number(s.total), 0))}
+              value={money(sales.filter(s => (s.currency || "USD") === reportCurrency).reduce((n, s) => n + Number(s.total), 0), reportCurrency)}
             />
             <Stat
               label="Low / empty stock"
@@ -874,9 +881,9 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             <article className="shop-panel">
               <h2><Activity size={18} /> Live shop pulse</h2>
               <div className="shop-value-grid">
-                <div><span>Stock at cost</span><strong>{money(inventoryCost)}</strong></div>
-                <div><span>Potential retail value</span><strong>{money(inventoryRetail)}</strong></div>
-                <div><span>Estimated stock margin</span><strong>{money(inventoryRetail - inventoryCost)}</strong></div>
+                <div><span>Stock at cost ({reportCurrency})</span><strong>{money(inventoryCost, reportCurrency)}</strong></div>
+                <div><span>Potential retail value ({reportCurrency})</span><strong>{money(inventoryRetail, reportCurrency)}</strong></div>
+                <div><span>Estimated stock margin ({reportCurrency})</span><strong>{money(inventoryRetail - inventoryCost, reportCurrency)}</strong></div>
               </div>
               <div className="shop-health"><span>Inventory health</span><div><i style={{ width: `${active.length ? Math.round((active.filter((p) => p.quantity_on_hand > p.reorder_level).length / active.length) * 100) : 0}%` }} /></div><strong>{active.length ? `${active.filter((p) => p.quantity_on_hand > p.reorder_level).length}/${active.length} products above their reorder level` : "No active products"}</strong></div>
             </article>
@@ -916,7 +923,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                     {s.customer_name || "Walk-in customer"}
                     <small>{s.receipt_number}</small>
                   </span>
-                  <strong>{money(s.total)}</strong>
+                  <strong>{money(s.total, s.currency || "USD")}</strong>
                 </button>
               ))}
               {!sales.length && <p>No sales recorded yet.</p>}
@@ -925,7 +932,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               <h2><Boxes size={18} /> Stock watch</h2>
               {active
                 .filter((p) => p.quantity_on_hand <= p.reorder_level)
-                .map((p) => (
+      .map((p) => (
                   <div className="shop-row" key={p.id}>
                     <span>{p.name}</span>
                     <span className="shop-badge warning">
@@ -1022,7 +1029,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                     >
                       {p.active ? `${p.quantity_on_hand} units available` : "Hidden"}
                     </span>
-                    <b>{money(p.selling_price)}</b>
+                    <b>{money(p.selling_price, p.currency || "USD")}</b>
                     {tab === "products" && <span className="shop-edit-label">Edit product</span>}
                   </button>
                 ))}
@@ -1112,7 +1119,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                       <strong>
                         {l.product?.name || "Unavailable product"}
                       </strong>
-                      <small>{money(l.product?.selling_price)} each</small>
+                      <small>{money(l.product?.selling_price, l.product?.currency || "USD")} each</small>
                     </div>
                     <div className="shop-quantity">
                       <button
@@ -1203,10 +1210,10 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                   </label>
                   <div className="shop-total">
                     <span>Total payable</span>
-                    <strong>{money(total)}</strong>
+                    <strong>{money(total, lines[0]?.product?.currency || "USD")}</strong>
                   </div>
                   <label>
-                    Amount received (USD)
+                    Amount received ({lines[0]?.product?.currency || "USD"})
                     <input
                       type="number"
                       min="0"
@@ -1217,7 +1224,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                   </label>
                   <div className="shop-row">
                     <span>Change due</span>
-                    <strong>{money(Math.max(0, Number(paid) - total))}</strong>
+                    <strong>{money(Math.max(0, Number(paid) - total), lines[0]?.product?.currency || "USD")}</strong>
                   </div>
                   <div className="shop-actions">
                     <button
@@ -1368,7 +1375,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                       <td><strong>{s.receipt_number}</strong><small>{s.customer_name || "Walk-in customer"}</small><small>{s.campus === "junior" ? "Junior School" : s.campus === "senior" ? "Senior School" : "Legacy school shop"}</small></td>
                       <td>{new Date(s.created_at).toLocaleString()}</td>
                       <td><span className="shop-payment-badge">{methods[s.payment_method]}</span></td>
-                      <td className="shop-receipt-amount">{money(s.total)}</td>
+                      <td className="shop-receipt-amount">{money(s.total, s.currency || "USD")}</td>
                       <td><button onClick={() => setReceipt(s)}>Open</button></td>
                     </tr>
                   ))}
@@ -1381,7 +1388,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               <p>How completed payments were received in this period.</p>
               <div className="shop-payment-list">
                 {paymentSummary.map((method) => (
-                  <div key={method.id}><span>{method.label}<small>{method.count} sale{method.count === 1 ? "" : "s"}</small></span><strong>{money(method.total)}</strong></div>
+                  <div key={method.id}><span>{method.label}<small>{method.count} sale{method.count === 1 ? "" : "s"}</small></span><strong>{money(method.total, reportCurrency)}</strong></div>
                 ))}
                 {!paymentSummary.length && <p className="shop-empty">No payments recorded.</p>}
               </div>
@@ -1394,7 +1401,8 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
           <div className="shop-toolbar">
             <label>Profit & loss month<input type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label>
             <button onClick={() => setMonth("")}>All time</button>
-            <button onClick={() => exportCSV([["Product", "Units sold", "Revenue", "Cost of goods", "Gross profit", "Margin"], ...productProfitability.map((product) => [product.name, product.units, product.revenue, product.costKnown ? product.cost : "Unknown", product.profit ?? "Unknown", product.profit !== null && product.revenue ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : "Unknown"])], "reliance-profit-and-loss.csv")}>Export P&L</button>
+            <span>Currency: {reportCurrency}</span>
+            <button onClick={() => exportCSV([["Currency", reportCurrency], ["Product", "Units sold", "Revenue", "Cost of goods", "Gross profit", "Margin"], ...productProfitability.map((product) => [product.name, product.units, product.revenue, product.costKnown ? product.cost : "Unknown", product.profit ?? "Unknown", product.profit !== null && product.revenue ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : "Unknown"])], "reliance-profit-and-loss.csv")}>Export P&L</button>
           </div>
           <div className="shop-stats shop-stats-five">
             <Stat label="Completed sales" value={period.length} />
@@ -1558,12 +1566,13 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             )}
             <fieldset className="shop-product-fields" disabled={busy || imageBusy || variantBusy}>
             <div className="shop-form-grid">
+              <label>Currency<select required value={form.currency || "USD"} onChange={event => setForm({ ...form, currency: event.target.value })}>{FINANCE_CURRENCIES.map(code => <option key={code}>{code}</option>)}</select><small>Changing this affects future sales only; old receipts keep their saved currency.</small></label>
               {[
                 ["name", "Product name", "text"],
                 ["sku", "SKU (optional)", "text"],
                 ["category", "Category", "text"],
-                ["selling_price", "Selling price (USD)", "number"],
-                ["cost_price", "Unit cost (USD)", "number"],
+                ["selling_price", `Selling price (${form.currency || "USD"})`, "number"],
+                ["cost_price", `Unit cost (${form.currency || "USD"})`, "number"],
                 ...(!form.id
                   ? [["quantity_on_hand", "Opening stock", "number"]]
                   : []),
@@ -1667,6 +1676,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             <p>{settings.receipt_header}</p>
             <strong>{receipt.receipt_number}</strong>
             <p>{receipt.campus === "junior" ? "Junior School" : receipt.campus === "senior" ? "Senior School" : "Legacy school shop"}</p>
+            <p>Currency: {receipt.currency || "USD"}</p>
             <p>
               {new Date(receipt.created_at).toLocaleString()}
               <br />
@@ -1677,18 +1687,18 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               <div className="shop-row" key={l.id}>
                 <span>
                   {l.quantity} × {l.product_name}{l.size_label ? ` · ${l.size_label}` : ""}
-                  <small>{money(l.unit_price)} each</small>
+                  <small>{money(l.unit_price, receipt.currency || "USD")} each</small>
                 </span>
-                <strong>{money(l.line_total)}</strong>
+                <strong>{money(l.line_total, receipt.currency || "USD")}</strong>
               </div>
             ))}
             <div className="shop-total">
               <span>Total</span>
-              <strong>{money(receipt.total)}</strong>
+              <strong>{money(receipt.total, receipt.currency || "USD")}</strong>
             </div>
             <div className="shop-row">
               <span>Received</span>
-              <strong>{money(receipt.amount_paid ?? receipt.total)}</strong>
+              <strong>{money(receipt.amount_paid ?? receipt.total, receipt.currency || "USD")}</strong>
             </div>
             <div className="shop-row">
               <span>Change</span>
@@ -1696,6 +1706,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 {money(
                   Number(receipt.amount_paid ?? receipt.total) -
                     Number(receipt.total),
+                  receipt.currency || "USD",
                 )}
               </strong>
             </div>

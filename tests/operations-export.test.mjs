@@ -20,14 +20,23 @@ test('Exports reconcile stored totals, keep statuses separate and never resolve 
   const sale={id:'sale',receipt_number:'00001',total:15,amount_paid:20,pos_sale_items:[{product_id:'p',product_name:'Old shirt name',quantity:1,unit_price:15,line_total:15,unit_cost:null,size_label:'M'}]}
   const sales=reportSheets('sales',[sale])
   assert.equal(sales[1].rows[1][2],'Old shirt name')
-  assert.equal(sales[1].rows[1][7],'')
+  assert.equal(sales[1].rows[1][7],15)
+  assert.equal(sales[1].rows[1][8],'')
   assert.deepEqual(reportTotals('sales',[sale]),{'Sales USD':'15.00',Receipts:'1'})
+  assert.deepEqual(reportTotals('sales', [
+    { total: 20, currency: 'USD' },
+    { total: 500, currency: 'ZWG' },
+  ]), { 'Sales USD': '20.00', 'Sales ZWG': '500.00', Receipts: '2' })
   const fees=[{total_fees:160,amount_paid:25},{total_fees:160,amount_paid:180}]
   assert.deepEqual(reportTotals('fees',fees),{'Term fees USD':'320.00','Paid USD':'205.00','Net balance USD':'115.00'})
-  assert.equal(reportSheets('fees',fees)[0].rows[2][8],-20)
+  assert.equal(reportSheets('fees',fees)[0].rows[2][9],-20)
   assert.deepEqual(reportTotals('expenses',[{status:'pending',amount:40},{status:'approved',amount:20},{status:'rejected',amount:5}]),{'pending USD':'40.00','approved USD':'20.00','rejected USD':'5.00'})
+  assert.deepEqual(reportTotals('expenses', [
+    { status: 'approved', amount: 12, currency: 'USD' },
+    { status: 'approved', amount: 700, currency: 'ZWG' },
+  ]), { 'approved USD': '12.00', 'approved ZWG': '700.00' })
   const order=reportSheets('orders',[{id:'o',items:[{name:'Original tie',quantity:2,unit_price:5}],total:10}])
-  assert.equal(order[1].rows[1][2],'Original tie');assert.equal(order[1].rows[1][6],10)
+  assert.equal(order[1].rows[1][2],'Original tie');assert.equal(order[1].rows[1][6],5);assert.equal(order[1].rows[1][7],10)
 })
 test('Variant stock is exported per size without double-counting parent stock; workbook uses literal text', () => {
   const stock=[{id:'p',name:'=shirt',quantity_on_hand:99,product_variants:[{id:'s',size:'S',quantity_on_hand:2,active:false},{id:'m',size:'M',quantity_on_hand:3,active:true}]}]
