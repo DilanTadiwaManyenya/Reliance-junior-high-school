@@ -53,6 +53,16 @@ try {
     await page.close()
     console.log(`PASS ${role}: direct link to another role’s portal returns to the assigned workspace`)
   }
+  for (const [campus, section] of [['senior', 'progress-reports'], ['junior', 'subject-allocations']]) {
+    const page = await openPortal(runtime.browser, runtime.base, {
+      role: 'teacher', campus, route: `/portal/teacher?section=${section}`,
+    }, 390)
+    await page.waitForFunction(() => window.fixtureRoute === '/portal/teacher')
+    assert.equal(await page.locator('.staff-shell').getAttribute('data-section'), 'dashboard')
+    assert.deepEqual(page.portalErrors, [], `${campus} teacher invalid section should return to dashboard cleanly`)
+    await page.close()
+    console.log(`PASS ${campus} teacher: invalid section deep link is removed from the URL`)
+  }
   const routes = ['/portal/login', '/portal/staff-login', '/portal/signup', '/portal/forgot-password', '/portal/set-password', '/portal/first-login']
   for (const width of [320, 390, 768]) for (const route of routes) {
     const page = await openPortal(runtime.browser, runtime.base, { role: route.endsWith('first-login') ? 'teacher' : 'parent', route, ...(route.endsWith('set-password') ? { mustChange: '' } : {}) }, width, 480)

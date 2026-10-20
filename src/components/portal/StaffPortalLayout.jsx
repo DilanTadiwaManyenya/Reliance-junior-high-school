@@ -72,9 +72,16 @@ function StaffPortalWorkspace() {
     accountant: { defaultSection: 'fees',      allowed: ['fees', 'learner-profiles', 'expenses', 'inventory', 'progress-reports', 'historical-reports'] },
   }[role] ?? { defaultSection: 'dashboard', allowed: ['dashboard'] }
   const isJuniorTeacher = role === 'teacher' && profile?.campus === 'junior'
-  const section = requestedSection && sectionConfig.allowed.includes(requestedSection) && !(isJuniorTeacher && requestedSection === 'subject-allocations')
+  const invalidRequestedSection = Boolean(requestedSection && (!sectionConfig.allowed.includes(requestedSection) || (isJuniorTeacher && requestedSection === 'subject-allocations')))
+  const section = requestedSection && !invalidRequestedSection
     ? requestedSection
     : sectionConfig.defaultSection
+  useEffect(() => {
+    if (!invalidRequestedSection) return
+    const nextSearch = new URLSearchParams(location.search)
+    nextSearch.delete('section')
+    navigate({ pathname: location.pathname, search: nextSearch.toString() ? `?${nextSearch.toString()}` : '' }, { replace: true })
+  }, [invalidRequestedSection, location.pathname, location.search, navigate])
   // Junior class teachers work with the complete curriculum for their class.
   // They must never be routed into the Senior subject-allocation workspace.
   const teacherWorkspace = role === 'teacher' && !isJuniorTeacher && searchParams.get('workspace') === 'subjects' ? 'subjects' : 'classes'
