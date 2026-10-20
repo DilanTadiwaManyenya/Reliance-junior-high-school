@@ -4,7 +4,7 @@ Updated 20 October 2026. This guide describes the delivered portal and the schoo
 
 ## Current release and known limits
 
-Frontend releases are pushed to GitHub master. The latest source commit is `d7f1556` (`Require campus for main admin expenses`). The latest recorded Vercel production deployment evidence for both configured projects is still on `58996ea`; deployment of newer commits has not been verified here. Verify the exact commit, migration version and hosted build before staff use a new workflow.
+Frontend releases are pushed to GitHub master. The latest source commit is `5b1ac5c` (`Update handover with latest source status`). On 20 October 2026, both configured Vercel production projects showed this exact commit as Ready: `reliance-junior-high-school` and `reliance-junior-and-high-school-ugvj`. Verify the migration version and hosted build before staff use a new workflow.
 
 The active backend is recorded as Supabase project ejrtmdvnumjwikehzrrk. The account inventory found one project and no preview branch. The public Vite Supabase URL and anon key were verified in Production and Preview on both Vercel projects. The tracked `.env` was removed after that check; the local file was preserved. Vercel Preview still targets the same Supabase backend, so an isolated test environment is not established. The repo ignores new environment files. Never put a privileged key in frontend config.
 
@@ -92,7 +92,7 @@ Record tester, date, role/campus, result and evidence without learner-identifyin
 | Teacher attendance and marks are checked for assigned class/subject and locked-period behavior | Automated and role checks documented; school acceptance pending |
 | Fees, instalments, arrears, expenses and receipt print are compared with school records | Export/fixture checks passed; accounting acceptance pending |
 | Exports/print are checked on phone and desktop with correct campus, dates, currency and selected rows | Automated evidence in stage docs; school acceptance pending |
-| Vercel production/preview Supabase settings are verified; tracked public-only .env is removed only after settings are confirmed | Complete 20 Oct 2026; both projects configured and production deployments Ready on `58996ea`; local `.env` preserved |
+| Vercel production/preview Supabase settings are verified; tracked public-only .env is removed only after settings are confirmed | Complete 20 Oct 2026; both projects configured and production deployments Ready on `5b1ac5c`; local `.env` preserved |
 | Encrypted backup destination, schedule, retention and owner are recorded; isolated restore succeeds | Pending; no restore evidence |
 | Separate test environment is approved; test users cannot affect live records | Pending; only one Supabase project found |
 | Currency scope is approved and amounts remain separate by currency | Approved: USD + ZWG per record, with no conversion; currency-aware fields and calculations delivered in Stage 13. Any ZWG fee bands still need school-entered values and verification. |
