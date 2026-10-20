@@ -4,7 +4,7 @@ Updated 20 October 2026. This guide describes the delivered portal and the schoo
 
 ## Current release and known limits
 
-Frontend releases are pushed to GitHub master. Commit `f2583f5` (`Add per-record USD and ZWG support`) is the latest recorded release; the previous deployment evidence for both configured Vercel production projects is on `58996ea`. Verify the exact commit, migration version and hosted build before staff use a new workflow.
+Frontend releases are pushed to GitHub master. The latest source commit is `d7f1556` (`Require campus for main admin expenses`). The latest recorded Vercel production deployment evidence for both configured projects is still on `58996ea`; deployment of newer commits has not been verified here. Verify the exact commit, migration version and hosted build before staff use a new workflow.
 
 The active backend is recorded as Supabase project ejrtmdvnumjwikehzrrk. The account inventory found one project and no preview branch. The public Vite Supabase URL and anon key were verified in Production and Preview on both Vercel projects. The tracked `.env` was removed after that check; the local file was preserved. Vercel Preview still targets the same Supabase backend, so an isolated test environment is not established. The repo ignores new environment files. Never put a privileged key in frontend config.
 
