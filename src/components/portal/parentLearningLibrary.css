@@ -1,0 +1,43 @@
+.parent-learning-nav { display: flex; gap: 12px; padding-block: 10px; flex-wrap: wrap; }
+.parent-learning-nav a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 16px; border-radius: 8px; border: 1px solid #c8d4e7; color: #1d2b55; text-decoration: none; font-weight: 600; }
+.parent-learning-nav a[aria-current=page] { color: white; background: #1d2b55; border-color: #1d2b55; }
+.parent-library { display: grid; gap: 20px; min-width: 0; }
+.parent-library *, .parent-library *::before, .parent-library *::after { box-sizing: border-box; }
+.parent-library h1, .parent-library h2, .parent-library p { overflow-wrap: anywhere; }
+.parent-library-heading { display: flex; gap: 16px; justify-content: space-between; align-items: start; flex-wrap: wrap; }
+.parent-library-heading h1 { margin-block: 8px 12px; }
+.parent-library-heading p { margin-bottom: 0; }
+.parent-library-back { font-weight: 600; display: inline-flex; min-height: 44px; align-items: center; }
+.parent-library-learner { max-width: 600px; }
+.parent-library label { display: grid; gap: 8px; min-width: 0; font-weight: 600; }
+.parent-library select { width: 100%; min-width: 0; max-width: 100%; min-height: 44px; padding: 11px; border: 1px solid #b8c6de; border-radius: 8px; background: white; color: #1d2b55; font: inherit; font-size: 16px; }
+.parent-library-scope { display: grid; gap: 6px; padding: 16px; border: 1px solid #cbd6e8; border-radius: 10px; background: #eef3fa; overflow-wrap: anywhere; }
+.parent-library-filters { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 14px; align-items: end; min-width: 0; }
+.parent-library .btn { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.parent-library-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+.parent-library-note { min-width: 0; }
+.parent-library-note h2 { margin-block: 12px; font-size: 1.35rem; }
+.parent-library-subject { display: inline-block; padding: 5px 11px; border-radius: 18px; background: #edf2f9; font-size: .85rem; font-weight: 600; overflow-wrap: anywhere; max-width: 100%; }
+.parent-library-meta { color: #52627c; font-size: .9rem; line-height: 1.6; }
+.parent-library-description { white-space: pre-wrap; }
+.parent-library-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.parent-library-pagination { display: flex; justify-content: center; align-items: center; gap: 16px; }
+.parent-library-pagination span { text-align: center; }
+.parent-library-file { display: grid; gap: 12px; min-width: 0; }
+.parent-library-file iframe { width: 100%; height: min(70vh,700px); min-height: 300px; border: 1px solid #cbd6e8; border-radius: 8px; }
+.parent-library-file img { max-width: 100%; max-height: 75vh; object-fit: contain; margin-inline: auto; }
+.parent-library-launcher { display: grid; gap: 7px; padding: 20px; border: 1px solid #cbd6e8; border-radius: 12px; background: #eef3fa; color: #1d2b55; text-decoration: none; margin-block: 16px; }
+.parent-library-launcher strong { font-size: 1.15rem; }
+@media(max-width:700px) {
+ .parent-learning-nav { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+ .parent-learning-nav a { padding-inline: 8px; }
+ .parent-library { gap: 16px; }
+ .parent-library-heading { display: grid; }
+ .parent-library-heading h1 { font-size: clamp(1.8rem,8vw,2.5rem); }
+ .parent-library-filters, .parent-library-grid { grid-template-columns: minmax(0,1fr); }
+ .parent-library-actions { display: grid; grid-template-columns: minmax(0,1fr); }
+ .parent-library-actions .btn { width: 100%; }
+ .parent-library-pagination { gap: 8px; }
+ .parent-library-pagination .btn { flex: 1; padding-inline: 10px; }
+ .parent-library-file iframe { min-height: 260px; }
+}

@@ -6,6 +6,7 @@ import { useAuth } from '../../context/useAuth'
 import PortalSiteExitLink from './PortalSiteExitLink'
 import CampusBrandMark from '../branding/CampusBrandMark'
 import { PortalBrandCampusContext } from './PortalBrandCampusContext'
+import './parentLearningLibrary.css'
 
 export default function PortalHeader() {
   const { profile, activeRole, signOut } = useAuth()
@@ -22,6 +23,7 @@ export default function PortalHeader() {
     }
   }
   const learner = new URLSearchParams(location.search).get('learner') || location.pathname.match(/^\/portal\/learner\/([^/]+)/)?.[1]
+  const learnerSearch = learner ? `?learner=${encodeURIComponent(learner)}` : ''
   const goBack = () => learner && location.pathname !== '/portal/dashboard' ? navigate(`/portal/dashboard?learner=${encodeURIComponent(learner)}`) : window.history.length > 1 ? navigate(-1) : navigate('/portal/dashboard')
-  return <header className="portal-header"><div className="container portal-nav"><Link to={portalDestinationForRole(activeRole) || '/portal/dashboard'} className="brand"><CampusBrandMark campus={campus} /><span>Reliance Learning Centre<small>Portal · My dashboard</small></span></Link><div className="portal-user"><button className="btn secondary portal-history-back" onClick={goBack}>← Back</button><PortalSiteExitLink className="portal-website-button portal-site-link">← Website</PortalSiteExitLink><span>{profile?.full_name || 'Portal account'}{activeRole && <small>{activeRole}</small>}</span><button className="btn secondary" onClick={handleLogout}>Log out</button></div></div><PortalAccountContext /></header>
+  return <header className="portal-header"><div className="container portal-nav"><Link to={portalDestinationForRole(activeRole) || '/portal/dashboard'} className="brand"><CampusBrandMark campus={campus} /><span>Reliance Learning Centre<small>Portal · My dashboard</small></span></Link><div className="portal-user"><button className="btn secondary portal-history-back" onClick={goBack}>← Back</button><PortalSiteExitLink className="portal-website-button portal-site-link">← Website</PortalSiteExitLink><span>{profile?.full_name || 'Portal account'}{activeRole && <small>{activeRole}</small>}</span><button className="btn secondary" onClick={handleLogout}>Log out</button></div></div>{activeRole === 'parent' && <nav className="parent-learning-nav container" aria-label="Parent learning navigation"><Link to={`/portal/dashboard${learnerSearch}`} aria-current={location.pathname === '/portal/dashboard' ? 'page' : undefined}>Dashboard</Link><Link to={`/portal/library${learnerSearch}`} aria-current={location.pathname === '/portal/library' ? 'page' : undefined}>Learning library</Link></nav>}<PortalAccountContext /></header>
 }

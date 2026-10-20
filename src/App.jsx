@@ -26,6 +26,7 @@ const PortalSignup = lazy(() => import('./pages/portal/PortalSignup'))
 const ForgotPassword = lazy(() => import('./pages/portal/ForgotPassword'))
 const ParentDashboard = lazy(() => import('./pages/portal/ParentDashboard'))
 const ParentUniformCatalogue = lazy(() => import('./pages/portal/ParentUniformCatalogue'))
+const ParentLearningLibrary = lazy(() => import('./pages/portal/ParentLearningLibrary'))
 const ParentRecordPage = lazy(() => import('./pages/portal/ParentRecordPage'))
 const StaffDashboard = lazy(() => import('./pages/portal/StaffDashboard'))
 const PortalLayout = lazy(() => import('./components/portal/PortalLayout'))
@@ -54,6 +55,7 @@ function App() {
         <Route element={<PortalLayout />}>
           <Route path="/portal/dashboard" element={<ParentDashboard />} />
           <Route path="/portal/uniforms" element={<ParentUniformCatalogue />} />
+          <Route path="/portal/library" element={<ParentLearningLibrary />} />
           <Route path="/portal/learner/:studentId/:view" element={<ParentRecordPage />} />
         </Route>
       </Route>
