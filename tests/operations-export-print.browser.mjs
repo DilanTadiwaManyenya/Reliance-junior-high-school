@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict'
+import { startPortalBrowser, openPortal } from './helpers/portal-browser.mjs'
+const runtime=await startPortalBrowser()
+try {
+  const fees=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'all',section:'fees',owing:''},390)
+  await fees.getByRole('table',{name:'Learner fee balances'}).locator('tbody tr').first().waitFor()
+  let download=fees.waitForEvent('download')
+  await fees.getByRole('button',{name:'Excel report',exact:true}).click()
+  await (await download).saveAs('tmp/stage11-exports/fees-filtered.xlsx')
+  await fees.getByRole('table',{name:'Learner fee balances'}).locator('tbody input[type="checkbox"]').first().check()
+  download=fees.waitForEvent('download')
+  await fees.getByRole('button',{name:'Excel selected',exact:true}).click()
+  await (await download).saveAs('tmp/stage11-exports/fees-selected.xlsx')
+  assert.deepEqual(fees.portalErrors,[]);await fees.close()
+  const shop=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'all',section:'inventory'},390)
+  await shop.getByRole('navigation',{name:'Shop sections'}).getByRole('button',{name:'Sales & receipts',exact:true}).click()
+  await shop.getByRole('button',{name:'Open',exact:true}).first().click()
+  await shop.getByRole('dialog',{name:'Sale receipt'}).waitFor()
+  const originalTitle=await shop.title()
+  await shop.pdf({path:'tmp/stage11-exports/receipt.pdf',format:'A4',printBackground:true})
+  assert.equal(await shop.title(),originalTitle)
+  assert.equal(await shop.locator('body').evaluate(body=>body.classList.contains('printing-shop-receipt')),false)
+  assert.deepEqual(shop.portalErrors,[])
+  await shop.close()
+  console.log('PASS actual filtered/selected fee workbooks and receipt PDF generated')
+} finally {await runtime.close()}

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import OperationsExports from './OperationsExports';
+import { useReceiptPrint } from '../../hooks/useReceiptPrint';
+import { downloadCsv, reportSheets } from '../../lib/operationsExport';
 import {
   Package,
   ShoppingCart,
@@ -151,28 +154,6 @@ function Stat({ label, value, tone = "" }) {
     </article>
   );
 }
-function exportCSV(rows, filename) {
-  const text = rows
-    .map((row) =>
-      row
-        .map(
-          (value) =>
-            `"${String(value ?? "")
-              .replace(/^[=+@-]/, "'$&")
-              .replaceAll('"', '""')}"`,
-        )
-        .join(","),
-    )
-    .join("\r\n");
-  const url = URL.createObjectURL(
-    new Blob([text], { type: "text/csv;charset=utf-8;" }),
-  );
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 export default function InventoryPOS(props) {
   const role = props.profile?.active_role ?? props.profile?.role;
   const main = role === "admin" && props.profile?.campus === "all";
@@ -245,6 +226,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const [variantBusy, setVariantBusy] = useState(false);
   const [adjust, setAdjust] = useState({ product: "", change: "", reason: "" });
   const [receipt, setReceipt] = useState(null);
+  useReceiptPrint(receipt?.receipt_number);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -437,6 +419,13 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       ),
     0,
   );
+  const exportCSV = (rows, filename) => downloadCsv([
+    ['School', 'Reliance Learning Centre'], ['Currency', 'USD'],
+    ['Campus access', profile?.campus || 'authorised'],
+    ['Catalog campus filter', campusView], ['Stock filter', status],
+    ['Month (sales/P&L)', month || 'all time'], ['Search', query],
+    ['Generated at', new Date().toISOString()], [], ...rows,
+  ], filename);
   const salesVisible = period.filter((s) =>
     `${s.receipt_number} ${s.customer_name || ""} ${methods[s.payment_method]}`
       .toLowerCase()
@@ -812,6 +801,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
           <RefreshCw size={16} /> {loading ? "Loading…" : "Refresh"}
         </button>
       </header>
+      <OperationsExports supabase={supabase} profile={profile} kinds={canManageProducts ? ['stock','sales',...(admin ? ['orders'] : [])] : ['sales','orders']} />
       <nav className="shop-tabs" aria-label="Shop sections">
         {tabs
           .filter(([id]) =>
@@ -982,26 +972,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               <button
                 onClick={() =>
                   exportCSV(
-                    [
-                      [
-                        "Product",
-                        "SKU",
-                        "Category",
-                        "Quantity",
-                        "Unit price",
-                        "Unit cost",
-                        "Reorder level",
-                      ],
-                      ...filtered.map((p) => [
-                        p.name,
-                        p.sku,
-                        p.category,
-                        p.quantity_on_hand,
-                        p.selling_price,
-                        p.cost_price,
-                        p.reorder_level,
-                      ]),
-                    ],
+                    reportSheets('stock', filtered)[0].rows,
                     "reliance-stock.csv",
                   )
                 }
@@ -1371,22 +1342,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             <button
               onClick={() =>
                 exportCSV(
-                  [
-                    [
-                      "Receipt",
-                      "Date",
-                      "Customer",
-                      "Payment",
-                      "Total",
-                    ],
-                    ...salesVisible.map((s) => [
-                        s.receipt_number,
-                        s.created_at,
-                        s.customer_name,
-                        methods[s.payment_method],
-                        s.total,
-                      ]),
-                  ],
+                  reportSheets('sales', salesVisible).flatMap(sheet => [[sheet.name], ...sheet.rows, []]),
                   "reliance-receipt-ledger.csv",
                 )
               }

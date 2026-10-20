@@ -91,6 +91,12 @@ if(params.has('historyPromotion')){
  db.academic_records=[{id:'new-math',student_id:student.id,subject:'Mathematics',score:75,term:'1',year:2027,created_at:today},...(!junior?[{id:'old-math',student_id:student.id,subject:'Mathematics',score:75,term:'3',year:2026,created_at:today}]:[])]
  db.junior_component_marks=junior?getJuniorReportBook('Grade 1').subjects.flatMap(subject=>subject.components.map(component=>({id:subject.subject+component,student_id:student.id,subject:subject.subject,component,score:8,possible_mark:10,year:2026,term:'3'}))):[]
 }
+if(params.has('operationsData')) {
+ db.inventory_products[0].name='Renamed current shirt';
+ db.inventory_products[0].product_variants=[{id:'variant-s',size:'S',sku:'0007',quantity_on_hand:2,active:true},{id:'variant-m',size:'M',sku:'0008',quantity_on_hand:3,active:false}];
+ db.parent_uniform_orders=[{id:'order-1',student_id:'learner-0',created_at:today,payment_status:'pending',payment_method:'cash',total:10,items:[{product_id:'product',name:'Original tie',size_label:'M',quantity:2,unit_price:5}]}];
+}
+if(params.has('operationsLarge')) db.school_expenses=Array.from({length:1007},(_,i)=>({...db.school_expenses[0],id:'expense-'+String(i).padStart(5,'0'),supplier:i===0?' =SUM(1,2)':'Supplier',receipt_reference:'0000123',amount:1.25}));
 window.fixtureWrites = []
 window.fixtureRegisterError=params.has('registerError')
 window.fixtureRegisterRequests=[]
@@ -101,16 +107,17 @@ window.fixtureHistoryError = params.has('historyError')
 window.fixtureRolloverError = params.has('rolloverError')
 window.fixtureRolloverCalls = []
 function query(table) {
-  let operation = 'select', payload, single = false, start = 0, end = Infinity
+  let operation = 'select', payload, single = false, start = 0, end = Infinity, projection = ''
   const filters = []
   const builder = {
-    select() { return this }, eq(key, value) { filters.push(row => String(row[key]) === String(value)); return this },
+    select(value = '') { projection = value; return this }, eq(key, value) { filters.push(row => String(key.split('.').reduce((item,part) => item?.[part],row)) === String(value)); return this },
     in(key, values) { filters.push(row => values.includes(row[key])); return this }, match(values) { Object.entries(values).forEach(([key, value]) => this.eq(key, value)); return this },
     not() { return this }, neq() { return this }, is() { return this }, ilike(key,value) { if(['school_record_changes','report_period_contexts'].includes(table)) {const needle=value.slice(1,-1).replace(/\\([\\%_])/g,'$1').toLowerCase();filters.push(row=>String(row[key]||'').toLowerCase().includes(needle))} return this }, or() { return this }, filter() { return this }, gte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])>=Date.parse(value));return this }, lte(key,value) { if(table==='school_record_changes')filters.push(row=>Date.parse(row[key])<=Date.parse(value));return this }, gt() { return this }, lt() { return this }, order() { return this }, limit() { return this },
     range(from, to) { start = from; end = to; return this }, single() { single = true; return this }, maybeSingle() { single = true; return this }, abortSignal() { return this },
     insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this }, update(value) { operation = 'update'; payload = value; return this }, delete() { operation = 'delete'; return this },
     then(resolve, reject) {
-      let data = (db[table] || []).filter(row => filters.every(filter => filter(row)))
+      let data = (db[table] || []).map(row => projection.includes('students!inner') ? {...row,students:db.students.find(s => s.id===row.student_id)} : row).filter(row => filters.every(filter => filter(row)))
+      if(params.has('operationsError') && window.fixtureOperationsError !== false && ['school_expenses','fee_payments'].includes(table)) return Promise.resolve({data:null,error:{message:'Synthetic export connection failure'}}).then(resolve,reject)
       if(table==='portal_security_settings'&&params.has('mfaSettingsError'))return Promise.resolve({data:null,error:{message:'Synthetic requirements unavailable'}}).then(resolve,reject)
       if(table==='report_period_contexts') data=data.filter(row=>role==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||row.campus===campus))
       data=data.slice(start,end+1)

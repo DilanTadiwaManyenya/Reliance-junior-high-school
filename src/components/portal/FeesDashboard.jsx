@@ -1,4 +1,6 @@
 import MobileRecordTable from './MobileRecordTable'
+import OperationsExports from './OperationsExports'
+import { downloadCsv, downloadWorkbook, readAllRows } from '../../lib/operationsExport'
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuBuilding2,
@@ -495,6 +497,7 @@ function MasterTable({
         >
           <LuDownload size={17} /> Export report
         </button>
+        <button className="fee-button fee-button-export" onClick={() => onExport(filtered, 'xlsx')}>Excel report</button>
       </div>
       <div className="fees-table-controls">
         <button
@@ -556,6 +559,7 @@ function MasterTable({
             <button type="button" onClick={() => onExport(selected)}>
               <LuDownload size={15} /> Export selected
             </button>
+            <button type="button" onClick={() => onExport(selected, 'xlsx')}>Excel selected</button>
           </div>
         </div>
       )}
@@ -776,11 +780,11 @@ export default function FeesDashboard({
     if (!supabase) return;
     setFeeLoading(true);
     const [balancesResult, mappingResult] = await Promise.all([
-      supabase
+      readAllRows(() => supabase
         .from("fee_balances")
         .select("*")
         .eq("term", term)
-        .eq("academic_year", year),
+        .eq("academic_year", year)).then(data => ({ data }), error => ({ error })),
       supabase.from("fee_structure_mapping").select("*"),
     ]);
     if (balancesResult.error) setError(balancesResult.error.message);
@@ -933,18 +937,26 @@ export default function FeesDashboard({
     setToast("Fee structure updated");
     loadFees();
   };
-  const exportReport = (rows) => {
+  const exportReport = async (rows, format = 'csv') => {
     const headings = [
       "Student Name",
       "Admission ID",
       "Class",
       "Campus",
-      "Total Term Fee",
-      "Amount Paid",
-      "Balance Owed",
+      "Total Term Fee USD",
+      "Amount Paid USD",
+      "Balance Owed USD",
       "Status",
     ];
-    const csv = [
+    const reportRows = [
+      ['School', 'Reliance Learning Centre'],
+      ['Campus', campusScope || 'all-school'],
+      ['Period', `${term} ${year}`],
+      ['Currency', 'USD'],
+      ['Scope', 'Current filtered or selected learner rows'],
+      ['Learners', rows.length],
+      ['Generated at', new Date().toISOString()],
+      [],
       headings,
       ...rows.map((student) => [
         student.full_name,
@@ -956,18 +968,13 @@ export default function FeesDashboard({
         student.balance,
         statusMeta[student.category].label,
       ]),
-    ]
-      .map((row) =>
-        row
-          .map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`)
-          .join(","),
-      )
-      .join("\n");
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    link.download = `fees-report-${campusScope || "all-school"}-${term.toLowerCase().replace(" ", "-")}-${year}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    ];
+    const filename = `fees-report-${campusScope || "all-school"}-${term.toLowerCase().replace(" ", "-")}-${year}`;
+    if (format === 'xlsx') {
+      try {
+        await downloadWorkbook([{name:'Fee balances', rows:reportRows.slice(8)}], Object.fromEntries(reportRows.slice(0,7)), `${filename}.xlsx`);
+      } catch (cause) { setError(`Export failed: ${cause.message}`) }
+    } else downloadCsv(reportRows, `${filename}.csv`);
   };
 
   const metricCards = [
@@ -1064,6 +1071,7 @@ export default function FeesDashboard({
         </div>
       </header>
       {error && <PortalNotice tone="error">{error}</PortalNotice>}
+      <OperationsExports supabase={supabase} profile={profile} kinds={['fees','payments']} />
       <section className="fees-stat-row" aria-label="Payment summary">
         {metricCards.map((card) => {
           const Icon = card.icon;

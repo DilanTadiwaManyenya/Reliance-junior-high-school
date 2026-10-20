@@ -19,6 +19,6 @@ The 63 inferred historical report contexts require school register confirmation.
 
 ## Stage 10 inspection
 
-Stage 10 is implemented; see stage10-learner-register-exports.md for exact SQL, live checks, file verification and school acceptance. Next implementation stage is 11.
+Stages 10 and 11 are implemented; see stage10-learner-register-exports.md and stage11-finance-operations-exports.md for SQL, live checks, file verification and school acceptance. Next implementation stage is 12. Stage 11 exports existing saved finance records; it does not add invoice issuance or a combined income cashbook where those workflows do not exist.
 
 BulkLearnerExport originally fetched students with one unpaged select and exposed print/PDF only. Results could stop at the API row limit. Changing controls after a preview also changed the displayed/export title while retaining the old learner list. Its print CSS contained global body visibility and @page rules, and print changed the browser title without restoration. Stage 10 addresses these concrete problems before expanding other module exports in Stages 11–12.

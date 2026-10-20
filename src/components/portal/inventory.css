@@ -617,37 +617,26 @@
   }
 }
 @media print {
-  body:has(.shop-receipt) * {
-    visibility: hidden !important;
+  body.printing-shop-receipt [data-receipt-ancestor] > :not([data-receipt-ancestor]):not([data-print-receipt]) { display: none !important; }
+  body.printing-shop-receipt,
+  body.printing-shop-receipt [data-receipt-ancestor] {
+    display: block !important; position: static !important; transform: none !important;
+    width: auto !important; max-width: none !important; height: auto !important;
+    min-height: 0 !important; max-height: none !important; overflow: visible !important;
+    padding: 0 !important; margin: 0 !important; border: 0 !important;
+    background: white !important; box-shadow: none !important; backdrop-filter: none !important;
   }
-  body:has(.shop-receipt) .shop-receipt,
-  body:has(.shop-receipt) .shop-receipt * {
-    visibility: visible !important;
+  body.printing-shop-receipt [data-print-receipt] {
+    position: static !important; width: 100% !important; max-width: none !important;
+    max-height: none !important; overflow: visible !important; box-shadow: none !important;
+    border: 0 !important; margin: 0 !important; padding: 0 !important;
+    color: #111827 !important; background: white !important;
   }
-  .shop-overlay {
-    position: absolute;
-    inset: 0;
-    background: white;
-    display: block;
-    padding: 0;
-    backdrop-filter: none;
-  }
-  .shop-receipt {
-    position: fixed;
-    top: 0;
-    left: 0;
-    max-height: none;
-    overflow: visible;
-    box-shadow: none;
-    width: 100%;
-    max-width: none;
-    border: 0;
-  }
-  .shop-receipt .no-print,
-  .shop-receipt .no-print * {
-    display: none !important;
-  }
+  body.printing-shop-receipt .shop-receipt .shop-row,
+  body.printing-shop-receipt .shop-receipt .shop-total { break-inside: avoid; }
+  body.printing-shop-receipt .shop-receipt .no-print { display: none !important; }
 }
+
 .shop-app .shop-search {
   flex-direction: row;
   margin-bottom: 0;
