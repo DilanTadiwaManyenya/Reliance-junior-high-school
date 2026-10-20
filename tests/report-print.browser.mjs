@@ -18,6 +18,7 @@ for(const role of ['parent','admin','accountant']) for(const learnerClass of ['E
  assert.equal(await report.count(),1)
  assert.equal(await report.evaluate(el=>getComputedStyle(el).visibility),'visible')
  const metrics=await report.evaluate(el=>({height:el.getBoundingClientRect().height,width:el.getBoundingClientRect().width,text:el.innerText.length}))
+ assert.ok(metrics.height>100&&metrics.width>100,`${role} ${learnerClass}: report hidden by a print ancestor`)
  await page.pdf({path:`tmp/pdfs/report-print/${role}-${learnerClass.replaceAll(' ','-')}.pdf`,preferCSSPageSize:true,printBackground:true})
  console.log(role,learnerClass,metrics)
  await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')))

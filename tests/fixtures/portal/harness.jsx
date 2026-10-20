@@ -92,6 +92,8 @@ if(params.has('historyPromotion')){
  db.junior_component_marks=junior?getJuniorReportBook('Grade 1').subjects.flatMap(subject=>subject.components.map(component=>({id:subject.subject+component,student_id:student.id,subject:subject.subject,component,score:8,possible_mark:10,year:2026,term:'3'}))):[]
 }
 window.fixtureWrites = []
+window.fixtureRegisterError=params.has('registerError')
+window.fixtureRegisterRequests=[]
 window.fixtureReportError = params.has('reportError')
 window.fixtureReportCalls = []
 window.fixtureReviewCalls = []
@@ -134,6 +136,13 @@ const fixtureMfa = {
 const supabase = {
   from: query,
   rpc(name, payload) {
+    if(name==='export_learner_register'){
+      window.fixtureRegisterRequests.push(payload)
+      const source=params.has('registerLarge')?Array.from({length:1007},(_,n)=>({...learners[0],id:`export-${n}`,full_name:n===0?' \t=HYPERLINK("bad")':`Register Learner ${String(n).padStart(4,'0')}`,admission_number:String(n).padStart(8,'0'),campus:'senior',class_level:'Form 1',class_stream:'Blue',sex:'Female',date_of_birth:'2013-03-15',parent_name:'Guardian, Example',parent_phone:'+263770000001',address:'House "A"\nHarare',birth_cert_no:'001-002',status:n===1?'inactive':'active'})):learners
+      const rows=source.filter(s=>(!payload.p_campus||s.campus===payload.p_campus)&&(!['class','stream'].includes(payload.p_scope)||s.class_level===payload.p_level)&&(payload.p_scope!=='stream'||s.class_stream===payload.p_stream))
+      const result=window.fixtureRegisterError?{data:null,error:{message:'Synthetic register request unavailable'}}:{data:{scope:payload.p_scope,campus:payload.p_campus,level:payload.p_level,stream:payload.p_stream,generated_at:'2026-10-20T10:00:00Z',count:rows.length,learners:rows},error:null}
+      return {abortSignal(){return this},then(resolve,reject){return (params.has('registerDelayed')?new Promise(done=>{window.fixtureResolveRegister=()=>done(result)}):Promise.resolve(result)).then(resolve,reject)}}
+    }
     if(name==='change_reporting_period'){
       window.fixtureWrites.push({table:`rpc:${name}`,payload})
       let row=db.reporting_periods.find(r=>r.campus===payload.p_campus&&r.academic_year===payload.p_year&&r.term===payload.p_term)

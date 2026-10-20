@@ -33,7 +33,8 @@
     "test:rollover-readiness": "node --test tests/year-rollover-readiness.test.mjs && node tests/year-rollover-readiness.browser.mjs",
     "test:historical-reports": "node --test tests/historical-reports.test.mjs && node tests/historical-reports.browser.mjs",
     "test:rollover-workflow": "node --test tests/year-rollover-workflow.test.mjs && node tests/year-rollover-workflow.browser.mjs",
-    "test:reporting-periods": "node --test tests/reporting-periods.test.mjs && node tests/reporting-periods.browser.mjs"
+    "test:reporting-periods": "node --test tests/reporting-periods.test.mjs && node tests/reporting-periods.browser.mjs",
+    "test:learner-export": "node --test tests/learner-register-export.test.mjs && node tests/learner-register-export.browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
@@ -44,7 +45,8 @@
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.2",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

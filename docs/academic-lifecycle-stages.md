@@ -24,4 +24,6 @@ Delivered in Stage 9; see stage9-reporting-periods.md. New coursework defaults u
 
 ## Following acceptance
 
+The remaining work is staged in remaining-delivery-stages.md, starting with Stage 10 learner-register exports and print.
+
 Complete end-to-end report exports, Zimbabwe configuration, live/test separation, backup/restore evidence and role-specific handover/go-live checks against the user's original audit. These are separate acceptance items, not implied complete by an individual stage. Each implementation stage includes focused SQL, live verification, appropriate automated checks, its own commit/push and both hosted deployment results.

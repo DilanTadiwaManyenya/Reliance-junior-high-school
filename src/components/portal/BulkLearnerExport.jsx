@@ -1,117 +1,64 @@
-import { useEffect, useMemo, useState } from 'react'
-import { supabase as fallback } from '../../lib/supabaseClient'
-import { useSchoolClasses } from '../../hooks/useSchoolClasses'
+import {useEffect,useMemo,useRef,useState} from 'react'
+import {supabase as fallback} from '../../lib/supabaseClient'
+import {useSchoolClasses} from '../../hooks/useSchoolClasses'
+import {useRegisterPrint} from '../../hooks/useRegisterPrint'
+import {registerColumns,registerRows,registerCsv,downloadFile,downloadRegisterWorkbook} from '../../lib/learnerRegisterExport'
 
-const scopes = [
-  { id: 'class', title: 'Class · all streams', description: 'Every learner in one class level.' },
-  { id: 'stream', title: 'Class · one stream', description: 'Learners in one selected stream.' },
-  { id: 'campus', title: 'Whole campus', description: 'All learners in Junior or Senior.' },
-  { id: 'all', title: 'All campuses', description: 'The complete school learner register.' },
-]
-
-const ageOn = (dateOfBirth) => {
-  if (!dateOfBirth) return '—'
-  const birth = new Date(`${dateOfBirth}T00:00:00`)
-  if (Number.isNaN(birth.getTime())) return '—'
-  const now = new Date()
-  let years = now.getFullYear() - birth.getFullYear()
-  const beforeBirthday = now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())
-  if (beforeBirthday) years -= 1
-  return years >= 0 ? years : '—'
-}
-
-const formatDate = (value) => {
-  if (!value) return '—'
-  const date = new Date(`${value}T00:00:00`)
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
-}
-
-const scopeTitle = ({ scope, campus, level, stream }) => {
-  if (scope === 'all') return 'All campuses'
-  if (scope === 'campus') return `${campus === 'junior' ? 'Junior' : 'Senior'} campus`
-  if (scope === 'stream') return `${level || 'Selected class'} · ${stream || 'selected stream'}`
-  return `${level || 'Selected class'} · all streams`
-}
-
-export default function BulkLearnerExport({ supabase: provided, campusScope = 'all' }) {
-  const db = provided ?? fallback
-  const { classes, loading: classesLoading } = useSchoolClasses(db)
-  const [scope, setScope] = useState('class')
-  const [campus, setCampus] = useState(campusScope === 'all' ? 'junior' : campusScope)
-  const [level, setLevel] = useState('')
-  const [stream, setStream] = useState('')
-  const [learners, setLearners] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [searched, setSearched] = useState(false)
-
-  const isCampusScoped = campusScope === 'junior' || campusScope === 'senior'
-  const effectiveCampus = isCampusScoped ? campusScope : campus
-  const visibleClasses = useMemo(() => isCampusScoped ? classes.filter(row => row.campus === campusScope) : classes, [classes, campusScope, isCampusScoped])
-  const levels = useMemo(() => [...new Set(visibleClasses.map(row => row.class_level))], [visibleClasses])
-  const streams = useMemo(() => [...new Set(visibleClasses.filter(row => row.class_level === level).map(row => row.class_stream).filter(Boolean))], [visibleClasses, level])
-  const availableScopes = isCampusScoped
-    ? scopes.filter(option => option.id !== 'all' && !(campusScope === 'junior' && option.id === 'stream'))
-    : scopes
-
-  useEffect(() => {
-    if (!level && levels.length) setLevel(levels[0])
-  }, [level, levels])
-
-  useEffect(() => {
-    if (scope === 'stream' && !streams.includes(stream)) setStream(streams[0] || '')
-  }, [scope, stream, streams])
-
-  useEffect(() => {
-    if (isCampusScoped && scope === 'all') setScope('class')
-  }, [isCampusScoped, scope])
-
-  const canPreview = (scope === 'all' && !isCampusScoped) || scope === 'campus' || Boolean(level && (scope !== 'stream' || stream))
-  const currentScope = scopeTitle({ scope, campus: effectiveCampus, level, stream })
-  const documentTitle = `Reliance learner register - ${currentScope.replaceAll(' · ', ' - ')}`
-
-  const preview = async () => {
-    if (!canPreview) return
-    setLoading(true)
-    setError('')
-    setSearched(true)
-    let query = db.from('students').select('id, admission_number, full_name, date_of_birth, sex, class_level, class_stream, campus, parent_name, parent_phone, address, birth_cert_no, status').order('campus').order('class_level').order('class_stream').order('full_name')
-    if (isCampusScoped || scope === 'campus') query = query.eq('campus', effectiveCampus)
-    if (scope === 'class' || scope === 'stream') query = query.eq('class_level', level)
-    if (scope === 'stream') query = query.eq('class_stream', stream)
-    const { data, error: requestError } = await query
-    setLearners(requestError ? [] : (data ?? []))
-    setError(requestError?.message || '')
-    setLoading(false)
-  }
-
-  const printRegister = () => {
-    document.title = documentTitle
-    window.print()
-  }
-
-  return <section className="bulk-export">
-    <div className="bulk-export-intro">
-      <div><p className="eyebrow">{isCampusScoped ? `${effectiveCampus === 'junior' ? 'Junior School' : 'Senior School'} · printable learner register` : 'Printable learner register'}</p><h2>Build the learner export</h2><p>{isCampusScoped ? `Choose a class or the whole ${effectiveCampus === 'junior' ? 'Junior' : 'Senior'} campus, review the live list, then print it.` : 'Select exactly who belongs in the register, review the live list, then print it.'}</p></div>
-      {searched && <div className="bulk-export-count"><b>{learners.length}</b><span>Learners in this export</span></div>}
-    </div>
-
-    <section className="bulk-export-controls" aria-label="Learner export scope">
-      <fieldset><legend>1. Choose the export scope</legend><div className="bulk-export-scope-grid">{availableScopes.map(option => <label key={option.id} className={`bulk-export-scope${scope === option.id ? ' selected' : ''}`}><input type="radio" name="export-scope" value={option.id} checked={scope === option.id} onChange={() => setScope(option.id)} /><span><b>{option.title}</b><small>{option.description}</small></span></label>)}</div></fieldset>
-
-      {(scope === 'campus' || scope === 'stream' || scope === 'class') && <div className="bulk-export-fields">
-        {scope === 'campus' && <label>Campus{isCampusScoped ? <input readOnly value={`${effectiveCampus === 'junior' ? 'Junior' : 'Senior'} campus`} aria-label="Campus locked to your admin campus" /> : <select value={campus} onChange={event => setCampus(event.target.value)}><option value="junior">Junior campus</option><option value="senior">Senior campus</option></select>}</label>}
-        {(scope === 'class' || scope === 'stream') && <label>Class<select value={level} disabled={classesLoading} onChange={event => { setLevel(event.target.value); setStream('') }}>{levels.map(item => <option key={item} value={item}>{item}</option>)}</select></label>}
-        {scope === 'stream' && <label>Stream<select value={stream} disabled={!level || classesLoading} onChange={event => setStream(event.target.value)}>{streams.map(item => <option key={item} value={item}>{item}</option>)}</select></label>}
-      </div>}
-
-      <div className="bulk-export-actions"><div><b>{currentScope}</b><small>Includes active and inactive learners currently recorded in this scope.</small></div><button type="button" className="btn primary" disabled={!canPreview || loading} onClick={preview}>{loading ? 'Loading learners…' : 'Preview learner list'}</button></div>
-    </section>
-
-    {error && <p className="portal-notice error">Unable to prepare the learner export: {error}</p>}
-    {searched && !loading && !error && <section className="bulk-export-preview">
-      <div className="bulk-export-preview-head"><div><p className="eyebrow">Reliance Learning Centre · learner register</p><h2>{currentScope}</h2><p>{learners.length} learner{learners.length === 1 ? '' : 's'} · prepared {new Date().toLocaleDateString()}</p></div><button type="button" className="btn secondary print-hide" disabled={!learners.length} onClick={printRegister}>Print / save as PDF</button></div>
-      {learners.length ? <div className="portal-table-wrap bulk-export-table"><table className="portal-table"><thead><tr><th>#</th><th>Admission no.</th><th>Learner full name</th><th>Date of birth</th><th>Age</th><th>Sex</th><th>Birth certificate</th><th>Class</th><th>Stream</th><th>Campus</th><th>Guardian</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead><tbody>{learners.map((learner, index) => <tr key={learner.id}><td>{index + 1}</td><td>{learner.admission_number || '—'}</td><td><strong>{learner.full_name}</strong></td><td>{formatDate(learner.date_of_birth)}</td><td>{ageOn(learner.date_of_birth)}</td><td>{learner.sex || '—'}</td><td>{learner.birth_cert_no || '—'}</td><td>{learner.class_level || '—'}</td><td>{learner.class_stream || '—'}</td><td>{learner.campus ? `${learner.campus[0].toUpperCase()}${learner.campus.slice(1)}` : '—'}</td><td>{learner.parent_name || '—'}</td><td>{learner.parent_phone || '—'}</td><td>{learner.address || '—'}</td><td>{learner.status || '—'}</td></tr>)}</tbody></table></div> : <p className="bulk-export-empty">No learners are currently recorded for this selection.</p>}
-    </section>}
+const scopes=[{id:'class',title:'Class · all streams',description:'Every learner in one class level.'},{id:'stream',title:'Class · one stream',description:'Learners in one selected stream.'},{id:'campus',title:'Whole campus',description:'All learners in Junior or Senior.'},{id:'all',title:'All campuses',description:'The complete school learner register.'}]
+const scopeTitle=({scope,campus,level,stream})=>scope==='all'?'All campuses':scope==='campus'?`${campus==='junior'?'Junior':'Senior'} campus`:scope==='stream'?`${level} · ${stream}`:`${level} · all streams`
+export default function BulkLearnerExport({supabase:provided,campusScope='all'}) {
+ const db=provided??fallback
+ const {classes,loading:classesLoading,error:classesError}=useSchoolClasses(db)
+ const [scope,setScope]=useState('class'),[campus,setCampus]=useState(campusScope==='all'?'junior':campusScope),[level,setLevel]=useState(''),[stream,setStream]=useState('')
+ const [snapshot,setSnapshot]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[downloading,setDownloading]=useState(false),[printing,setPrinting]=useState(false)
+ const request=useRef({id:0,controller:null})
+ const isCampusScoped=['junior','senior'].includes(campusScope)
+ const effectiveCampus=isCampusScoped?campusScope:campus
+ const visibleClasses=useMemo(()=>isCampusScoped?classes.filter(c=>c.campus===campusScope):classes,[classes,campusScope,isCampusScoped])
+ const levels=[...new Set(visibleClasses.map(c=>c.class_level))]
+ const effectiveLevel=levels.includes(level)?level:levels[0]||''
+ const streams=[...new Set(visibleClasses.filter(c=>c.class_level===effectiveLevel).map(c=>c.class_stream).filter(Boolean))]
+ const effectiveStream=streams.includes(stream)?stream:streams[0]||''
+ const availableScopes=isCampusScoped?scopes.filter(s=>s.id!=='all'&&!(campusScope==='junior'&&s.id==='stream')):scopes
+ const filters={scope,campus:isCampusScoped||scope==='campus'?effectiveCampus:null,level:['class','stream'].includes(scope)?effectiveLevel:null,stream:scope==='stream'?effectiveStream:null}
+ const scopeKey=JSON.stringify(filters)
+ const visibleSnapshot=snapshot?.key===scopeKey?snapshot:null
+ const currentScope=scopeTitle({...filters,campus:effectiveCampus})
+ const documentTitle=visibleSnapshot?`Reliance learner register - ${scopeTitle(visibleSnapshot).replaceAll(' · ',' - ')}`:'Reliance learner register'
+ useRegisterPrint(Boolean(visibleSnapshot),documentTitle,setPrinting)
+ useEffect(()=>()=>{request.current.id++;request.current.controller?.abort()},[])
+ const clear=()=>{request.current.id++;request.current.controller?.abort();setSnapshot(null);setLoading(false);setError('')}
+ const canPreview=!classesLoading&&!classesError&&(['all','campus'].includes(scope)||Boolean(effectiveLevel&&(scope!=='stream'||effectiveStream)))
+ const preview=async()=>{
+  if(!canPreview)return
+  clear();setLoading(true)
+  const controller=new AbortController(),id=++request.current.id;request.current.controller=controller
+  let timer
+  try{
+   const result=await Promise.race([db.rpc('export_learner_register',{p_scope:filters.scope,p_campus:filters.campus,p_level:filters.level,p_stream:filters.stream}).abortSignal(controller.signal),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new Error('Register preparation timed out. Retry or choose a smaller scope.'))},15000)})])
+   if(result.error||!result.data||!Array.isArray(result.data.learners)||result.data.count!==result.data.learners.length)throw new Error(result.error?.message||'The register response was incomplete. Please retry.')
+   if(id===request.current.id)setSnapshot({...result.data,key:scopeKey})
+  }catch(failure){if(id===request.current.id)setError(failure.message)}finally{clearTimeout(timer);if(id===request.current.id)setLoading(false)}
+ }
+ const filename=extension=>`reliance-learners-${visibleSnapshot.campus||'all'}-${visibleSnapshot.scope}-${visibleSnapshot.generated_at.slice(0,10)}.${extension}`
+ const excel=async()=>{
+  setDownloading(true);setError('')
+  try{await downloadRegisterWorkbook(visibleSnapshot,filename('xlsx'))}catch{setError('Could not create the Excel file. Please retry, or download CSV.')}finally{setDownloading(false)}
+ }
+ const tableRows=visibleSnapshot?registerRows(printing?visibleSnapshot.learners:visibleSnapshot.learners.slice(0,200),visibleSnapshot.generated_at):[]
+ return <section className="bulk-export">
+  <div className="bulk-export-intro"><div><p className="eyebrow">Learner register · CSV, Excel and PDF</p><h2>Build the learner export</h2><p>Select the register, preview its complete count, then download or print the same snapshot.</p></div>{visibleSnapshot&&<div className="bulk-export-count"><b>{visibleSnapshot.count}</b><span>Learners in this export</span></div>}</div>
+  <section className="bulk-export-controls" aria-label="Learner export scope"><fieldset disabled={downloading||printing}><legend>1. Choose the export scope</legend><div className="bulk-export-scope-grid">{availableScopes.map(option=><label key={option.id} className={`bulk-export-scope${scope===option.id?' selected':''}`}><input type="radio" name="export-scope" value={option.id} checked={scope===option.id} onChange={()=>{clear();setScope(option.id)}} /><span><b>{option.title}</b><small>{option.description}</small></span></label>)}</div></fieldset>
+   {scope!=='all'&&<div className="bulk-export-fields">{scope==='campus'&&<label>Campus{isCampusScoped?<input readOnly value={`${effectiveCampus==='junior'?'Junior':'Senior'} campus`} aria-label="Campus locked to your admin campus" />:<select aria-label="Export campus" value={campus} disabled={downloading||printing} onChange={e=>{clear();setCampus(e.target.value)}}><option value="junior">Junior campus</option><option value="senior">Senior campus</option></select>}</label>}
+   {['class','stream'].includes(scope)&&<label>Class<select aria-label="Export class" value={effectiveLevel} disabled={classesLoading||downloading||printing} onChange={e=>{clear();setLevel(e.target.value);setStream('')}}>{levels.map(item=><option key={item}>{item}</option>)}</select></label>}
+   {scope==='stream'&&<label>Stream<select aria-label="Export stream" value={effectiveStream} disabled={classesLoading||downloading||printing} onChange={e=>{clear();setStream(e.target.value)}}>{streams.map(item=><option key={item}>{item}</option>)}</select></label>}</div>}
+   <div className="bulk-export-actions"><div><b>{currentScope}</b><small>Includes active and inactive learners in this scope. Exports use the previewed snapshot.</small></div><button type="button" className="btn primary" disabled={!canPreview||loading||downloading||printing} onClick={preview}>{loading?'Loading learners…':'Preview learner list'}</button></div>
   </section>
+  {(error||classesError)&&<p role="alert" className="portal-notice error">Unable to prepare the learner export: {error||classesError}</p>}
+  {visibleSnapshot&&<section className="bulk-export-preview" id="learner-register-preview"><div className="bulk-export-preview-head"><div><p className="eyebrow">Reliance Learning Centre · learner register</p><h2>{scopeTitle(visibleSnapshot)}</h2><p>{visibleSnapshot.count} learners · active and inactive · prepared {new Date(visibleSnapshot.generated_at).toLocaleString('en-ZW',{timeZone:'Africa/Harare'})}</p></div>
+   <div className="register-download-actions"><button type="button" className="btn secondary" disabled={!visibleSnapshot.count||downloading} onClick={()=>downloadFile(new Blob([registerCsv(visibleSnapshot.learners,visibleSnapshot.generated_at)],{type:'text/csv;charset=utf-8;'}),filename('csv'))}>Download CSV</button><button type="button" className="btn secondary" disabled={!visibleSnapshot.count||downloading} onClick={excel}>{downloading?'Preparing Excel…':'Download Excel'}</button><button type="button" className="btn secondary" disabled={!visibleSnapshot.count||downloading} onClick={()=>window.print()}>Print / save as PDF</button></div></div>
+   {visibleSnapshot.count>200&&<p className="register-preview-limit">Showing the first 200 of {visibleSnapshot.count} learners on screen. CSV, Excel and print include all {visibleSnapshot.count}.</p>}
+   {tableRows.length?<div className="portal-table-wrap bulk-export-table" tabIndex={0} role="region" aria-label="Learner register rows"><table className="portal-table"><colgroup>{[4,9,13,7,3,5,7,6,5,6,9,9,12,5].map((width,index)=><col key={index} style={{width:`${width}%`}} />)}</colgroup><thead><tr><th>#</th>{registerColumns.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>{tableRows.map((row,index)=><tr key={index}><td>{index+1}</td>{row.map((value,column)=><td key={column}>{value||'—'}</td>)}</tr>)}</tbody></table></div>:<p className="bulk-export-empty">No learners are currently recorded for this selection.</p>}
+  </section>}
+ </section>
 }

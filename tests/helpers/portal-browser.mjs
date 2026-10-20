@@ -3,7 +3,7 @@ import { createServer } from 'vite'
 
 export async function startPortalBrowser() {
   const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE || 'playwright')
-  const server = await createServer({ server: { host: '127.0.0.1', port: 0, hmr: false }, logLevel: 'error' })
+  const server = await createServer({ server: { host: '127.0.0.1', port: 0, hmr: false, watch: { ignored: ['**/tmp/**'] } }, logLevel: 'error' })
   await server.listen()
   try {
     const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) })

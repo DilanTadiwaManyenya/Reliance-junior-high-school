@@ -24,10 +24,10 @@
     padding: 0 !important;
     transform: none !important;
   }
-  body:has(.learner-profile-page .report-card) .learner-profile-page > :not(.report-card) {
+  body:has(.learner-profile-page .report-card) .learner-profile-page > :not(.report-card):not([data-report-print-ancestor]) {
     display: none !important;
   }
-  body:has(.learner-profile-page .report-card) .report-card {
+  body:has(.learner-profile-page .report-card) .report-card:not([data-print-report]) {
     display: block !important;
     width: 100% !important;
     max-width: none !important;
