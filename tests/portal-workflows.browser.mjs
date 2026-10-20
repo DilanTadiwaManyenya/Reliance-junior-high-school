@@ -95,7 +95,20 @@ try{
   await page.waitForFunction(()=>document.querySelector('.staff-shell')?.dataset.section==='fees')
   await page.getByRole('navigation',{name:'Learner profile sections'}).waitFor({state:'detached'})
   assert.deepEqual(page.portalErrors,[],`${role} ${campus}: progress report navigation runtime error`)
-  console.log(`PASS ${role} ${campus}: switching directly from learner report to Finance`)
+  if(role==='accountant'){
+   const nav=page.getByRole('navigation',{name:'Accountant workspace'})
+   await nav.locator('summary').click()
+   await nav.getByRole('button',{name:'Academic progress',exact:true}).click()
+  }else{
+   await page.getByRole('button',{name:'Open navigation menu',exact:true}).click()
+   await page.getByRole('dialog',{name:'Portal navigation'}).getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Progress reports',exact:true}).click()
+  }
+  await page.waitForFunction(()=>document.querySelector('.staff-shell')?.dataset.section==='progress-reports')
+  await page.getByRole('heading',{name:'Academic progress',exact:true}).waitFor()
+  await page.getByRole('navigation',{name:'Learner profile sections'}).waitFor({state:'detached'})
+  assert.ok(await page.getByRole('button',{name:'View progress',exact:true}).count()>0,`${role} ${campus}: report list should return after leaving learner detail`)
+  checks++
+  console.log(`PASS ${role} ${campus}: learner report to Finance and back to report list`)
   await page.close()
  }
  for(const [campus,learner] of [['junior','Brian'],['senior','Alexandra']])for(const width of [390,1024]){
