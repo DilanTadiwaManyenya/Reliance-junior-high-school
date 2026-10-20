@@ -37,6 +37,22 @@ try {
     }
     await page.close()
   }
+  for (const [role, route, expected] of [
+    ['teacher', '/portal/staff', '/portal/teacher'],
+    ['accountant', '/portal/teacher', '/portal/accountant'],
+    ['parent', '/portal/staff', '/portal/dashboard'],
+    ['admin', '/portal/accountant', '/portal/staff'],
+  ]) {
+    const page = await openPortal(runtime.browser, runtime.base, { role, route, ...(role === 'admin' ? { mfaDisabled: '' } : {}) }, 390)
+    await page.waitForFunction(path => window.fixtureRoute.split('?')[0] === path, expected)
+    assert.deepEqual(page.portalErrors, [], `${role}: protected portal deep link should redirect cleanly`)
+    if (['teacher', 'accountant', 'admin'].includes(role)) {
+      const expectedRole = role === 'admin' ? 'admin' : role
+      assert.equal(await page.locator('.staff-shell').getAttribute('data-role'), expectedRole)
+    }
+    await page.close()
+    console.log(`PASS ${role}: direct link to another role’s portal returns to the assigned workspace`)
+  }
   const routes = ['/portal/login', '/portal/staff-login', '/portal/signup', '/portal/forgot-password', '/portal/set-password', '/portal/first-login']
   for (const width of [320, 390, 768]) for (const route of routes) {
     const page = await openPortal(runtime.browser, runtime.base, { role: route.endsWith('first-login') ? 'teacher' : 'parent', route, ...(route.endsWith('set-password') ? { mustChange: '' } : {}) }, width, 480)
