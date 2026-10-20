@@ -50,6 +50,23 @@ try{
   await verify(page,`${campus} class ${view} ${width}px`)
   await page.close()
  }
+ for(const [campus,routeCampus] of [['all','junior'],['junior','junior'],['senior','senior']])for(const width of [390,1024]){
+  const query=new URLSearchParams({section:'classes',campus:routeCampus,classLevel:routeCampus==='junior'?'Grade 1':'Form 1',stream:routeCampus==='junior'?'class-2':'class-1',view:'staff'})
+  const page=await openPortal(runtime.browser,runtime.base,{role:'admin',campus,route:'/portal/staff?'+query},width)
+  await page.locator('.class-workspace').waitFor()
+  if(width<=900){
+   await page.getByRole('button',{name:'Open navigation menu',exact:true}).click()
+   await page.getByRole('dialog',{name:'Portal navigation'}).getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Finance',exact:true}).click()
+  }else await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Finance',exact:true}).click()
+  await page.waitForFunction(()=>document.querySelector('.staff-shell')?.dataset.section==='fees')
+  const current=new URL(await page.evaluate(()=>window.location.href))
+  assert.equal(current.searchParams.has('classLevel'),false,`${campus} ${width}px: leaving nested class workspace clears class scope`)
+  assert.equal(current.searchParams.has('view'),false,`${campus} ${width}px: leaving nested class workspace clears nested view`)
+  assert.deepEqual(page.portalErrors,[],`${campus} ${width}px: class-to-finance navigation runtime error`)
+  checks++
+  console.log(`PASS ${campus} admin ${width}px: class allocation to Finance navigation`)
+  await page.close()
+ }
  }
  for(const width of [320,768])for(const role of ['admin','accountant']){
   const page=await openPortal(runtime.browser,runtime.base,{role,section:role==='admin'?'roster':'learner-profiles'},width)
