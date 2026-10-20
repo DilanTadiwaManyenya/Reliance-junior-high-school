@@ -30,30 +30,36 @@
 .staff-shell::before {
   position: fixed;
   z-index: 10;
-  right: 2vw;
-  bottom: 3vh;
-  width: clamp(180px, 25vw, 360px);
-  height: clamp(240px, 34vw, 480px);
+  top: 50%;
+  left: 50%;
+  width: clamp(160px, 21vw, 300px);
+  height: clamp(215px, 29vw, 410px);
   background: var(--campus-watermark) center / contain no-repeat;
   content: '';
   opacity: .055;
   pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .staff-shell[data-campus="all"]::after {
   position: fixed;
   z-index: 10;
-  right: 2vw;
-  bottom: 3vh;
-  width: clamp(180px, 25vw, 360px);
-  height: clamp(240px, 34vw, 480px);
+  top: 50%;
+  left: calc(50% + clamp(72px, 8vw, 105px));
+  width: clamp(130px, 16vw, 220px);
+  height: clamp(175px, 23vw, 300px);
   background: url('../../assets/images/reliance-senior-crest.webp') center / contain no-repeat;
   content: '';
   opacity: .055;
   pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
-.staff-shell[data-campus="all"]::before { right: 18vw; }
+.staff-shell[data-campus="all"]::before {
+  left: calc(50% - clamp(72px, 8vw, 105px));
+  width: clamp(130px, 16vw, 220px);
+  height: clamp(175px, 23vw, 300px);
+}
 
 .parent-portal-shell {
   --campus-watermark: url('../../assets/images/reliance-junior-crest.webp');
@@ -67,14 +73,15 @@
 .parent-portal-shell::before {
   position: fixed;
   z-index: 10;
-  right: 2vw;
-  bottom: 3vh;
-  width: clamp(160px, 24vw, 320px);
-  height: clamp(220px, 32vw, 430px);
+  top: 50%;
+  left: 50%;
+  width: clamp(150px, 20vw, 280px);
+  height: clamp(205px, 28vw, 380px);
   background: var(--campus-watermark) center / contain no-repeat;
   content: '';
   opacity: .055;
   pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .top-bar-campus-brand { width: 38px; height: 44px; }
@@ -89,7 +96,10 @@
 
 @media (max-width: 600px) {
   .staff-shell::before, .staff-shell[data-campus="all"]::after,
-  .parent-portal-shell::before { right: -28px; bottom: 4vh; width: 180px; height: 250px; opacity: .028; }
+  .parent-portal-shell::before { width: 150px; height: 210px; opacity: .028; }
+  .staff-shell[data-campus="all"]::before, .staff-shell[data-campus="all"]::after { width: 112px; height: 156px; }
+  .staff-shell[data-campus="all"]::before { left: calc(50% - 42px); }
+  .staff-shell[data-campus="all"]::after { left: calc(50% + 42px); }
   .top-bar-campus-brand { width: 30px; height: 36px; }
   .top-bar-campus-brand.is-dual-campus { width: 44px; }
   .portal-nav .campus-brand-mark { width: 38px; height: 44px; }
