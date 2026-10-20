@@ -4,13 +4,13 @@ Updated 20 October 2026. This guide describes the delivered portal and the schoo
 
 ## Current release and known limits
 
-Frontend releases are pushed to GitHub master. Commit `58996ea` (`Remove tracked environment configuration`) is Ready on both configured Vercel production projects. Supabase migrations are applied separately. Verify the exact commit, migration version and hosted build before staff use a new workflow.
+Frontend releases are pushed to GitHub master. Commit `f2583f5` (`Add per-record USD and ZWG support`) is the latest recorded release; the previous deployment evidence for both configured Vercel production projects is on `58996ea`. Verify the exact commit, migration version and hosted build before staff use a new workflow.
 
 The active backend is recorded as Supabase project ejrtmdvnumjwikehzrrk. The account inventory found one project and no preview branch. The public Vite Supabase URL and anon key were verified in Production and Preview on both Vercel projects. The tracked `.env` was removed after that check; the local file was preserved. Vercel Preview still targets the same Supabase backend, so an isolated test environment is not established. The repo ignores new environment files. Never put a privileged key in frontend config.
 
 Admin authenticator enforcement is paused at the owner's request. Password login, database role checks and campus restrictions remain in force. Do not enable MFA in a routine release. Re-enable only after explicit owner authorization and a tested setup, clock and recovery path; see admin-mfa-temporary-pause.md.
 
-Open go-live items include backup and isolated restore evidence; a separate test backend; school confirmation of 63 inferred historical report contexts; approved Ministry/ZIMSEC report templates; currency-aware finance if ZiG/ZWG is required; and account-by-account role/campus acceptance. Finance is USD-only. There is no invoice issuance workflow or combined income-and-expense cash reconciliation ledger.
+Open go-live items include backup and isolated restore evidence; a separate test backend; school confirmation of 63 inferred historical report contexts; approved Ministry/ZIMSEC report templates; entry and verification of any ZWG fee bands the school intends to use; and account-by-account role/campus acceptance. Finance supports USD and ZWG per record without exchange conversion. There is no invoice issuance workflow or combined income-and-expense cash reconciliation ledger.
 
 ## Roles and access
 
@@ -95,7 +95,7 @@ Record tester, date, role/campus, result and evidence without learner-identifyin
 | Vercel production/preview Supabase settings are verified; tracked public-only .env is removed only after settings are confirmed | Complete 20 Oct 2026; both projects configured and production deployments Ready on `58996ea`; local `.env` preserved |
 | Encrypted backup destination, schedule, retention and owner are recorded; isolated restore succeeds | Pending; no restore evidence |
 | Separate test environment is approved; test users cannot affect live records | Pending; only one Supabase project found |
-| Currency scope is approved; if ZiG/ZWG is required, currency-aware records/calculations are delivered first | USD-only; ZiG/ZWG not implemented |
+| Currency scope is approved and amounts remain separate by currency | Approved: USD + ZWG per record, with no conversion; currency-aware fields and calculations delivered in Stage 13. Any ZWG fee bands still need school-entered values and verification. |
 | School-approved Ministry/ZIMSEC templates and mappings are reviewed before compatibility is claimed | Pending; templates not supplied |
 | MFA decision and recovery owner are recorded; setup/recovery is tested before enforcement if re-enabled | Paused by owner; do not re-enable without authorization |
 | Main Admin confirms campus assignment for active staff/accountants and processes leavers | Pending school roster review |
