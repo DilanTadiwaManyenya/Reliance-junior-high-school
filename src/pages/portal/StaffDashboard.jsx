@@ -35,6 +35,7 @@ import GradeBands from "../../components/portal/GradeBands";
 import ProgressReports from "../../components/portal/ProgressReports";
 import CourseWork from "../../components/portal/CourseWork";
 import JuniorCourseWork from "../../components/portal/JuniorCourseWork";
+import AdminNewsletters from "../../components/portal/AdminNewsletters";
 import TeacherLearningLibrary from "../../components/portal/TeacherLearningLibrary";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 
@@ -1609,6 +1610,8 @@ export default function StaffDashboard() {
   if (section === "coursework" && isTeacher)
     return <div className="staff-content-area">{isJuniorTeacher ? <JuniorCourseWork /> : <CourseWork />}</div>;
 
+  if (section === "newsletters" && isAdmin)
+    return <div className="staff-content-area"><AdminNewsletters /></div>;
   if (section === "library" && isTeacher)
     return <div className="staff-content-area"><TeacherLearningLibrary /></div>;
   if (section === "classes" && isAdmin)

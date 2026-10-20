@@ -49,6 +49,10 @@ const client = {
   },
   rpc(name, args) {
     state.calls.push({ name, args })
+    if (name === 'parent_school_updates') {
+      const result = { learner_id: args.p_student_id, total_count: 1, items: [{ id: `update-${args.p_student_id}`, title: args.p_student_id === 'junior-child' ? 'Junior school newsletter' : 'Senior school newsletter', body: 'Campus update', category: 'newsletter', published_at: '2026-10-20T08:00:00Z', acknowledged: true, file: null }] }
+      return { abortSignal() { return this }, then(resolve, reject) { return Promise.resolve({ data: result }).then(resolve, reject) } }
+    }
     const student = students.find(student => student.id === args.p_student_id)
     const scoped = resources.filter(row => student?.campus === 'junior' ? row.id === 'junior-note' : row.id.startsWith('senior-note-'))
     const filtered = scoped.filter(row => (!args.p_subject || row.subject === args.p_subject) && (!args.p_year || row.academic_year === args.p_year) && (!args.p_term || row.term === args.p_term))

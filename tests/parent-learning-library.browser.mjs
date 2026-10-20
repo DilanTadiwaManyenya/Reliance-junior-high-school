@@ -26,6 +26,21 @@ try {
   base = `http://127.0.0.1:${server.httpServer.address().port}`
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) })
   await mkdir('tests/artifacts', { recursive: true })
+  {
+    const page = await browser.newPage({ viewport: { width: 390, height: 900 } })
+    await page.goto(`${base}/tests/fixtures/parent-library/index.html?${new URLSearchParams({ route: '/portal/announcements?learner=senior-child' })}`)
+    await page.getByRole('heading', { name: 'Senior school newsletter', exact: true }).waitFor()
+    assert.equal(await page.getByRole('link', { name: 'Newsletters', exact: true }).getAttribute('aria-current'), 'page')
+    await page.getByLabel('Viewing learner', { exact: true }).selectOption('junior-child')
+    await page.getByRole('heading', { name: 'Junior school newsletter', exact: true }).waitFor()
+    assert.equal(await page.getByRole('heading', { name: 'Senior school newsletter', exact: true }).count(), 0)
+    assert.match((await state(page)).route, /learner=junior-child/)
+    await page.getByRole('link', { name: 'Learning library', exact: true }).click()
+    await page.getByText('Junior mathematics notes', { exact: true }).waitFor()
+    assert.match((await state(page)).route, /library\?learner=junior-child/)
+    checks += 4
+    await page.close()
+  }
   for (const width of [320, 390, 768, 1440]) {
     const page = await open(width)
     await page.getByText('23 learning resources for this learner’s current class', { exact: true }).waitFor()

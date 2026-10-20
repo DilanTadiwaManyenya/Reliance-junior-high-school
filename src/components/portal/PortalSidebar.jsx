@@ -53,6 +53,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
     {
       title: 'Administration',
       items: [
+        { id: 'newsletters', label: 'Newsletters', iconKey: 'roster', show: activeRole === 'admin' },
         { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager },
         { id: 'activity', label: 'Activity Log', iconKey: 'staff', show: manager }
       ].filter(i => i.show)
