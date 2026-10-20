@@ -16,7 +16,7 @@
     "test:portal-staff-mobile": "node tests/portal-staff-mobile.browser.mjs && node tests/portal-admin-mobile.browser.mjs",
     "test:portal-navigation": "node tests/portal-navigation.browser.mjs && node tests/portal-account-navigation.browser.mjs && node tests/portal-text-zoom.browser.mjs",
     "test:teacher-mobile": "node tests/teacher-mobile.browser.mjs && node tests/teacher-draft.browser.mjs && node tests/teacher-history-draft.browser.mjs",
-    "test:portal": "node --test tests/portal-profile.test.mjs tests/portal-render.test.mjs tests/teacher-access.test.mjs",
+    "test:portal": "node --test tests/portal-profile.test.mjs tests/portal-redirect.test.mjs tests/portal-render.test.mjs tests/teacher-access.test.mjs",
     "test:shop:campus": "node --test tests/shop-database.test.mjs tests/shop-catalog-database.test.mjs tests/shop-campus-admin.test.mjs tests/shop-campus-pos.test.mjs tests/shop-parent-campus.test.mjs",
     "test:shop:browser": "node tests/shop-campus-acceptance.browser.mjs",
     "test:portal-foundation": "node tests/portal-foundation.browser.mjs",

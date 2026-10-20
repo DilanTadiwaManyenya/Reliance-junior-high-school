@@ -5,14 +5,14 @@ import PortalNotice from '../../components/portal/PortalNotice'
 import PhoneInput from '../../components/ui/PhoneInput'
 import PasswordInput from '../../components/ui/PasswordInput'
 import { buildPortalEmail, isInternationalPhone, normalizePhone } from '../../../shared/portalAuth'
-import { isStaffPortalRole, resolvePortalDestination } from '../../lib/portalRedirect'
+import { resolvePortalDestination } from '../../lib/portalRedirect'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 import { logActivity } from '../../lib/logActivity'
 
 const connectionError = error => !navigator.onLine || error?.status === 0 || /failed to fetch|network|network request failed|timeout|fetch failed/i.test(String(error?.message ?? error ?? ''))
 
 export default function PortalLogin({ staff = false }) {
-  const { supabase, refreshProfile } = useAuth(); const navigate = useNavigate(); const [identifier, setIdentifier] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
+  const { supabase } = useAuth(); const navigate = useNavigate(); const [identifier, setIdentifier] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [submitting, setSubmitting] = useState(false)
   const submit = async (event) => {
     event.preventDefault(); setError(''); const normalized = normalizePhone(identifier)
     if (!navigator.onLine) return setError('You appear to be offline. Check your internet connection and try again.')
@@ -22,14 +22,12 @@ export default function PortalLogin({ staff = false }) {
     const email = buildPortalEmail(normalized)
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) { setSubmitting(false); return setError(connectionError(authError) ? 'We could not connect to the portal. Check your internet connection and try again.' : 'Phone number or password is incorrect.') }
-    const resolvedProfile = await refreshProfile(data.user)
-    const { destination, error: profileError } = await resolvePortalDestination(supabase, data.user.id, resolvedProfile)
-    if (!resolvedProfile) { await supabase.auth.signOut(); setSubmitting(false); return setError('We could not load your portal access. Please contact the school office.') }
+    // AuthProvider loads the full profile once from the auth event. Login only
+    // needs this small role query to route; starting a second full profile load
+    // here made sign-in slower on mobile connections.
+    const { destination, error: profileError, profile } = await resolvePortalDestination(supabase, data.user.id)
     if (profileError || !destination) { await supabase.auth.signOut(); setSubmitting(false); return setError(connectionError(profileError) ? 'We could not connect to the portal. Check your internet connection and try again.' : profileError ? 'We could not load your portal access. Please contact the school office.' : 'This account does not have a recognised portal role.') }
-    const role = resolvedProfile.active_role || resolvedProfile.role
-    const wrongPortal = staff ? !isStaffPortalRole(role) : String(role).toLowerCase() !== 'parent'
-    if (wrongPortal) { await supabase.auth.signOut(); setSubmitting(false); return setError(staff ? 'This is a parent account. Please use the Parent portal to sign in.' : 'This is a staff account. Please use the Staff portal to sign in.') }
-    logActivity(supabase, data.user, resolvedProfile, { actionType: 'login', description: 'Signed in to the portal' })
+    logActivity(supabase, data.user, profile, { actionType: 'login', description: 'Signed in to the portal' })
     navigate(destination, { replace: true })
     } catch (requestError) {
       setError(connectionError(requestError) ? 'We could not connect to the portal. Check your internet connection and try again.' : 'We could not load your portal access. Please try again.')
