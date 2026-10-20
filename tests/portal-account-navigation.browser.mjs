@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { startPortalBrowser, openPortal, portalLayoutMetrics } from './helpers/portal-browser.mjs'
+import { isStaffPortalRole, portalDestinationForRole } from '../src/lib/portalRedirect.js'
+
+assert.equal(portalDestinationForRole('staff'), null, 'legacy staff role should not resolve to the admin-only staff route')
+assert.equal(isStaffPortalRole('staff'), false, 'legacy staff role should not pass the staff sign-in role check')
 const runtime = await startPortalBrowser()
 try {
   for (const width of [320, 390, 768, 1280]) {
@@ -52,6 +56,31 @@ try {
     }
     await page.close()
     console.log(`PASS ${role}: direct link to another role’s portal returns to the assigned workspace`)
+  }
+  for (const [role, route, expected] of [
+    ['teacher', '/portal/dashboard', '/portal/teacher'],
+    ['accountant', '/portal/uniforms', '/portal/accountant'],
+    ['principal', '/portal/learner/learner-0/academics', '/portal/staff'],
+    ['admin', '/portal/dashboard', '/portal/staff'],
+  ]) {
+    const page = await openPortal(runtime.browser, runtime.base, { role, route, ...(role === 'admin' ? { mfaDisabled: '' } : {}) }, 390)
+    await page.waitForFunction(path => window.fixtureRoute.split('?')[0] === path, expected)
+    assert.deepEqual(page.portalErrors, [], `${role}: parent-only deep link should redirect cleanly`)
+    if (role === 'admin' || role === 'principal') assert.equal(await page.locator('.staff-shell').getAttribute('data-role'), role)
+    await page.close()
+    console.log(`PASS ${role}: parent-only deep link returns to the assigned portal`)
+  }
+  for (const [role, route, expected] of [
+    ['parent', '/portal/announcements', '/portal/announcements'],
+    ['principal', '/portal/announcements', '/portal/announcements'],
+    ['admin', '/portal/admin-dashboard', '/portal/admin-dashboard'],
+    ['principal', '/portal/admin-dashboard', '/portal/staff'],
+  ]) {
+    const page = await openPortal(runtime.browser, runtime.base, { role, route, ...(role === 'admin' ? { mfaDisabled: '' } : {}) }, 390)
+    await page.waitForFunction(path => window.fixtureRoute.split('?')[0] === path, expected)
+    assert.deepEqual(page.portalErrors, [], `${role}: shared/administrator route should resolve cleanly`)
+    await page.close()
+    console.log(`PASS ${role}: shared announcements and admin-only dashboard route boundary`)
   }
   for (const [campus, section] of [['senior', 'progress-reports'], ['junior', 'subject-allocations']]) {
     const page = await openPortal(runtime.browser, runtime.base, {

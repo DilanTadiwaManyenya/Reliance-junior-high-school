@@ -50,15 +50,23 @@ function App() {
     <Route element={<ProtectedRoute />}>
       <Route path="/portal/set-password" element={<SetNewPassword />} />
       <Route path="/portal/first-login" element={<TeacherFirstLogin />} />
-      <Route element={<PortalLayout />}>
-        <Route path="/portal/dashboard" element={<ParentDashboard />} />
-        <Route path="/portal/uniforms" element={<ParentUniformCatalogue />} />
-        <Route path="/portal/learner/:studentId/:view" element={<ParentRecordPage />} />
-        <Route path="/portal/announcements" element={<Announcements />} />
+      <Route element={<ProtectedRoute roles={['parent']} />}>
+        <Route element={<PortalLayout />}>
+          <Route path="/portal/dashboard" element={<ParentDashboard />} />
+          <Route path="/portal/uniforms" element={<ParentUniformCatalogue />} />
+          <Route path="/portal/learner/:studentId/:view" element={<ParentRecordPage />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute roles={['parent', 'admin', 'principal', 'teacher', 'accountant']} />}>
+        <Route element={<PortalLayout />}>
+          <Route path="/portal/announcements" element={<Announcements />} />
+        </Route>
       </Route>
       <Route element={<StaffPortalLayout />}>
         <Route element={<ProtectedRoute roles={['admin', 'principal']} />}>
             <Route path="/portal/staff" element={<StaffDashboard />} />
+        </Route>
+        <Route element={<ProtectedRoute roles={['admin']} />}>
             <Route path="/portal/admin-dashboard" element={<RoleDashboard role='admin' />} />
         </Route>
         <Route element={<ProtectedRoute roles={['teacher']} />}>

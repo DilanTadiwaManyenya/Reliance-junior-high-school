@@ -1,14 +1,13 @@
 const roleDestinations = {
   admin: '/portal/staff',
   principal: '/portal/staff',
-  staff: '/portal/staff',
   teacher: '/portal/teacher',
   accountant: '/portal/accountant',
   parent: '/portal/dashboard',
 }
 
 export const portalDestinationForRole = (role) => roleDestinations[String(role ?? '').trim().toLowerCase()] ?? null
-export const isStaffPortalRole = role => ['admin', 'principal', 'staff', 'teacher', 'accountant'].includes(String(role ?? '').trim().toLowerCase())
+export const isStaffPortalRole = role => ['admin', 'principal', 'teacher', 'accountant'].includes(String(role ?? '').trim().toLowerCase())
 
 // Prefer the profile already loaded by AuthProvider.  The database fallback
 // retains compatibility with deployments that have not yet applied the
