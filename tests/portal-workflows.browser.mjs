@@ -53,6 +53,23 @@ try{
  for(const [campus,routeCampus] of [['all','junior'],['junior','junior'],['senior','senior']])for(const width of [390,1024]){
   const query=new URLSearchParams({section:'classes',campus:routeCampus,classLevel:routeCampus==='junior'?'Grade 1':'Form 1',stream:routeCampus==='junior'?'class-2':'class-1',view:'staff'})
   const page=await openPortal(runtime.browser,runtime.base,{role:'admin',campus,route:'/portal/staff?'+query},width)
+  const nav=page.locator('.class-workspace-nav')
+  await nav.waitFor()
+  await nav.getByRole('button',{name:/Learner register/}).click()
+  await page.waitForFunction(()=>new URLSearchParams(window.fixtureRoute.split('?')[1]||'').get('view')===null)
+  await nav.getByRole('button',{name:/Class settings/}).click()
+  await page.waitForFunction(()=>new URLSearchParams(window.fixtureRoute.split('?')[1]||'').get('view')==='settings')
+  await nav.getByRole('button',{name:/Staff allocations/}).click()
+  await page.waitForFunction(()=>new URLSearchParams(window.fixtureRoute.split('?')[1]||'').get('view')==='staff')
+  assert.equal(await page.locator('.staff-shell').getAttribute('data-section'),'classes')
+  assert.deepEqual(page.portalErrors,[],`${campus} ${width}px: nested class navigation runtime error`)
+  checks++
+  console.log(`PASS ${campus} admin ${width}px: register, settings and staff views switch directly`)
+  await page.close()
+ }
+ for(const [campus,routeCampus] of [['all','junior'],['junior','junior'],['senior','senior']])for(const width of [390,1024]){
+  const query=new URLSearchParams({section:'classes',campus:routeCampus,classLevel:routeCampus==='junior'?'Grade 1':'Form 1',stream:routeCampus==='junior'?'class-2':'class-1',view:'staff'})
+  const page=await openPortal(runtime.browser,runtime.base,{role:'admin',campus,route:'/portal/staff?'+query},width)
   await page.locator('.class-workspace').waitFor()
   if(width<=900){
    await page.getByRole('button',{name:'Open navigation menu',exact:true}).click()
