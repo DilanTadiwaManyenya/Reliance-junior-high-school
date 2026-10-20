@@ -42,10 +42,13 @@ export async function saveLearningDetails(client, { id, teacherId, scope, form }
     if (existing.teacher_id !== teacherId || ['campus', 'class_level', 'class_stream', 'subject'].some(key => (existing[key] || '') !== (scope[key] || ''))) throw new Error('This draft belongs to another teaching allocation. Reopen its original allocation.')
     return request(client.from('learning_resources').update(details).eq('id', id).select('*').single())
   }
-  return request(client.from('learning_resources').insert({ id, teacher_id: teacherId,
+  // The SELECT policy resolves this record by ID. INSERT RETURNING evaluates it
+  // before the new row is visible to that lookup; read in a separate request.
+  await request(client.from('learning_resources').insert({ id, teacher_id: teacherId,
     allocation_id: scope.allocation_id || null, campus: scope.campus, class_level: scope.class_level,
     class_stream: scope.class_stream || '', subject: scope.subject, academic_year: year, term, ...details,
-  }).select('*').single())
+  }))
+  return request(client.from('learning_resources').select('*').eq('id', id).single())
 }
 export async function uploadLearningFile(client, resourceId, file, onProgress = () => {}) {
   const attributes = validateLearningFile(file)

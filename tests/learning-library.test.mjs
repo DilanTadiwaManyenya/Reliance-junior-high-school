@@ -10,18 +10,26 @@ function mock({ existing = null, failUpload = false, failFinalize = false } = {}
   const state = { row: existing }
   const client = {
     from(table) {
-      let action = 'select', payload
+      let action = 'select', payload, returning = false
       const query = {
-        select() { return query }, eq() { return query },
+        select() { returning = true; return query }, eq() { return query },
         insert(value) { action = 'insert'; payload = value; return query },
         update(value) { action = 'update'; payload = value; return query },
         async single() {
+          if (action === 'insert' && table === 'learning_resources' && returning) return { error: { message: 'RLS rejects INSERT RETURNING' } }
           calls.push({ table, action, payload })
           if (table === 'portal_content_files') return { data: { id: 'file', bucket_id: 'learning-library', object_path: 'resource/file.pdf' } }
           state.row = { ...state.row, ...payload }
           return { data: state.row }
         },
         async maybeSingle() { calls.push({ table, action }); return { data: state.row } },
+        then(resolve, reject) {
+          if (action === 'insert' && table === 'learning_resources') {
+            if (returning) return Promise.resolve({ error: { message: 'RLS rejects INSERT RETURNING' } }).then(resolve, reject)
+            calls.push({ table, action, payload }); state.row = { ...payload }
+          }
+          return Promise.resolve({ data: null }).then(resolve, reject)
+        },
       }
       return query
     },

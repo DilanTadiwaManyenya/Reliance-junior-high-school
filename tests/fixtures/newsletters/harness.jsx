@@ -11,10 +11,10 @@ const state = { rows: [], files: [], reads: [], operations: [], failUpload: fals
 window.newsletterFixture = state
 const client = {
   from(table) {
-    let action = 'select', payload, single = false
+    let action = 'select', payload, single = false, returning = false
     const filters = []
     const query = {
-      select() { return query }, order() { return query }, limit() { return query }, range() { return query },
+      select() { returning = true; return query }, order() { return query }, limit() { return query }, range() { return query },
       eq(key, value) { filters.push([key, value]); return query },
       maybeSingle() { single = true; return query }, single() { single = true; return query },
       insert(value) { action = 'insert'; payload = value; return query }, update(value) { action = 'update'; payload = value; return query },
@@ -26,7 +26,7 @@ const client = {
           file.object_path = `${payload.announcement_id}/${file.id}.${file.extension}`
           state.files.push(file); return { data: file }
         }
-        if (action === 'insert') { const row = { ...payload, state: 'draft', announcement_targets: [] }; state.rows.unshift(row); return { data: { ...row } } }
+        if (action === 'insert') { if (returning) return { error: { message: 'RLS rejects INSERT RETURNING' } }; const row = { ...payload, state: 'draft', announcement_targets: [] }; state.rows.unshift(row); return { data: { ...row } } }
         const rows = state.rows.filter(row => filters.every(([key, value]) => row[key] === value))
         if (action === 'update') { Object.assign(rows[0], payload); return { data: { ...rows[0] } } }
         const data = rows.map(row => ({ ...row, portal_content_files: state.files.filter(file => file.announcement_id === row.id).map(file => ({ ...file })) }))

@@ -12,10 +12,10 @@ const state = { rows: [], files: [], operations: [], failUpload: false, failLoad
 window.libraryFixture = state
 const client = {
   from(table) {
-    let action = 'select', payload, maybe = false, single = false, range = [0, 20]
+    let action = 'select', payload, maybe = false, single = false, returning = false, range = [0, 20]
     const filters = []
     const query = {
-      select() { return query }, order() { return query }, abortSignal() { return query },
+      select() { returning = true; return query }, order() { return query }, abortSignal() { return query },
       eq(key, value) { filters.push([key, value]); return query },
       range(start, end) { range = [start, end]; return query },
       maybeSingle() { maybe = true; return query }, single() { single = true; return query },
@@ -33,6 +33,7 @@ const client = {
           }
           const id = filters.find(([key]) => key === 'id')?.[1]
           if (action === 'insert') {
+            if (returning) return { error: { message: 'RLS rejects INSERT RETURNING' } }
             const row = { ...payload, state: 'draft', created_at: new Date().toISOString() }
             state.rows.unshift(row); return { data: { ...row } }
           }

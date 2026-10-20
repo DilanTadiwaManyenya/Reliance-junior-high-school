@@ -5,7 +5,7 @@ import { LEARNING_FILE_ACCEPT, validateLearningFile } from '../../lib/learningLi
 import { newsletterDates, newsletterRequest, schoolDateInput, uploadNewsletterFile } from '../../lib/schoolNewsletters'
 import './schoolNewsletters.css'
 
-const levels = campus => campus === 'junior' ? ['ECD A', 'ECD B', ...Array.from({ length: 7 }, (_, i) => `Grade ${i + 1}`)] : Array.from({ length: 6 }, (_, i) => `Form ${i + 1}`)
+const levels = campus => campus === 'junior' ? ['ECD A', 'ECD B', ...Array.from({ length: 7 }, (_, i) => `Grade ${i + 1}`)] : [...Array.from({ length: 4 }, (_, i) => `Form ${i + 1}`), 'Lower Six', 'Upper Six', 'Form 5', 'Form 6']
 const targetFor = campus => ({ campus, class_level: '', class_stream: '' })
 
 function NewsletterEditor({ row, onClose, onSaved }) {
@@ -35,7 +35,8 @@ function NewsletterEditor({ row, onClose, onSaved }) {
       const existing = await newsletterRequest(supabase.from('announcements').select('id,state,campus').eq('id', id).maybeSingle())
       if (existing && existing.campus !== form.campus) throw new Error('This saved newsletter belongs to another campus. Reopen it before continuing.')
       if (!existing) {
-        await newsletterRequest(supabase.from('announcements').insert({ id, campus: form.campus, ...details }).select('id').single())
+        // Its read policy also looks up the parent row: avoid INSERT RETURNING.
+        await newsletterRequest(supabase.from('announcements').insert({ id, campus: form.campus, ...details }))
         setSaved(true)
       } else {
         if (existing.state !== state) throw new Error('This newsletter changed in another session. Close and refresh before editing.')
