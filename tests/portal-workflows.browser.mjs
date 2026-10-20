@@ -98,6 +98,23 @@ try{
   console.log(`PASS ${role} ${campus}: switching directly from learner report to Finance`)
   await page.close()
  }
+ for(const [campus,learner] of [['junior','Brian'],['senior','Alexandra']])for(const width of [390,1024]){
+  const page=await openPortal(runtime.browser,runtime.base,{role:'teacher',campus,section:'roster'},width)
+  await page.getByRole('button',{name:new RegExp(`Open learner profile for ${learner}`)}).click()
+  await page.getByRole('navigation',{name:'Learner profile sections'}).waitFor()
+  if(width<=900){
+   await page.getByRole('button',{name:'Open navigation menu',exact:true}).click()
+   await page.getByRole('dialog',{name:'Portal navigation'}).getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Course Work',exact:true}).click()
+  }else await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Course Work',exact:true}).click()
+  await page.waitForFunction(()=>document.querySelector('.staff-shell')?.dataset.section==='coursework')
+  await page.getByRole('navigation',{name:'Learner profile sections'}).waitFor({state:'detached'})
+  assert.equal(await page.locator('.coursework-page').count(),1,`${campus} teacher: Coursework should replace the learner profile directly`)
+  assert.equal(await page.locator('.staff-shell').getAttribute('data-workspace'),campus==='junior'?'classes':'subjects')
+  assert.deepEqual(page.portalErrors,[],`${campus} teacher ${width}px: profile-to-coursework navigation runtime error`)
+  checks++
+  console.log(`PASS ${campus} teacher ${width}px: learner profile to Course Work navigation`)
+  await page.close()
+ }
  const pending=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'fees',delayPayment:''},320,480)
  await pending.getByRole('button',{name:'Collect payment',exact:true}).first().click()
  await pending.getByLabel('New amount received',{exact:true}).fill('10')
