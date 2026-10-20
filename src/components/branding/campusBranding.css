@@ -29,30 +29,31 @@
 
 .staff-shell::before {
   position: fixed;
-  z-index: -1;
+  z-index: 10;
   right: 2vw;
   bottom: 3vh;
   width: clamp(180px, 25vw, 360px);
   height: clamp(240px, 34vw, 480px);
   background: var(--campus-watermark) center / contain no-repeat;
   content: '';
-  opacity: .035;
+  opacity: .055;
   pointer-events: none;
 }
 
 .staff-shell[data-campus="all"]::after {
   position: fixed;
-  z-index: -1;
+  z-index: 10;
   right: 2vw;
   bottom: 3vh;
   width: clamp(180px, 25vw, 360px);
   height: clamp(240px, 34vw, 480px);
   background: url('../../assets/images/reliance-senior-crest.webp') center / contain no-repeat;
   content: '';
-  opacity: .035;
+  opacity: .055;
   pointer-events: none;
-  transform: translateX(-14%);
 }
+
+.staff-shell[data-campus="all"]::before { right: 18vw; }
 
 .parent-portal-shell {
   --campus-watermark: url('../../assets/images/reliance-junior-crest.webp');
@@ -65,14 +66,14 @@
 
 .parent-portal-shell::before {
   position: fixed;
-  z-index: -1;
+  z-index: 10;
   right: 2vw;
   bottom: 3vh;
   width: clamp(160px, 24vw, 320px);
   height: clamp(220px, 32vw, 430px);
   background: var(--campus-watermark) center / contain no-repeat;
   content: '';
-  opacity: .035;
+  opacity: .055;
   pointer-events: none;
 }
 
