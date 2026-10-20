@@ -889,6 +889,15 @@ export default function StaffDashboard() {
     setProfileStudent(student);
   };
 
+  // Learner profiles are an in-page view layered over the active section.
+  // When navigation changes sections, dismiss that view so it cannot mask
+  // the newly selected workspace (for example, Progress Reports -> Finance).
+  useEffect(() => {
+    if (!profileStudent || section === profileOrigin.section) return;
+    setProfileStudent(null);
+    setProfileInitialTab("Summary");
+  }, [profileOrigin.section, profileStudent, section]);
+
   const ensureAdminRole = async () => {
     if (activeRole === "admin") return true;
     try {
@@ -1485,7 +1494,7 @@ export default function StaffDashboard() {
       </div>
     );
 
-  if (profileStudent)
+  if (profileStudent && section === profileOrigin.section)
     return (
       <StaffLearnerProfile
         supabase={supabase}

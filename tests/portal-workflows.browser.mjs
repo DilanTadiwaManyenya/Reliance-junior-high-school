@@ -63,6 +63,24 @@ try{
   }
   await page.close()
  }
+ for(const [role,campus] of [['admin','all'],['admin','junior'],['admin','senior'],['accountant','junior'],['accountant','senior']]){
+  const page=await openPortal(runtime.browser,runtime.base,{role,campus,section:'progress-reports',mfaDisabled:''},390)
+  await page.getByRole('button',{name:'View progress',exact:true}).first().click()
+  await page.getByRole('navigation',{name:'Learner profile sections'}).waitFor()
+  if(role==='accountant'){
+   const nav=page.getByRole('navigation',{name:'Accountant workspace'})
+   await nav.locator('summary').click()
+   await nav.getByRole('button',{name:'Finance',exact:true}).click()
+  }else{
+   await page.getByRole('button',{name:'Open navigation menu',exact:true}).click()
+   await page.getByRole('dialog',{name:'Portal navigation'}).getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Finance',exact:true}).click()
+  }
+  await page.waitForFunction(()=>document.querySelector('.staff-shell')?.dataset.section==='fees')
+  await page.getByRole('navigation',{name:'Learner profile sections'}).waitFor({state:'detached'})
+  assert.deepEqual(page.portalErrors,[],`${role} ${campus}: progress report navigation runtime error`)
+  console.log(`PASS ${role} ${campus}: switching directly from learner report to Finance`)
+  await page.close()
+ }
  const pending=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'fees',delayPayment:''},320,480)
  await pending.getByRole('button',{name:'Collect payment',exact:true}).first().click()
  await pending.getByLabel('New amount received',{exact:true}).fill('10')
