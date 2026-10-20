@@ -15,7 +15,9 @@
 
 ## Backup status — not verified / action required
 
-The live read-only CLI check returned `walg_enabled=true`, `pitr_enabled=false`, and an empty physical-backup list. Therefore there is no available physical backup to restore in a drill, and no off-site logical backup was verified. Supabase currently documents automatic daily backups for Pro/Team/Enterprise; for Free projects it recommends regular CLI exports and off-site storage. Check the project's plan in Supabase before assuming which backup coverage applies.
+Live Supabase dashboard inspection on 20 October 2026 confirmed the project is Healthy and on the Free plan. The Scheduled Backups page says Free does not include project backups and offers up to 7 days of daily backups on Pro. The Point in Time Recovery page identifies PITR as a Pro add-on starting at $100/month. The project overview reports `No backups` and `No branches`; no isolated Supabase test project was available in the project selector. The earlier read-only CLI check returned `walg_enabled=true`, `pitr_enabled=false`, and an empty physical-backup list. No off-site logical backup has been verified.
+
+No billing setting was changed, no new project was created, and no learner/staff data was exported during this check. Do not treat the existing production project or a local fixture as an isolated restore target. The owner must approve a protected backup destination and an isolated target before a real-data backup/restore drill can proceed. The current workstation also has no `supabase`, `docker`, `pg_dump`, `pg_restore` or `psql` command available for a local drill.
 
 After the owner chooses the backup destination and authorizes handling the personal data in the export:
 
