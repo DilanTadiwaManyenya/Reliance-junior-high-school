@@ -1,16 +1,24 @@
-# React + Vite
+# Reliance Learning Centre
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Reliance is the school portal for learner administration, academics and reporting, attendance, fees, staff access, uniforms, inventory and point of sale.
 
-Currently, two official plugins are available:
+## Start here
+- [Stage 15 handover and go-live guide](docs/stage15-handover-go-live.md)
+- [Remaining delivery stages](docs/remaining-delivery-stages.md)
+- [Stage 14 reliability and environments](docs/stage14-reliability-environments.md)
+- [Campus isolation](docs/security-stage1-campus-isolation.md)
+- [Inventory and POS](docs/inventory-pos.md)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Stage documents record SQL rollout, checks, tests, limits and recovery. An implemented stage does not mean school acceptance is complete.
 
-## React Compiler
+## Local development
+Use a supported Node.js version. From the repository root, run npm install, copy .env.example to .env and set the public Supabase URL and anon key provided by the project owner, then run npm run dev. Run npm run build for a production bundle.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Only browser-safe VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY belong in frontend configuration. Never put a service-role key or other privileged secret in a VITE_ variable or browser code. Do not commit live data, exports, credentials or database dumps.
 
-## Expanding the ESLint configuration
+Focused checks are listed in package.json, including npm run test:portal and npm run test:shop:campus. Fixture tests do not prove hosted sign-in, production policies or school acceptance.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Data and deployment
+Use named accounts and least-privilege campus assignments. Frontend pushes to master trigger connected Vercel builds. Supabase migrations and Edge Function deployments are separate: verify the linked project, review the exact migration/function, then run its verification checks. Never replay historical or reset migrations or push an unreviewed batch.
+
+Backups, a separate restore target, currency support and official Zimbabwe report templates remain open as described in Stage 14 and Stage 15. Finance records are USD-only.
