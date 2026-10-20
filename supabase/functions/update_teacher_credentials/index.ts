@@ -17,7 +17,8 @@ Deno.serve(async request => {
     if (!user) throw new Error('Authentication is required.')
 
     const input = await request.json()
-    const { data: caller } = await admin.from('profiles').select('role, active_role, campus').eq('id', user.id).single()
+    const { data: caller, error: callerError } = await admin.from('profiles').select('role, active_role, campus').eq('id', user.id).single()
+    if (callerError) throw new Error('Unable to load your staff permissions. Refresh and try again.')
 
     if (caller?.role === 'admin') await requireAdminMfa(admin, token)
     let targetUserId = user.id
@@ -27,7 +28,8 @@ Deno.serve(async request => {
       throw new Error('Only teachers or administrators can update credentials.')
     }
 
-    const { data: targetProfile } = await admin.from('profiles').select('is_protected, role, campus').eq('id', targetUserId).maybeSingle()
+    const { data: targetProfile, error: targetProfileError } = await admin.from('profiles').select('is_protected, role, campus, phone').eq('id', targetUserId).maybeSingle()
+    if (targetProfileError) throw new Error('Unable to load the selected staff profile. Refresh and try again.')
     if (!targetProfile) throw new Error('The target profile was not found.')
     if (targetProfile.is_protected && targetUserId !== user.id) {
       throw new Error('The protected primary administrator can change credentials only on their own signed-in account.')
@@ -41,19 +43,29 @@ Deno.serve(async request => {
     if (!validPhone(nextPhone)) throw new Error('Enter a valid international phone number.')
     if (password.length < 8) throw new Error('Choose a password of at least 8 characters.')
 
-    const { data: duplicate } = await admin.from('profiles').select('id').eq('phone', nextPhone).neq('id', targetUserId).maybeSingle()
+    const { data: duplicate, error: duplicateError } = await admin.from('profiles').select('id').eq('phone', nextPhone).neq('id', targetUserId).maybeSingle()
+    if (duplicateError) throw new Error('Unable to check whether that phone number is already in use. Try again.')
     if (duplicate) throw new Error('That phone number is already registered.')
 
+    const { data: targetAuth, error: targetAuthError } = await admin.auth.admin.getUserById(targetUserId)
+    if (targetAuthError || !targetAuth.user) throw new Error('The staff profile has no readable login account in Supabase Auth. No credentials were changed; ask the Main Admin to repair this account.')
     const updatedEmail = portalEmail(nextPhone)
-    const { error: authError } = await admin.auth.admin.updateUserById(targetUserId, { email: updatedEmail, password })
+    const authUpdate: { email?: string, password: string } = { password }
+    // Avoid submitting an unchanged email. Supabase Auth can treat a no-op email
+    // update as a second identity change while this flow is only resetting a password.
+    if (targetAuth.user.email !== updatedEmail) authUpdate.email = updatedEmail
+    const { error: authError } = await admin.auth.admin.updateUserById(targetUserId, authUpdate)
     if (authError) throw authError
 
     const adminSetPasswordForAnotherUser = caller?.role === 'admin' && targetUserId !== user.id
-    const { error: profileError } = await admin.from('profiles').update({ phone: nextPhone, must_update_credentials: false, must_change_password: adminSetPasswordForAnotherUser }).eq('id', targetUserId)
+    const profileUpdate = { must_update_credentials: false, must_change_password: adminSetPasswordForAnotherUser, ...(targetProfile.phone === nextPhone ? {} : { phone: nextPhone }) }
+    const { error: profileError } = await admin.from('profiles').update(profileUpdate).eq('id', targetUserId)
     if (profileError) throw profileError
 
-    const { error: accountError } = await admin.from('staff_accounts').update({ phone_number: nextPhone }).eq('user_id', targetUserId)
-    if (accountError) throw accountError
+    if (targetProfile.phone !== nextPhone) {
+      const { error: accountError } = await admin.from('staff_accounts').update({ phone_number: nextPhone }).eq('user_id', targetUserId)
+      if (accountError) throw accountError
+    }
 
     return reply({ success: true, user_id: targetUserId, email: updatedEmail })
   } catch (error) { return reply({ success: false, error: error instanceof Error ? error.message : 'Unable to update credentials.' }, 400) }

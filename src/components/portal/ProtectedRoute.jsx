@@ -1,10 +1,9 @@
-import AdminMfaGate from './AdminMfaGate'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
 import { portalDestinationForRole } from '../../lib/portalRedirect'
 
 export default function ProtectedRoute({ roles }) {
-  const { user, profile, activeRole, roles: assignedRoles, loading, profileError, refreshProfile, signOut, supabase } = useAuth()
+  const { user, profile, activeRole, loading, profileError, refreshProfile, signOut, supabase } = useAuth()
   const location = useLocation()
   if (!supabase) return <Navigate to="/portal/login" replace state={{ message: 'The Portal is not configured yet.' }} />
   if (loading) return <main className="portal-loading" role="status" aria-live="polite" aria-busy="true">Loading your portal…</main>
@@ -14,7 +13,6 @@ export default function ProtectedRoute({ roles }) {
   if (profile?.must_change_password && location.pathname !== '/portal/set-password') return <Navigate to="/portal/set-password" replace />
   if (!profile?.must_change_password && location.pathname === '/portal/set-password') return <Navigate to={portalDestinationForRole(activeRole) ?? '/portal/login'} replace />
   if (roles && !roles.includes(activeRole)) return <Navigate to={portalDestinationForRole(activeRole) ?? '/portal/login'} replace />
-  if (profile?.role === 'admin' || activeRole === 'admin' || assignedRoles?.includes('admin')) return <AdminMfaGate><Outlet /></AdminMfaGate>
   return <Outlet />
 }
 

@@ -952,8 +952,6 @@ export default function StaffDashboard() {
     const { data, error: requestError } = await staffQuery;
     if (requestError) showError(requestError.message);
     else setStaff(data ?? []);
-    console.log("Loaded staff data", data);
-    console.log("Loaded staff count", (data ?? []).length, data);
   }, [manager, supabase, adminCampusScope]);
   const loadSchoolClasses = useCallback(async () => {
     const classQuery = supabase
