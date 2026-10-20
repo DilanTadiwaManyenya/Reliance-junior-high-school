@@ -6,7 +6,7 @@ import { useAuth } from '../../context/useAuth'
 
 export default function ParentUniformCatalogue() {
   const { supabase, user } = useAuth()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [students, setStudents] = useState([])
   const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -30,5 +30,12 @@ export default function ParentUniformCatalogue() {
 
   const student = students.find(row => row.id === selectedId)
   if (loading) return <section className="section white"><div className="container portal-content">Loading uniform catalogue…</div></section>
-  return <section className="section white"><div className="container portal-content"><Link className="parent-catalogue-back" to={selectedId ? `/portal/dashboard?learner=${encodeURIComponent(selectedId)}` : '/portal/dashboard'}>← Back to dashboard</Link><div className="parent-catalogue-heading"><div><p className="eyebrow">School shop</p><h1>Uniform catalogue</h1><p className="muted">Choose the items your learner needs, then submit an order for school verification and collection.</p></div>{students.length > 1 && <label className="portal-switcher">Buying for<select value={selectedId} onChange={event => setSelectedId(event.target.value)}>{students.map(row => <option key={row.id} value={row.id}>{row.full_name} · {row.class_level} {row.class_stream}</option>)}</select></label>}</div>{error && <PortalNotice tone="error">{error}</PortalNotice>}{!student && !error && <PortalNotice tone="error">No verified learner connection is available for this account.</PortalNotice>}{student && <ParentUniformShop supabase={supabase} parentId={user.id} student={student} />}</div></section>
+  const selectStudent = id => {
+    const next = new URLSearchParams(searchParams)
+    next.set('learner', id)
+    setSelectedId(id)
+    setSearchParams(next, { replace: true })
+  }
+
+  return <section className="section white"><div className="container portal-content"><Link className="parent-catalogue-back" to={selectedId ? `/portal/dashboard?learner=${encodeURIComponent(selectedId)}` : '/portal/dashboard'}>← Back to dashboard</Link><div className="parent-catalogue-heading"><div><p className="eyebrow">School shop</p><h1>Uniform catalogue</h1><p className="muted">Choose the items your learner needs, then submit an order for school verification and collection.</p></div>{students.length > 1 && <label className="portal-switcher">Buying for<select value={selectedId} onChange={event => selectStudent(event.target.value)}>{students.map(row => <option key={row.id} value={row.id}>{row.full_name} · {row.class_level} {row.class_stream}</option>)}</select></label>}</div>{error && <PortalNotice tone="error">{error}</PortalNotice>}{!student && !error && <PortalNotice tone="error">No verified learner connection is available for this account.</PortalNotice>}{student && <ParentUniformShop supabase={supabase} parentId={user.id} student={student} />}</div></section>
 }
