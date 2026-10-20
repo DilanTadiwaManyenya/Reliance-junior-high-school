@@ -44,6 +44,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
       title: 'Finance',
       items: [
         { id: 'fees', label: 'Finance', iconKey: 'fees', show: manager || activeRole === 'accountant' },
+        { id: 'reconciliation', label: 'Income & expenses', iconKey: 'fees', show: isMainAdmin || accountant },
         { id: 'expenses', label: 'Expenses & Cashbook', iconKey: 'fees', show: isMainAdmin || activeRole === 'principal' || accountant },
         { id: 'inventory', label: 'Inventory & POS', iconKey: 'fees', show: (activeRole === 'admin' && ['all','junior','senior'].includes(profile?.campus)) || (accountant && ['junior','senior'].includes(profile?.campus)) },
       ].filter(i => i.show)

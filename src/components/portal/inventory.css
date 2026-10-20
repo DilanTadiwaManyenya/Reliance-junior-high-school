@@ -119,6 +119,18 @@
 .shop-stat.cost strong,
 .shop-warning { color: #aa6410; }
 .shop-stats-five { grid-template-columns: repeat(5, 1fr); }
+.finance-reconciliation .shop-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.finance-reconciliation-currency { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+.finance-reconciliation-currency h2 { grid-column: 1 / -1; margin: 0; color: #1c355a; }
+.finance-reconciliation-currency .shop-stat { padding: 16px; min-width: 0; }
+.finance-reconciliation-currency .shop-stat strong { font-size: 19px; }
+.finance-reconciliation-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.finance-reconciliation-filters label { display: grid; gap: 6px; min-width: 0; color: #354968; font-size: .8rem; font-weight: 700; }
+.finance-reconciliation-filters input,
+.finance-reconciliation-filters select { min-height: 42px; min-width: 0; border: 1px solid #d5deea; border-radius: 9px; padding: 0 10px; background: #fff; color: #172b59; font: inherit; }
+.finance-reconciliation-table { min-width: 860px; width: 100%; }
+.finance-reconciliation .shop-header > button { min-height: 42px; padding: 0 18px; border: 1px solid #cbd8e8; border-radius: 9px; background: #fff; color: #172b59; font: inherit; font-weight: 750; }
+.finance-reconciliation .shop-header > button:disabled { opacity: .55; cursor: not-allowed; }
 .shop-panel {
   margin-bottom: 20px;
 }
@@ -547,6 +559,7 @@
   .shop-stats {
     grid-template-columns: repeat(2, 1fr);
   }
+  .finance-reconciliation-currency .shop-stat strong { font-size: 17px; }
   .shop-receipts-layout,
   .shop-profit-layout { grid-template-columns: 1fr; }
   .shop-operational-grid { grid-template-columns: 1fr; }
@@ -580,6 +593,11 @@
   .shop-stat {
     padding: 17px;
   }
+  .finance-reconciliation .shop-stats { grid-template-columns: 1fr; }
+  .finance-reconciliation-currency { grid-template-columns: 1fr; }
+  .finance-reconciliation-filters { grid-template-columns: 1fr; }
+  .finance-reconciliation .shop-header { align-items: stretch; flex-direction: column; }
+  .finance-reconciliation .shop-header > button { width: 100%; }
   .shop-stat strong {
     font-size: 21px;
   }

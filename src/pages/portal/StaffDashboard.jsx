@@ -4,6 +4,7 @@ import ReportingPeriods from '../../components/portal/ReportingPeriods'
 import MobileRecordTable from '../../components/portal/MobileRecordTable'
 import InventoryPOS from "../../components/portal/InventoryPOS";
 import ExpensesCashbook from "../../components/portal/ExpensesCashbook";
+import FinanceReconciliation from "../../components/portal/FinanceReconciliation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Button from "../../components/ui/Button";
 import PasswordInput from "../../components/ui/PasswordInput";
@@ -1471,6 +1472,13 @@ export default function StaffDashboard() {
     return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} students={filteredStudents} teacherName={profile?.full_name} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onBack={clearSubjectGroup} onOpenWorkspace={(nextSection, subject, level, allocationId) => setSubjectGroup(subject, level, allocationId, nextSection)} />;
 
   const shopRole = activeRole;
+  if (section === "reconciliation" && (isMainAdmin || accountant))
+    return (
+      <div className="staff-content-area">
+        <FinanceReconciliation supabase={supabase} profile={profile} />
+      </div>
+    );
+
   if (section === "inventory" && ((isAdmin && ["all", "junior", "senior"].includes(profile?.campus)) || (accountant && ["junior", "senior"].includes(profile?.campus))))
     return (
       <div className="staff-content-area">
