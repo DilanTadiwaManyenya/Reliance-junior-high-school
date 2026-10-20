@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict'
+import {mkdir,readFile} from 'node:fs/promises'
+import {startPortalBrowser,openPortal,portalLayoutMetrics} from './helpers/portal-browser.mjs'
+const runtime=await startPortalBrowser()
+await mkdir('tmp/stage12-exports',{recursive:true})
+try{
+ for(const width of [320,390,768,1280]){
+  const page=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'all',section:'progress-reports',academicLarge:''},width)
+  const batch=page.getByRole('region',{name:'Historical academic batch export'})
+  await batch.getByRole('button',{name:'Prepare academic export',exact:true}).click()
+  const downloads=batch.getByRole('region',{name:'Academic record downloads'})
+  for(const [label,ext]of[['Download academic CSV','csv'],['Download academic Excel','xlsx']]){
+   const download=page.waitForEvent('download');await downloads.getByRole('button',{name:label,exact:true}).click();await(await download).saveAs(`tmp/stage12-exports/batch-${width}.${ext}`)
+  }
+  await downloads.getByRole('button',{name:'Preview printable extract',exact:true}).click()
+  assert.equal(await downloads.locator('table').nth(1).locator('tbody tr').count(),100)
+  const title=await page.title()
+  await page.pdf({path:`tmp/stage12-exports/batch-${width}.pdf`,format:'A4',printBackground:true,preferCSSPageSize:true})
+  assert.equal(await page.title(),title)
+  assert.equal(await downloads.locator('table').nth(1).locator('tbody tr').count(),100)
+  const metrics=await portalLayoutMetrics(page);assert.ok(metrics.documentWidth<=width+1)
+  assert.deepEqual(page.portalErrors,[])
+  assert.deepEqual(await page.evaluate(()=>window.fixtureWrites.filter(write=>write.table!=='audit_logs')),[])
+  if(width===390){await downloads.getByRole('button',{name:'Close extract preview',exact:true}).click();await page.screenshot({path:'tmp/stage12-exports/batch-390.png'})}
+  await batch.getByLabel('Export year',{exact:true}).fill('2025')
+  assert.equal(await downloads.count(),0,'Changing scope removes old data and downloads')
+  await page.close();console.log(`PASS ${width}px: real 1007-mark CSV/XLSX/PDF batch, bounded preview, restored print state and changed-scope invalidation`)
+ }
+ const parent=await openPortal(runtime.browser,runtime.base,{role:'parent',historyPromotion:'junior-senior',route:'/portal/learner/learner-0/academics'},390)
+ await parent.getByLabel('Report year',{exact:true}).selectOption('2026')
+ const download=parent.waitForEvent('download');await parent.getByRole('button',{name:'Download academic Excel',exact:true}).click();await(await download).saveAs('tmp/stage12-exports/parent-historical.xlsx')
+ assert.match(await parent.locator('.junior-report-meta').innerText(),/Grade 1/)
+ await parent.close()
+ const fail=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'all',section:'progress-reports',reportError:''},390)
+ await fail.evaluate(()=>window.fixtureReportError=true)
+ await fail.getByRole('button',{name:'Prepare academic export',exact:true}).click()
+ await fail.getByRole('alert').filter({hasText:'No partial batch'}).waitFor()
+ assert.equal(await fail.getByRole('button',{name:'Download academic CSV',exact:true}).count(),0)
+ await fail.evaluate(()=>window.fixtureReportError=false)
+ await fail.getByRole('button',{name:'Prepare academic export',exact:true}).click()
+ await fail.getByRole('button',{name:'Download academic CSV',exact:true}).waitFor();await fail.close()
+ const attendance=await openPortal(runtime.browser,runtime.base,{role:'accountant',campus:'senior',section:'learner-profiles'},390)
+ await attendance.getByRole('button',{name:'Open profile',exact:true}).first().click()
+ await attendance.getByRole('navigation',{name:'Learner profile sections'}).getByRole('button',{name:'Attendance',exact:true}).click()
+ const attendanceDownload=attendance.waitForEvent('download');await attendance.getByRole('button',{name:'Download academic Excel',exact:true}).click();await(await attendanceDownload).saveAs('tmp/stage12-exports/attendance.xlsx')
+ await attendance.getByRole('button',{name:'Preview printable extract',exact:true}).click()
+ await attendance.pdf({path:'tmp/stage12-exports/attendance.pdf',format:'A4',preferCSSPageSize:true})
+ assert.deepEqual(attendance.portalErrors,[]);await attendance.close()
+ const p=await runtime.browser.newPage({viewport:{width:390,height:844}})
+ await p.goto(`${runtime.base}/tests/fixtures/teacher-workspace/index.html?campus=senior&section=coursework&workspace=subjects&allocation=allocation&subject=Combined+Science&level=Form+1`)
+ await p.locator('.coursework-heading select').selectOption('assessment')
+ await p.getByLabel('Mark for Alexandra Example Learner With A Longer Name',{exact:true}).fill('18.5')
+ const saved=p.waitForEvent('download');await p.getByRole('button',{name:'Download academic CSV',exact:true}).click();await(await saved).saveAs('tmp/stage12-exports/saved-coursework.csv')
+ const text=await readFile('tmp/stage12-exports/saved-coursework.csv','utf8');assert.ok(!text.includes('18.5'));assert.ok(text.includes('"25"'));assert.ok(text.includes('"Not recorded"'))
+ await p.close();console.log('PASS parent historical placement, failed-batch retry, attendance XLSX/PDF, and coursework export excludes unsaved marks')
+}finally{await runtime.close()}

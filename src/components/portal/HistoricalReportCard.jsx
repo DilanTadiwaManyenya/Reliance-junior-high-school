@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { reportContextNotice } from '../../lib/reportContext'
 import './historicalReports.css'
+import AcademicDownloads from './AcademicDownloads'
+import { academicSheets } from '../../lib/academicExport'
+import { totalOwing } from './LearnerRecords'
 
 export default function HistoricalReportCard({ render: Report, initialPeriod, reportRevision=0, ...props }) {
   const {supabase,student}=props
@@ -58,6 +61,7 @@ export default function HistoricalReportCard({ render: Report, initialPeriod, re
     </div>
     {loading&&<p role="status">Loading historical report…</p>}
     {error&&<div className="portal-notice error" role="alert">{error}</div>}
+    {!loading&&!error&&data&&(props.adminAccess||totalOwing(data.fees)===0)&&<AcademicDownloads key={`${student.id}:${period.year}:${period.term}`} printable={false} sheets={academicSheets([data])} details={{Learner:context.learner_name,Admission:context.admission_number,Campus:context.campus,Class:context.class_level,Stream:context.class_stream||'',Year:period.year,Term:period.term,Provenance:context.provenance,Note:'Authorised saved raw marks; blank or absent results may be withheld. Use the report card for calculated grades and official printing.'}} filename={`academic-${context.admission_number||student.id}-${period.year}-${period.term}`} />}
     {!loading&&!error&&data&&<Report {...props} student={historicalStudent} academics={data.academics} juniorComponentMarks={data.componentMarks} juniorDevelopmentalRatings={data.developmentalRatings}
       reportComments={data.reportComments} attendance={data.attendance} sports={data.sports} awards={data.awards} fees={data.fees} report={report} reportFees={data.reportFees}
       subjects={context.report_rules.subjects} subjectTeachers={context.subject_teachers} classTeacher={context.class_teacher}

@@ -3,6 +3,7 @@ import { calculateGrade } from "../../utils/GradeCalculator";
 import { getJuniorReportBook } from "../../utils/CurriculumData";
 import { useAuth } from "../../context/useAuth";
 import PortalNotice from "./PortalNotice";
+import TeacherSavedMarksExport from './TeacherSavedMarksExport';
 import { useSection } from "./StaffPortalLayout";
 
 const currentTerm = () =>
@@ -665,6 +666,7 @@ export default function JuniorTeacherMarkbook() {
 
   return (
     <section className="grade-entry grade-entry-v2">
+      <TeacherSavedMarksExport key={`${classScopeLabel}:${form.year}:${form.term}:${notice}`} supabase={supabase} students={visible} year={form.year} term={form.term} junior/>
       <header className="grade-entry-heading">
         <p className="eyebrow">Junior class markbook</p>
         <h1>{heading}</h1>

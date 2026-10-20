@@ -1,0 +1,12 @@
+.academic-downloads{margin:16px 0;padding:14px;border:1px solid #cdd8e8;border-radius:12px;background:#fff;min-width:0}.academic-download-actions{display:flex;gap:10px;flex-wrap:wrap}.academic-download-actions button,.academic-downloads>button{min-height:44px;border:1px solid #253b66;border-radius:8px;background:#f7f9fc;color:#172b59;padding:8px 12px;font:inherit}.academic-extract{margin-top:16px;min-width:0}.academic-extract-scroll{overflow-x:auto}.academic-extract table{border-collapse:collapse;width:100%;font-size:12px}.academic-extract th,.academic-extract td{padding:6px;border:1px solid #bcc9d8;text-align:left;overflow-wrap:anywhere}.academic-extract th{background:#eaf0f8}.academic-extract p{overflow-wrap:anywhere}.academic-batch-controls{display:flex;flex-wrap:wrap;gap:12px}.academic-batch-controls label{display:grid;gap:6px}.academic-batch-controls input,.academic-batch-controls select{min-height:44px;max-width:100%;font:inherit}.academic-batch-controls button{min-height:44px}@media(max-width:600px){.academic-download-actions{display:grid}.academic-download-actions button{width:100%}.academic-batch-controls{display:grid;grid-template-columns:minmax(0,1fr)}.academic-batch-controls label{min-width:0}}
+@media print{
+ body.printing-academic-extract [data-extract-ancestor]>:not([data-extract-ancestor]):not([data-print-extract]){display:none!important}
+ body.printing-academic-extract,body.printing-academic-extract [data-extract-ancestor]{display:block!important;position:static!important;transform:none!important;width:auto!important;max-width:none!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;background:white!important;border:0!important;box-shadow:none!important}
+ body.printing-academic-extract [data-print-extract]{display:block!important;color:#111!important;font-size:8pt!important}
+ body.printing-academic-extract .academic-extract-scroll{overflow:visible!important}
+ body.printing-academic-extract table{table-layout:fixed;font-size:7pt!important;width:100%!important}
+ body.printing-academic-extract th,body.printing-academic-extract td{font-size:7pt!important;line-height:1.15!important;padding:1mm!important;vertical-align:top!important}
+ body.printing-academic-extract thead{display:table-header-group!important}
+ body.printing-academic-extract tr{break-inside:avoid}
+ body.printing-academic-extract h3{break-after:avoid}
+}

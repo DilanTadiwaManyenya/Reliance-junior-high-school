@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateGrade } from '../../utils/GradeCalculator'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
+import TeacherSavedMarksExport from './TeacherSavedMarksExport'
 import { useSection } from './StaffPortalLayout'
 
 const schoolTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1))
@@ -167,6 +168,7 @@ export default function TeacherGradeEntryV2() {
   const markProgress = visibleStudentIds.length ? Math.round((markedCount / visibleStudentIds.length) * 100) : 0
 
   return <section className="grade-entry grade-entry-v2">
+    {hasSubjectScope&&<TeacherSavedMarksExport key={`${selectedSubjectAllocationId}:${form.year}:${form.term}:${notice}`} supabase={supabase} students={visible} year={form.year} term={form.term} subject={selectedSubject}/>}
     <header className="grade-entry-heading">
       <p className="eyebrow">Private teacher markbook</p>
       <h1>Enter {selectedSubject || 'subject'} marks</h1>

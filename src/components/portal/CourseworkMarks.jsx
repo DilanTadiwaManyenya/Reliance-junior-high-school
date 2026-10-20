@@ -1,7 +1,9 @@
 import { useRef } from 'react'
 import Button from '../ui/Button'
+import AcademicDownloads from './AcademicDownloads'
+import { courseworkSheet } from '../../lib/academicExport'
 
-export default function CourseworkMarks({ students, marks, totalMarks, saving, dirty = false, onMarkChange, onSave }) {
+export default function CourseworkMarks({ students, marks, savedMarks, assessment, totalMarks, saving, dirty = false, onMarkChange, onSave }) {
   const inputs = useRef([])
   const completed = students.filter(student => marks[student.id] !== '' && marks[student.id] !== undefined).length
   const moveToNextLearner = (event, index) => {
@@ -12,6 +14,7 @@ export default function CourseworkMarks({ students, marks, totalMarks, saving, d
   }
 
   return <div className="coursework-marks">
+    {savedMarks&&assessment&&<><p>Downloads contain saved marks only. Unsaved changes are excluded.</p><AcademicDownloads key={assessment.id} sheets={[courseworkSheet(students,savedMarks,totalMarks)]} details={{Assessment:assessment.title,Subject:assessment.subject,Class:assessment.class_level,Stream:assessment.class_stream||'all assigned',Year:assessment.academic_year,Term:assessment.term,'Assessment date':assessment.assessment_date,Scope:'Saved coursework only; current learner class labels. Missing is not zero.'}} filename={`coursework-${assessment.id}`}/></>}
     <p className="coursework-marks-progress" role="status">{saving ? 'Saving marks… ' : dirty ? 'Unsaved changes · ' : ''}{completed}/{students.length} marks entered · Missing marks remain blank until saved.</p>
     {students.length ? <div className="portal-table-wrap coursework-marks-wrap" tabIndex={0} role="region" aria-label="Coursework learner marks">
       <table className="portal-table coursework-marks-table" role="table">

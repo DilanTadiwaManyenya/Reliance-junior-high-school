@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { zimbabweSchoolDayStatus } from '../../lib/zimbabweSchoolCalendar'
+import AcademicDownloads from './AcademicDownloads'
+import { attendanceSheet } from '../../lib/academicExport'
 
 const isoDate = value => value.toISOString().slice(0, 10)
 const isPresent = status => status === 'present' || status === 'late'
@@ -30,6 +32,7 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loadedRange,setLoadedRange] = useState('')
   const [dateSearch, setDateSearch] = useState('')
   const [searchedRecord, setSearchedRecord] = useState(null)
   const [searchingDate, setSearchingDate] = useState(false)
@@ -55,7 +58,7 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
         .order('date', { ascending: false })
       if (!active) return
       if (requestError) setError(requestError.message)
-      else setRows(data ?? [])
+      else { setRows(data ?? []); setLoadedRange(`${range.start}:${range.end}:${student.id}`) }
       setLoading(false)
     }
     load()
@@ -85,6 +88,7 @@ export default function TeacherAttendanceHistory({ supabase, student, onClose })
   const calendarStatus = zimbabweSchoolDayStatus(dateSearch)
 
   return <section className="teacher-attendance-history">
+    {!loading&&!error&&loadedRange===`${range.start}:${range.end}:${student.id}`&&<AcademicDownloads key={loadedRange} sheets={[attendanceSheet(student,rows,range.start,range.end)]} details={{Learner:student.full_name,Admission:student.admission_number,'Start date':range.start,'End date':range.end,Scope:'Recorded attendance only. Unmarked days are not absences. Class labels are current; no term dates inferred.'}} filename={`attendance-${student.admission_number||student.id}-${range.start}-${range.end}`}/>}
     <div className="teacher-attendance-heading">
       <div>
         <strong>{student.full_name}</strong>

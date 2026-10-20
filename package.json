@@ -35,7 +35,8 @@
     "test:rollover-workflow": "node --test tests/year-rollover-workflow.test.mjs && node tests/year-rollover-workflow.browser.mjs",
     "test:reporting-periods": "node --test tests/reporting-periods.test.mjs && node tests/reporting-periods.browser.mjs",
     "test:learner-export": "node --test tests/learner-register-export.test.mjs && node tests/learner-register-export.browser.mjs",
-    "test:operations-export": "node --test tests/operations-export.test.mjs && node tests/operations-export.browser.mjs && node tests/operations-export-print.browser.mjs"
+    "test:operations-export": "node --test tests/operations-export.test.mjs && node tests/operations-export.browser.mjs && node tests/operations-export-print.browser.mjs",
+    "test:academic-export": "node --test tests/academic-export.test.mjs && node tests/academic-export.browser.mjs && node tests/academic-teacher-export.browser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

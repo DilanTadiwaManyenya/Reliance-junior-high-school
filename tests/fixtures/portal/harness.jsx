@@ -97,6 +97,8 @@ if(params.has('operationsData')) {
  db.parent_uniform_orders=[{id:'order-1',student_id:'learner-0',created_at:today,payment_status:'pending',payment_method:'cash',total:10,items:[{product_id:'product',name:'Original tie',size_label:'M',quantity:2,unit_price:5}]}];
 }
 if(params.has('operationsLarge')) db.school_expenses=Array.from({length:1007},(_,i)=>({...db.school_expenses[0],id:'expense-'+String(i).padStart(5,'0'),supplier:i===0?' =SUM(1,2)':'Supplier',receipt_reference:'0000123',amount:1.25}));
+if(params.has('academicLarge')) db.academic_records=Array.from({length:1007},(_,i)=>({id:'mark-'+i,student_id:'learner-0',year:2026,term:'3',subject:'Subject '+String(i).padStart(4,'0'),score:i===0?0:75,percentage:null,exam_mark:i===0?0:75,comment:i===0?' =SUM(1,2)':'Saved comment'}));
+if(params.has('academicTeacher')) db.academic_records=[{id:'own-mark',student_id:'learner-0',year:2026,term:'3',subject:'Combined Science',score:0,term_mark:0,exam_mark:null,grade:'U'}, {id:'other-subject',student_id:'learner-0',year:2026,term:'3',subject:'Mathematics',score:90},{id:'other-campus',student_id:'learner-1',year:2026,term:'3',subject:'Combined Science',score:99}];
 window.fixtureWrites = []
 window.fixtureRegisterError=params.has('registerError')
 window.fixtureRegisterRequests=[]
