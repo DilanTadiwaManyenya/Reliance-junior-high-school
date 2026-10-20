@@ -16,7 +16,7 @@
   .staff-shell:not([data-role="teacher"]) .top-bar-role-switcher { grid-area: 1 / 2; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; font-size: .8rem; min-width: 0; }
   .staff-shell:not([data-role="teacher"])[data-class-control="true"] .top-bar-role-switcher { grid-area: 2 / 1 / auto / -1; }
   .staff-shell:not([data-role="teacher"]) .top-bar-role-switcher select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; background: #fff; font-size: 1rem; }
-  .staff-shell:not([data-role="teacher"])[data-class-control="false"][data-multiple-roles="false"] .staff-mobile-title { display: block; grid-area: 1 / 2; color: #1b2a56; font-weight: 800; font-size: .9rem; overflow-wrap: anywhere; }
+  .staff-shell:not([data-role="teacher"])[data-class-control="false"][data-multiple-roles="false"] .staff-mobile-title { display: flex; align-items: center; gap: 7px; grid-area: 1 / 2; color: #1b2a56; font-weight: 800; font-size: .9rem; overflow-wrap: anywhere; }
   .staff-shell[data-role="accountant"] .staff-mobile-title, .staff-shell[data-role="accountant"] .top-bar-role-switcher { grid-column: 1 / 3 !important; }
   .staff-shell:not([data-role="teacher"]) .top-bar-back { display: none !important; }
   .staff-workspace-return { display: block; padding: 16px clamp(14px, 2vw, 28px) 0; }

@@ -145,7 +145,7 @@ function StaffPortalWorkspace() {
 
   return (
     <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, isJuniorTeacher, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
-      <div data-class-control={hasClassControl} data-role={role} data-workspace={teacherWorkspace} data-section={section} data-multiple-roles={roles.length > 1} className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
+      <div data-campus={['junior', 'senior'].includes(profile?.campus) ? profile.campus : 'all'} data-class-control={hasClassControl} data-role={role} data-workspace={teacherWorkspace} data-section={section} data-multiple-roles={roles.length > 1} className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}
         <StaffTopBar

@@ -73,7 +73,7 @@
   position: absolute;
   z-index: -1;
   inset: 14% 18%;
-  background: url('./assets/images/reliance-junior-report-logo.png') center / contain no-repeat;
+  background: url('./assets/images/reliance-junior-crest.webp') center / contain no-repeat;
   opacity: .055;
   pointer-events: none;
 }

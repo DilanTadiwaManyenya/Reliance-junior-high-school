@@ -5,6 +5,7 @@ import ClassSelector, { parseClassKey } from './ClassSelector'
 import { useSection } from './StaffPortalLayout'
 import PortalSiteExitLink from './PortalSiteExitLink'
 import { useSchoolClasses } from '../../hooks/useSchoolClasses'
+import CampusBrandMark from '../branding/CampusBrandMark'
 
 /* ── Hamburger / collapse icon ───────────────────────────────────── */
 const MenuIcon = () => (
@@ -119,15 +120,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
         )}
 
         <div className="top-bar-brand">
-          <svg viewBox="0 0 100 115" className="top-bar-crest" aria-hidden="true">
-            <path fill="#1B2A56" d="M50 3 88 17v39c0 28-20 46-38 54C32 102 12 84 12 56V17z"/>
-            <path fill="#A6302F" d="M50 9 82 21v34c0 24-16 40-32 48-16-8-32-24-32-48V21z"/>
-            <path fill="#E3B23C" d="M24 35h52v6H24zm4 34h44v6H28z"/>
-            <path fill="#fff"    d="M31 47h38v17H31z"/>
-            <path fill="#1B2A56" d="M35 50h13v11H35zm17 0h13v11H52z"/>
-            <path fill="#3FA9DA" d="M10 82h80v12H10z"/>
-            <text x="50" y="90" fill="white" fontSize="7" textAnchor="middle" fontFamily="sans-serif">RELIANCE</text>
-          </svg>
+          <CampusBrandMark campus={profile?.campus} className="top-bar-campus-brand" />
           <div className="top-bar-brand-text">
             <span className="top-bar-name">Reliance Learning Centre</span>
             <span className="top-bar-sub">{roleLabel}</span>
@@ -135,7 +128,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
         </div>
       </div>
 
-      <span className="staff-mobile-title">{roleLabel}</span>
+      <span className="staff-mobile-title"><CampusBrandMark campus={profile?.campus} className="staff-mobile-campus-brand" />{roleLabel}</span>
       {/* ── Right: user info + logout ──────── */}
         <div className="top-bar-user">
           {activeRole === 'teacher' && profile?.campus !== 'junior' && (

@@ -1,0 +1,100 @@
+.campus-brand-mark {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.campus-brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  object-fit: contain;
+}
+
+.campus-brand-mark.is-dual-campus img { width: calc((100% - 3px) / 2); }
+
+.staff-shell {
+  --campus-watermark: url('../../assets/images/reliance-senior-crest.webp');
+  position: relative;
+  isolation: isolate;
+}
+
+.staff-shell[data-campus="junior"] { --campus-watermark: url('../../assets/images/reliance-junior-crest.webp'); }
+.staff-shell[data-campus="senior"] { --campus-watermark: url('../../assets/images/reliance-senior-crest.webp'); }
+.staff-shell[data-campus="all"] { --campus-watermark: url('../../assets/images/reliance-junior-crest.webp'); }
+
+.staff-shell::before {
+  position: fixed;
+  z-index: -1;
+  right: 2vw;
+  bottom: 3vh;
+  width: clamp(180px, 25vw, 360px);
+  height: clamp(240px, 34vw, 480px);
+  background: var(--campus-watermark) center / contain no-repeat;
+  content: '';
+  opacity: .035;
+  pointer-events: none;
+}
+
+.staff-shell[data-campus="all"]::after {
+  position: fixed;
+  z-index: -1;
+  right: 2vw;
+  bottom: 3vh;
+  width: clamp(180px, 25vw, 360px);
+  height: clamp(240px, 34vw, 480px);
+  background: url('../../assets/images/reliance-senior-crest.webp') center / contain no-repeat;
+  content: '';
+  opacity: .035;
+  pointer-events: none;
+  transform: translateX(-14%);
+}
+
+.parent-portal-shell {
+  --campus-watermark: url('../../assets/images/reliance-junior-crest.webp');
+  position: relative;
+  isolation: isolate;
+}
+
+.parent-portal-shell[data-campus="senior"] { --campus-watermark: url('../../assets/images/reliance-senior-crest.webp'); }
+.parent-portal-shell[data-campus="junior"] { --campus-watermark: url('../../assets/images/reliance-junior-crest.webp'); }
+
+.parent-portal-shell::before {
+  position: fixed;
+  z-index: -1;
+  right: 2vw;
+  bottom: 3vh;
+  width: clamp(160px, 24vw, 320px);
+  height: clamp(220px, 32vw, 430px);
+  background: var(--campus-watermark) center / contain no-repeat;
+  content: '';
+  opacity: .035;
+  pointer-events: none;
+}
+
+.top-bar-campus-brand { width: 38px; height: 44px; }
+.top-bar-campus-brand.is-dual-campus { width: 54px; }
+.staff-mobile-campus-brand { width: 24px; height: 30px; }
+.staff-mobile-campus-brand.is-dual-campus { width: 36px; }
+.portal-nav .campus-brand-mark { width: 50px; height: 58px; }
+.portal-nav .campus-brand-mark.is-dual-campus { width: 76px; }
+.brand .campus-brand-mark { width: 38px; height: 48px; }
+.brand .campus-brand-mark.is-dual-campus { width: 62px; }
+.portal-entry-heading .campus-brand-mark { width: 92px; height: 106px; margin-inline: auto; }
+
+@media (max-width: 600px) {
+  .staff-shell::before, .staff-shell[data-campus="all"]::after,
+  .parent-portal-shell::before { right: -28px; bottom: 4vh; width: 180px; height: 250px; opacity: .028; }
+  .top-bar-campus-brand { width: 30px; height: 36px; }
+  .top-bar-campus-brand.is-dual-campus { width: 44px; }
+  .portal-nav .campus-brand-mark { width: 38px; height: 44px; }
+  .portal-nav .campus-brand-mark.is-dual-campus { width: 58px; }
+}
+
+@media print {
+  .staff-shell::before, .staff-shell::after, .parent-portal-shell::before { display: none; }
+}
