@@ -6,6 +6,7 @@ import RouteLoadBoundary from './components/RouteLoadBoundary'
 import './routeLoading.css'
 import ProtectedRoute from './components/portal/ProtectedRoute'
 import ActivityLogger from './components/portal/ActivityLogger'
+import ConnectionStatus from './components/ConnectionStatus'
 
 const Footer = lazy(() => import('./components/layout/Footer'))
 const Navbar = lazy(() => import('./components/layout/Navbar'))
@@ -38,7 +39,7 @@ const RoleDashboard = lazy(() => import('./pages/portal/RoleDashboard.jsx'))
 function App() {
   const location = useLocation()
   const portal = location.pathname.startsWith('/portal')
-  return <div className={portal ? 'portal-shell' : 'site-shell'}><ActivityLogger /><RouteLoadBoundary key={location.pathname}><Suspense fallback={<section className="route-loading" role="status" aria-live="polite" aria-busy="true"><p>Opening page…</p></section>}>{!portal && <Navbar />}<main><Routes>
+  return <div className={portal ? 'portal-shell' : 'site-shell'}><ActivityLogger /><ConnectionStatus enabled={portal} /><RouteLoadBoundary key={location.pathname}><Suspense fallback={<section className="route-loading" role="status" aria-live="polite" aria-busy="true"><p>Opening page…</p></section>}>{!portal && <Navbar />}<main><Routes>
     <Route path="/" element={<Home />} /><Route path="/about" element={<About />} />
     <Route path="/academics" element={<Academics />} /><Route path="/admissions" element={<Admissions />} />
     <Route path="/student-life" element={<StudentLife />} /><Route path="/facilities" element={<Facilities />} />

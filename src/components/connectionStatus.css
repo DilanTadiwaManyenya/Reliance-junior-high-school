@@ -1,0 +1,22 @@
+.connection-status {
+  position: fixed;
+  z-index: 11000;
+  inset-block-start: max(8px, env(safe-area-inset-top));
+  inset-inline-start: 50%;
+  width: min(620px, calc(100% - 24px));
+  transform: translateX(-50%);
+  padding: 11px 15px;
+  border: 1px solid #c94b4b;
+  border-radius: 10px;
+  color: #7f1d1d;
+  background: #fff1f2;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 16%);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.connection-status.restored {
+  border-color: #4b9b6b;
+  color: #14532d;
+  background: #f0fdf4;
+}
