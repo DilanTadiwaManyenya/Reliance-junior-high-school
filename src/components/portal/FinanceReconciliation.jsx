@@ -38,7 +38,7 @@ export default function FinanceReconciliation({ supabase, profile }) {
         const campusFilter = mainAdmin ? campus : assignedCampus
         const [feePayments, sales, expenses, posPayments] = await Promise.all([
           readAllRows(() => {
-            let query = supabase.from('fee_payments').select('id, student_id, term, academic_year, amount, currency, paid_on, reference_number, students!inner(full_name, admission_number, campus)')
+            let query = supabase.from('fee_payments').select('id, student_id, term, academic_year, amount, currency, paid_on, reference_number, status, students!inner(full_name, admission_number, campus)')
             if (campusFilter && campusFilter !== 'all') query = query.eq('students.campus', campusFilter)
             if (from) query = query.gte('paid_on', from)
             if (to) query = query.lte('paid_on', to)

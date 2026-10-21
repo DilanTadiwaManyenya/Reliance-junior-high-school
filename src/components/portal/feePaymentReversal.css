@@ -1,0 +1,4 @@
+.fee-reversal-form { display: grid; gap: .75rem; margin-top: 1rem; min-width: 0; }
+.fee-reversal-form label { display: grid; gap: .4rem; }
+.fee-reversal-form textarea { width: 100%; box-sizing: border-box; min-height: 80px; font-size: 16px; padding: .65rem; border: 1px solid #bdc9dd; border-radius: 8px; resize: vertical; }
+.fee-reversal-form button { min-height: 44px; justify-self: start; white-space: normal; }

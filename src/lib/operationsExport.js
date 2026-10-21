@@ -54,8 +54,8 @@ export const reportOptions = {
     ['Balance ID','Admission ID','Learner','Campus','Year','Term','Currency','Term fee','Paid','Balance'],
     r => [r.id,r.students?.admission_number,r.students?.full_name,r.students?.campus,r.academic_year,r.term,r.currency||'USD',n(r.total_fees),n(r.amount_paid),Number(r.total_fees || 0)-Number(r.amount_paid || 0)]],
   payments: ['Fee payment ledger', 'fee_payments', '*,students!inner(admission_number,full_name,campus)',
-    ['Payment ID','Admission ID','Learner','Campus','Year','Term','Paid on','Currency','Amount','Method','Plan','Reference','Notes'],
-    r => [r.id,r.students?.admission_number,r.students?.full_name,r.students?.campus,r.academic_year,r.term,r.paid_on,r.currency||'USD',n(r.amount),r.payment_method,r.payment_plan,r.reference_number,r.notes]],
+    ['Payment ID','Admission ID','Learner','Campus','Year','Term','Paid on','Currency','Amount','Method','Plan','Reference','Notes','Status','Reversed at','Reversed by','Reversal reason'],
+    r => [r.id,r.students?.admission_number,r.students?.full_name,r.students?.campus,r.academic_year,r.term,r.paid_on,r.currency||'USD',n(r.amount),r.payment_method,r.payment_plan,r.reference_number,r.notes,r.status||'recorded',r.reversed_at,r.reversed_by,r.reversal_reason]],
   expenses: ['Expense cashbook', 'school_expenses', '*',
     ['Expense ID','Date','Campus','Category','Supplier','Description','Currency','Amount','Method','Reference','Status','Entered by','Approved by','Approved at'],
     r => [r.id,r.expense_date,r.campus,r.category,r.supplier,r.description,r.currency||'USD',n(r.amount),r.payment_method,r.receipt_reference,r.status,r.entered_by,r.approved_by,r.approved_at]],
@@ -88,7 +88,7 @@ export function reportSheets(kind, records) {
 export function reportTotals(kind, records) {
   const byCurrency = (rows, field) => Object.fromEntries(Object.entries(sumByCurrency(rows, row => row[field])).map(([currency, total]) => [`${currency}`, total.toFixed(2)]))
   if (kind === 'fees') return Object.fromEntries(Object.entries(sumByCurrency(records, row => row.total_fees)).flatMap(([currency, total]) => [[`Term fees ${currency}`, total.toFixed(2)], [`Paid ${currency}`, (sumByCurrency(records.filter(row => (row.currency||'USD') === currency), row => row.amount_paid)[currency] || 0).toFixed(2)], [`Net balance ${currency}`, (total - (sumByCurrency(records.filter(row => (row.currency||'USD') === currency), row => row.amount_paid)[currency] || 0)).toFixed(2)]]))
-  if (kind === 'payments') return Object.fromEntries(Object.entries(byCurrency(records, 'amount')).map(([currency,total]) => [`Ledger payments ${currency}`, total]))
+  if (kind === 'payments') return Object.fromEntries(Object.entries(byCurrency(records.filter(row => row.status !== 'reversed'), 'amount')).map(([currency,total]) => [`Ledger payments ${currency}`, total]))
   if (kind === 'expenses') return Object.fromEntries(['pending','approved','rejected'].flatMap(status => Object.entries(byCurrency(records.filter(row => row.status === status), 'amount')).map(([currency,total]) => [`${status} ${currency}`, total])))
   if (kind === 'sales') return { ...Object.fromEntries(Object.entries(byCurrency(records.filter(row => row.status !== 'reversed'), 'total')).map(([currency,total]) => [`Sales ${currency}`, total])), 'Receipts': String(records.length), 'Reversed receipts excluded': String(records.filter(row => row.status === 'reversed').length) }
   if (kind === 'orders') return Object.fromEntries(['pending','verified','rejected'].flatMap(status => Object.entries(byCurrency(records.filter(row => row.payment_status === status), 'total')).map(([currency,total]) => [`${status} orders ${currency}`, total])))

@@ -5,6 +5,7 @@ import AcademicReportCard from "./AcademicReportCard";
 import TeacherAttendanceHistory from "./TeacherAttendanceHistory";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
 import { formatMoney } from "../../lib/currency";
+import FeePaymentReversal from './FeePaymentReversal';
 
 const tabs = [
   "Summary",
@@ -518,7 +519,7 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
             {state.payments.length ? (
               <div className="portal-list">
                 {state.payments.map((row) => (
-                  <p key={row.id}>
+                  <article key={row.id}>
                     <strong>
                       {money(row.amount, row.currency || "USD")} · {date(row.paid_on)}
                     </strong>
@@ -533,7 +534,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
                         ? ` · Ref: ${row.reference_number}`
                         : ""}
                     </span>
-                  </p>
+                    <FeePaymentReversal payment={row} onReversed={() => setAcademicRevision(value => value + 1)} />
+                  </article>
                 ))}
               </div>
             ) : (

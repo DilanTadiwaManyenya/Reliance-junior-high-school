@@ -41,7 +41,7 @@ const db = {
   school_classes: [{ id: 'class-1', class_level: 'Form 1', class_stream: 'Blue', campus: 'senior', active: true, capacity: 50 }, { id: 'class-2', class_level: 'Grade 1', class_stream: '', campus: 'junior', active: true, capacity: 50 }],
   fee_balances: learners.map(student => ({ id: `fee-${student.id}`, student_id: student.id, campus: student.campus, term: 'Term 3', academic_year: 2026, total_fees: 160, amount_paid: params.has('owing') ? 25 : 160, balance: params.has('owing') ? 135 : 0, updated_at: today })),
   fee_structure_mapping: [{ band_id: 'senior', band_name: 'Senior school', class_level: 'Form 1', campus: 'senior', term: 'Term 3', academic_year: 2026, total_fee: 160, amount: 160 }],
-  fee_payments: [{ id: 'payment', student_id: 'learner-0', amount: 160, payment_date: today, payment_method: 'cash', receipt_number: 'TEST-RECEIPT' }],
+  fee_payments: [{ id: 'payment', fee_balance_id:'fee-learner-0',student_id: 'learner-0', amount: 160, currency:'USD',paid_on:today,term:'Term 3',academic_year:2026,status:'recorded',payment_date: today, payment_method: 'cash', receipt_number: 'TEST-RECEIPT' }],
   coursework_assessments: [assessment], coursework_marks: [{ id: 'mark', student_id: 'learner-0', assessment_id: 'assessment', score: 40, assessment, created_at: today }],
   academic_records: [{ id: 'record', student_id: 'learner-0', subject: 'Combined Science', percentage: 72, score: 72, exam_mark: 75, term: '3', year: 2026, comment: 'Consistent progress throughout the term.', created_at: today }],
   attendance: [{ id: 'attendance', student_id: 'learner-0', date: today, status: 'present' }],
@@ -200,6 +200,16 @@ const supabase = {
       const standard=data.filter(row=>row.review_status==='standard_review').length
       const result=window.fixtureRolloverError?{data:null,error:{message:'Synthetic unavailable preview'}}:{data:{source_year:2026,target_year:2027,campus:sourceCampus,total:data.length,standard_count:standard,review_count:data.length-standard,missing_target_count:0,rows:data.slice(payload.p_offset,payload.p_offset+payload.p_limit)},error:null}
       return {abortSignal(){return this},then(resolve,reject){return Promise.resolve(result).then(resolve,reject)}}
+    }
+    if (params.has('feeReversal') && name === 'reverse_learner_fee_payment') {
+      window.fixtureWrites.push({table:`rpc:${name}`,operation:'rpc',payload})
+      if (!window.fixtureReversalCanSucceed) return Promise.resolve({data:null,error:{message:'Synthetic reversal failed safely'}})
+      const payment=db.fee_payments.find(row=>row.id===payload.p_payment_id)
+      if (payment.status!=='reversed') {
+        payment.status='reversed';payment.reversal_reason=payload.p_reason;payment.reversed_at=new Date().toISOString()
+        db.fee_balances.find(row=>row.id===payment.fee_balance_id).amount_paid-=payment.amount
+      }
+      return Promise.resolve({data:payment,error:null})
     }
     if (params.has('feeRetry') && name === 'record_learner_fee_payment') {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })

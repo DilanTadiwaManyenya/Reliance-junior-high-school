@@ -13,6 +13,9 @@ export default function FinancialEventHistory({ campusScope }) {
   const loading = result.key !== key
   const rows = loading ? [] : result.rows
   const error = loading ? '' : result.error
+  const eventOptions = module === 'pos'
+    ? [['sale_recorded', 'Sale recorded'], ['sale_line_recorded', 'Stock sold'], ['sale_reversed', 'Sale reversed'], ['payment_recorded', 'Payment recorded']]
+    : [...(module === 'fees' ? ['fee_payments', 'fee_balances'] : ['school_expenses']).flatMap(table => ['insert', 'update', 'delete'].map(operation => [`${table}_${operation}`, `${table.replaceAll('_', ' ')} ${operation}`])), ...(module === 'fees' ? [['payment_reversed', 'Fee payment reversed']] : [])]
   useEffect(() => {
     let active = true
     const controller = new AbortController()
@@ -29,7 +32,7 @@ export default function FinancialEventHistory({ campusScope }) {
   return <section className="record-history financial-event-history" aria-label="POS financial audit"><h1>{module === 'pos' ? 'Inventory & POS audit' : module === 'fees' ? 'Fees audit' : 'Expenses audit'}</h1>
     <p>Database-confirmed POS, fee and expense changes. History starts when tracking was enabled for each module. Reversing a sale does not refund money.</p>
     <label>Finance module<select value={module} onChange={event => { setModule(event.target.value); setAction('all'); setPage(0) }}><option value="pos">Inventory &amp; POS</option><option value="fees">Fees</option><option value="expenses">Expenses</option></select></label>
-    <label>Event type<select value={action} onChange={event => { setAction(event.target.value); setPage(0) }}><option value="all">All {module === 'pos' ? 'POS' : module} events</option>{module === 'pos' ? <><option value="sale_recorded">Sale recorded</option><option value="sale_line_recorded">Stock sold</option><option value="sale_reversed">Sale reversed</option><option value="payment_recorded">Payment recorded</option></> : (module === 'fees' ? ['fee_payments', 'fee_balances'] : ['school_expenses']).flatMap(table => ['insert', 'update', 'delete'].map(operation => <option key={`${table}_${operation}`} value={`${table}_${operation}`}>{`${table.replaceAll('_', ' ')} ${operation}`}</option>))}</select></label>
+    <label>Event type<select value={action} onChange={event => { setAction(event.target.value); setPage(0) }}><option value="all">All {module === 'pos' ? 'POS' : module} events</option>{eventOptions.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
     <button type="button" disabled={loading} onClick={() => { setPage(0); setRevision(value => value + 1) }}>Refresh financial audit</button>
     {error && <p role="alert">{error} <button type="button" onClick={() => setRevision(value => value + 1)}>Retry audit</button></p>}{loading ? <p role="status">Loading financial audit…</p> : <div>{rows.slice(0, 50).map(row => <article className="card" key={row.id}>
       <h2>{row.action.replaceAll('_', ' ')}</h2><p>{row.actor_name || 'Recorded actor'} · {row.actor_role} · {row.campus || 'Legacy'} · {row.currency}</p>
