@@ -1,4 +1,5 @@
 import PortalAccountContext from './PortalAccountContext'
+import TeacherSubjectNavigation from './TeacherSubjectNavigation'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -89,6 +90,9 @@ function StaffPortalWorkspace() {
   const selectedSubjectClassStream = teacherWorkspace === 'subjects' ? searchParams.get('subjectStream') || '' : ''
   const selectedSubject = teacherWorkspace === 'subjects' ? searchParams.get('subject') || '' : ''
   const selectedSubjectLevel = teacherWorkspace === 'subjects' ? searchParams.get('level') || '' : ''
+  const activeTeacherAllocation = role === 'teacher' && !isJuniorTeacher && teacherWorkspace === 'subjects'
+    ? profile?.teacher_class_subject_assignments?.find(row => row.id === selectedSubjectAllocationId && row.subject === selectedSubject && row.class_level === selectedSubjectLevel)
+    : null
   const [collapsed, setCollapsed]     = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [activeClassKey, setActiveClassKey] = useState('')
@@ -203,6 +207,7 @@ function StaffPortalWorkspace() {
         {/* ── Main content ───────────────────────── */}
         <main className="staff-main">
           <PortalAccountContext />
+          {activeTeacherAllocation && ['dashboard', 'subject-allocations', 'entry', 'coursework', 'library'].includes(section) && <TeacherSubjectNavigation allocation={activeTeacherAllocation} section={section} onChange={changeSection} onChoose={clearSubjectGroup} />}
           {role === 'teacher' && !['dashboard', 'subject-allocations', 'coursework', 'library'].includes(section) && <div className="teacher-workspace-return"><button type="button" className="btn secondary" onClick={() => isJuniorTeacher || teacherWorkspace === 'classes' ? changeSection('dashboard') : clearSubjectGroup()}>{isJuniorTeacher ? '← My class' : teacherWorkspace === 'subjects' ? '← Subject allocations' : '← Class work'}</button></div>}
           {role !== 'teacher' && section !== sectionConfig.defaultSection && <div className="staff-workspace-return"><button type="button" className="btn secondary" onClick={goBack}>← Back</button></div>}
           {role === 'accountant' && <AccountantWorkspaceNav section={section} onChange={changeSection} />}

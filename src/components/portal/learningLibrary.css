@@ -17,6 +17,8 @@
 .library-list-heading h2 { margin-right: auto; }
 .library-notes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .library-note { min-width: 0; display: flex; flex-direction: column; align-items: start; }
+.library-note .library-actions { margin-top: auto; padding-top: 16px; width: 100%; }
+.learning-library .library-back { display: inline-flex; align-items: center; justify-content: center; }
 .library-note h3 { margin-top: 12px; }
 .library-note-period, .library-file-summary { color: #52627c; font-size: .9rem; overflow-wrap: anywhere; line-height: 1.6; }
 .library-description { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -33,6 +35,11 @@
   .library-fields, .library-notes-grid { grid-template-columns: minmax(0, 1fr); }
   .library-actions { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr); }
   .library-actions .btn { width: 100%; }
+  .learning-library > .card { padding: 16px; }
+  .library-note { padding: 16px; }
+  .library-note .library-download { width: 100%; text-align: center; }
+  .library-selected-file { align-items: stretch; }
+  .library-selected-file .btn { width: 100%; }
   .library-list-heading { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; }
   .library-list-heading h2 { margin-bottom: 0; }
   .library-form input[type=file] { padding: 8px; overflow: hidden; }
