@@ -1,7 +1,7 @@
 import { registerDraftHistoryGuard } from '../lib/draftHistoryGuard'
 import { useEffect, useRef } from 'react'
 
-const buttons = '.sidebar-nav-item, .teacher-workspace-switch button, .coursework-back, .top-bar-back, .teacher-workspace-return button, .top-bar-logout, .top-bar-site-link'
+const buttons = '.sidebar-nav-item, .teacher-workspace-switch button, .coursework-back, .library-back, .teacher-subject-navigation button, .top-bar-back, .teacher-workspace-return button, .top-bar-logout, .top-bar-site-link'
 const selects = '.coursework-heading select, [data-draft-navigation], .top-bar-role-switcher select, .top-bar-class-control select'
 
 export function useCourseworkDraftGuard(dirty, saving, message = 'You have unsaved coursework marks. Leave this view and discard those changes?') {

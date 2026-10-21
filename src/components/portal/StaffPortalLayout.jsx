@@ -119,7 +119,7 @@ function StaffPortalWorkspace() {
     const nextWorkspace = !isJuniorTeacher && subjectSections.includes(nextSection)
       ? 'subjects'
       : nextSection === 'roster' ? 'classes' : teacherWorkspace
-    const preserveSubjectScope = nextWorkspace === 'subjects' && teacherWorkspace === 'subjects'
+    const preserveSubjectScope = nextSection !== 'subject-allocations' && nextWorkspace === 'subjects' && teacherWorkspace === 'subjects'
 
     navigateToSection(
       nextSection,

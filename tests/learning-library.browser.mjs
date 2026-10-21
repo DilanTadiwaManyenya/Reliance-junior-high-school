@@ -22,6 +22,7 @@ try {
     await page.route('https://fonts.gstatic.com/**', route => route.abort())
     await page.goto(`${base}/tests/fixtures/learning-library/index.html?campus=${campus}`, { waitUntil: 'domcontentloaded' })
     await page.getByRole('heading', { name: 'Upload learning notes' }).waitFor()
+    assert.equal(await page.getByRole('button', { name: 'Back to allocations', exact: true }).isVisible(), true, 'Return navigation must survive the shared teacher CSS at every viewport')
     await page.getByLabel('Academic year', { exact: true }).fill('2026')
     await page.getByLabel('Term', { exact: true }).selectOption('3')
     await page.getByLabel('Title', { exact: true }).fill('Revision notes for our allocated class')

@@ -4,6 +4,7 @@ import TeacherLearningLibrary from '../../../src/components/portal/TeacherLearni
 import { AuthContext } from '../../../src/context/authContext'
 import { SectionContext } from '../../../src/components/portal/StaffPortalLayout'
 import '../../../src/index.css'
+import '../../../src/teacherWorkspace.css'
 
 const junior = new URLSearchParams(location.search).get('campus') === 'junior'
 const classLevel = new URLSearchParams(location.search).get('level') || 'Grade 5'

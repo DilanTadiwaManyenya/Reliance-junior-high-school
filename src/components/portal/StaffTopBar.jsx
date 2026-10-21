@@ -133,8 +133,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
         <div className="top-bar-user">
           {activeRole === 'teacher' && profile?.campus !== 'junior' && (
             <div className="teacher-workspace-switch" aria-label="Teacher workspace">
-              <button type="button" className={teacherWorkspace === 'classes' ? 'active' : ''} onClick={() => setTeacherWorkspace('classes')}>Class work</button>
-              <button type="button" className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subject work</button>
+              <button type="button" aria-pressed={teacherWorkspace === 'classes'} className={teacherWorkspace === 'classes' ? 'active' : ''} onClick={() => setTeacherWorkspace('classes')}>Class work</button>
+              <button type="button" aria-pressed={teacherWorkspace === 'subjects'} className={teacherWorkspace === 'subjects' ? 'active' : ''} onClick={() => setTeacherWorkspace('subjects')}>Subject work</button>
             </div>
           )}
           {hasTeacherSubjectScope && <div className="teacher-subject-scope" aria-label="Active subject allocation"><span>Subject work</span><strong>{selectedSubject} · {selectedSubjectLevel}</strong></div>}

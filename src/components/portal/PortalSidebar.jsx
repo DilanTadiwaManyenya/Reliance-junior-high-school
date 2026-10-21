@@ -19,6 +19,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
     {
       title: 'Workspace',
       items: [
+        { id: 'subject-allocations', label: 'Subject allocations', iconKey: 'roster', show: activeRole === 'teacher' && !juniorTeacher },
         { id: 'dashboard', label: juniorTeacher ? 'My class' : 'Class overview', iconKey: 'dashboard', show: !teacherInSubjectWorkspace },
         { id: 'roster', label: 'Learners', iconKey: 'roster', show: activeRole !== 'teacher' || !teacherInSubjectWorkspace },
         { id: 'entry', label: activeRole === 'teacher' ? 'Markbook' : 'Records', iconKey: 'entry', show: activeRole === 'admin' || teacherInSubjectWorkspace || juniorTeacher },
