@@ -51,6 +51,11 @@ const db = {
 window.fixtureWrites = []
 if(params.has('extraEcdScopes'))db.school_classes.push({...allocation,id:'ecd-b-class',class_level:'ECD B',active:true})
 const supabase = {
+  functions:{invoke:async(name,options)=>{
+   window.fixtureCredentialCalls=[...(window.fixtureCredentialCalls||[]),{name,phone:options.body.phone,passwordProvided:Boolean(options.body.password),selfOnly:!options.body.user_id&&!options.body.target_user_id}]
+   if(window.fixtureCredentialFail)return{data:{success:false,error:'Synthetic credential failure'},error:null}
+   return{data:{success:true},error:null}
+  }},
   from(table) {
     let operation = 'select', payload, single = false
     const filters = []

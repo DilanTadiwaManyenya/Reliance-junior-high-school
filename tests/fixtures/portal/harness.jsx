@@ -39,7 +39,7 @@ const db = {
   parent_student: params.has('empty') ? [] : learners.map(student => ({ parent_id: staffId, student_id: student.id, verified_at: today, student })),
   teacher_class_assignments: assignments, teacher_class_subject_assignments: assignments,
   school_classes: [{ id: 'class-1', class_level: 'Form 1', class_stream: 'Blue', campus: 'senior', active: true, capacity: 50 }, { id: 'class-2', class_level: 'Grade 1', class_stream: '', campus: 'junior', active: true, capacity: 50 }],
-  fee_balances: learners.map(student => ({ id: `fee-${student.id}`, student_id: student.id, campus: student.campus, term: 'Term 3', academic_year: 2026, total_fees: 160, amount_paid: params.has('owing') ? 25 : 160, balance: params.has('owing') ? 135 : 0, updated_at: today })),
+  fee_balances: learners.map(student => ({ id: `fee-${student.id}`, student_id: student.id, campus: student.campus, currency:'USD',term: 'Term 3', academic_year: 2026, total_fees: 160, amount_paid: params.has('owing') ? 25 : 160, balance: params.has('owing') ? 135 : 0, updated_at: today })),
   fee_structure_mapping: [{ band_id: 'senior', band_name: 'Senior school', class_level: 'Form 1', campus: 'senior', term: 'Term 3', academic_year: 2026, total_fee: 160, amount: 160 }],
   fee_payments: [{ id: 'payment', fee_balance_id:'fee-learner-0',student_id: 'learner-0', amount: 160, currency:'USD',paid_on:today,term:'Term 3',academic_year:2026,status:'recorded',payment_date: today, payment_method: 'cash', receipt_number: 'TEST-RECEIPT' }],
   coursework_assessments: [assessment], coursework_marks: [{ id: 'mark', student_id: 'learner-0', assessment_id: 'assessment', score: 40, assessment, created_at: today }],
@@ -97,6 +97,7 @@ if(params.has('operationsData')) {
  db.inventory_products[0].product_variants=[{id:'variant-s',size:'S',sku:'0007',quantity_on_hand:2,active:true},{id:'variant-m',size:'M',sku:'0008',quantity_on_hand:3,active:false}];
  db.parent_uniform_orders=[{id:'order-1',student_id:'learner-0',created_at:today,payment_status:'pending',payment_method:'cash',total:10,items:[{product_id:'product',name:'Original tie',size_label:'M',quantity:2,unit_price:5}]}];
 }
+if(params.has('expenseControls')) {db.school_expenses[0].status='approved';db.school_expenses[0].currency='USD'}
 if(params.has('operationsLarge')) db.school_expenses=Array.from({length:1007},(_,i)=>({...db.school_expenses[0],id:'expense-'+String(i).padStart(5,'0'),supplier:i===0?' =SUM(1,2)':'Supplier',receipt_reference:'0000123',amount:1.25}));
 if(params.has('academicLarge')) db.academic_records=Array.from({length:1007},(_,i)=>({id:'mark-'+i,student_id:'learner-0',year:2026,term:'3',subject:'Subject '+String(i).padStart(4,'0'),score:i===0?0:75,percentage:null,exam_mark:i===0?0:75,comment:i===0?' =SUM(1,2)':'Saved comment'}));
 if(params.has('academicTeacher')) db.academic_records=[{id:'own-mark',student_id:'learner-0',year:2026,term:'3',subject:'Combined Science',score:0,term_mark:0,exam_mark:null,grade:'U'}, {id:'other-subject',student_id:'learner-0',year:2026,term:'3',subject:'Mathematics',score:90},{id:'other-campus',student_id:'learner-1',year:2026,term:'3',subject:'Combined Science',score:99}];
@@ -123,6 +124,7 @@ function query(table) {
       if(params.has('operationsError') && window.fixtureOperationsError !== false && ['school_expenses','fee_payments'].includes(table)) return Promise.resolve({data:null,error:{message:'Synthetic export connection failure'}}).then(resolve,reject)
       if(table==='portal_security_settings'&&params.has('mfaSettingsError'))return Promise.resolve({data:null,error:{message:'Synthetic requirements unavailable'}}).then(resolve,reject)
       if(table==='report_period_contexts') data=data.filter(row=>role==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||row.campus===campus))
+      if(table==='school_expenses'&&params.has('expenseControls')&&role==='accountant')data=data.filter(row=>row.campus===campus)
       data=data.slice(start,end+1)
       if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if(table==='financial_events' && window.fixtureFinancialError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
@@ -200,6 +202,23 @@ const supabase = {
       const standard=data.filter(row=>row.review_status==='standard_review').length
       const result=window.fixtureRolloverError?{data:null,error:{message:'Synthetic unavailable preview'}}:{data:{source_year:2026,target_year:2027,campus:sourceCampus,total:data.length,standard_count:standard,review_count:data.length-standard,missing_target_count:0,rows:data.slice(payload.p_offset,payload.p_offset+payload.p_limit)},error:null}
       return {abortSignal(){return this},then(resolve,reject){return Promise.resolve(result).then(resolve,reject)}}
+    }
+    if(params.has('expenseControls')&&['submit_school_expense','review_school_expense','reverse_school_expense'].includes(name)) {
+      window.fixtureWrites.push({table:'rpc:'+name,operation:'rpc',payload})
+      if(name==='submit_school_expense') {
+        const key='fixture-expense-server:'+payload.p_request_id
+        let saved=JSON.parse(localStorage.getItem(key)||'null')
+        const fresh=!saved
+        if(!saved){saved={...payload.p_expense,id:crypto.randomUUID(),status:'pending',entered_by:staffId,created_at:new Date().toISOString()};localStorage.setItem(key,JSON.stringify(saved))}
+        if(!db.school_expenses.some(row=>row.id===saved.id))db.school_expenses.push(saved)
+        if(fresh&&params.has('expenseLoss'))return Promise.reject(new Error('Synthetic response lost after expense committed'))
+        return Promise.resolve({data:saved,error:null})
+      }
+      const expense=db.school_expenses.find(row=>row.id===payload.p_expense_id)
+      if(name==='review_school_expense'){expense.status=payload.p_status;return Promise.resolve({data:null,error:null})}
+      if(!window.fixtureExpenseReversalSucceeds)return Promise.resolve({data:null,error:{message:'Synthetic expense reversal failed safely'}})
+      Object.assign(expense,{status:'reversed',reversal_reason:payload.p_reason,reversed_at:new Date().toISOString()})
+      return Promise.resolve({data:expense,error:null})
     }
     if (params.has('feeReversal') && name === 'reverse_learner_fee_payment') {
       window.fixtureWrites.push({table:`rpc:${name}`,operation:'rpc',payload})

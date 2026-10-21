@@ -51,8 +51,9 @@ The deployed update_teacher_credentials function is ACTIVE (version 6), teacher
 Account settings exposes phone/password changes, and zero enabled teacher
 profiles lack an Auth account. No real password was changed as a test; this is
 not a claim that a fresh production password-change pilot was completed.
-Two enabled teachers lack verified initials and still show pending signatures.
-Verified legal identity data is required; no initials were fabricated.
+The first snapshot showed two teachers without verified initials. A later
+read-only snapshot showed zero, and zero missing Auth accounts; both campuses
+were open for 2026 Term 3. No initials were fabricated by these code changes.
 
 The supplied production browser was signed out. Mocked browser checks establish
 rendering/workflow behaviour, and live rollback SQL establishes database access;

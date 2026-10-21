@@ -1,0 +1,6 @@
+.expense-fields { border: 0; padding: 0; margin: 0 0 1rem; min-width: 0; }
+.expense-correction { display: grid; gap: .6rem; min-width: 0; margin-top: .8rem; }
+.expense-correction label { display: grid; gap: .4rem; }
+.expense-correction textarea { width: 100%; box-sizing: border-box; min-height: 80px; padding: .6rem; font-size: 16px; border: 1px solid #bdc9dd; border-radius: 8px; resize: vertical; }
+.expense-controls td button { min-height: 44px; white-space: normal; margin: .2rem; }
+.expense-controls td p { overflow-wrap: anywhere; }

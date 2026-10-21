@@ -15,7 +15,7 @@ export default function FinancialEventHistory({ campusScope }) {
   const error = loading ? '' : result.error
   const eventOptions = module === 'pos'
     ? [['sale_recorded', 'Sale recorded'], ['sale_line_recorded', 'Stock sold'], ['sale_reversed', 'Sale reversed'], ['payment_recorded', 'Payment recorded']]
-    : [...(module === 'fees' ? ['fee_payments', 'fee_balances'] : ['school_expenses']).flatMap(table => ['insert', 'update', 'delete'].map(operation => [`${table}_${operation}`, `${table.replaceAll('_', ' ')} ${operation}`])), ...(module === 'fees' ? [['payment_reversed', 'Fee payment reversed']] : [])]
+    : [...(module === 'fees' ? ['fee_payments', 'fee_balances'] : ['school_expenses']).flatMap(table => ['insert', 'update', 'delete'].map(operation => [`${table}_${operation}`, `${table.replaceAll('_', ' ')} ${operation}`])), ...(module === 'fees' ? [['payment_reversed', 'Fee payment reversed']] : [['expense_reversed', 'Expense reversed']])]
   useEffect(() => {
     let active = true
     const controller = new AbortController()
@@ -38,7 +38,7 @@ export default function FinancialEventHistory({ campusScope }) {
       <h2>{row.action.replaceAll('_', ' ')}</h2><p>{row.actor_name || 'Recorded actor'} · {row.actor_role} · {row.campus || 'Legacy'} · {row.currency}</p>
       <p>{new Date(row.created_at).toLocaleString('en-ZW', { timeZone: 'Africa/Harare' })} (Harare)</p>
       {row.reason && <p>Reason: {row.reason}</p>}<p>Record: {row.record_id}</p>
-      <details><summary>View original values and stock changes</summary><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(row.details, null, 2)}</pre></details>
+      <details><summary>View original values and changes</summary><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(row.details, null, 2)}</pre></details>
     </article>)}{!rows.length && <p>No matching financial events.</p>}</div>}
     <div className="library-pagination"><button type="button" disabled={loading || page === 0} onClick={() => setPage(value => value - 1)}>Previous</button><span>Page {page + 1}</span><button type="button" disabled={loading || rows.length <= 50} onClick={() => setPage(value => value + 1)}>Next</button></div>
   </section>

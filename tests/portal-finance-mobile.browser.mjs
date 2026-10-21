@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { startPortalBrowser, openPortal, portalLayoutMetrics } from './helpers/portal-browser.mjs'
+import { formatMoney } from '../src/lib/currency.js'
 const runtime=await startPortalBrowser()
 try {
  for(const width of [320,390,768,1280]) for(const role of ['admin','accountant','principal']) {
@@ -9,14 +10,14 @@ try {
   await table.locator('tbody tr').first().waitFor()
   const rows=table.locator('tbody tr')
   assert.equal(await rows.count(),role==='accountant'?1:3,'Campus finance must show its own learners, not an empty boolean campus filter')
-  assert.equal(await page.locator('.fees-stat-card').filter({has:page.getByText('Total outstanding balance',{exact:true})}).locator('strong').innerText(),role==='accountant'?'$135.00':'$405.00')
+  assert.equal(await page.locator('.fees-stat-card').filter({has:page.getByText('Total outstanding balance',{exact:true})}).locator('strong').innerText(),formatMoney(role==='accountant'?135:405,'USD'))
   const row=rows.first()
   for(const label of ['Total term fee','Amount paid','Balance owed','Fee status','Enrolment']) {
-   const cell=row.locator(`td[data-label="${label}"]`)
+   const cell=row.locator(`td[data-label^="${label}"]`)
    assert.equal(await cell.isVisible(),true,`${role} ${width}: ${label} visible`)
-   if(label==='Total term fee') assert.equal((await cell.innerText()).trim(),'$160.00')
-   if(label==='Amount paid') assert.equal((await cell.innerText()).trim(),'$25.00')
-   if(label==='Balance owed') assert.equal((await cell.innerText()).trim(),'$135.00')
+   if(label==='Total term fee') assert.equal((await cell.innerText()).trim(),formatMoney(160,'USD'))
+   if(label==='Amount paid') assert.equal((await cell.innerText()).trim(),formatMoney(25,'USD'))
+   if(label==='Balance owed') assert.equal((await cell.innerText()).trim(),formatMoney(135,'USD'))
   }
   if(width<=600)assert.equal(await table.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true)
   if(role==='principal')assert.equal(await page.getByRole('button',{name:'Collect payment',exact:true}).count(),0)
