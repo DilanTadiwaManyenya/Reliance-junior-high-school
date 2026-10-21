@@ -26,6 +26,7 @@ import {
 } from "../../data/classOptions";
 import { useSchoolClasses } from "../../hooks/useSchoolClasses";
 import { FINANCE_CURRENCIES, formatMoney } from "../../lib/currency";
+import { feePaymentStorageKey, loadFeePayment, saveFeePayment } from '../../lib/feePaymentRetry';
 
 const CURRENT_YEAR = 2026;
 const CURRENT_TERM = "Term 3";
@@ -67,7 +68,7 @@ const statusMeta = {
   },
 };
 
-function PaymentModal({ student, onClose, onSave, saving }) {
+function PaymentModal({ student, onClose, onSave, saving, error }) {
   const modalRef = useRef(null);
   useModalFocus(true, modalRef, () => { if (!saving) onClose(); });
   const [amountReceived, setAmountReceived] = useState("");
@@ -115,6 +116,7 @@ function PaymentModal({ student, onClose, onSave, saving }) {
           </button>
         </div>
         <div className="fee-modal-fields">
+          {error && <p role="alert">{error}</p>}
           <label>
             Total term fee
             <input
@@ -178,6 +180,7 @@ function PaymentModal({ student, onClose, onSave, saving }) {
           <button
             type="button"
             className="fee-button fee-button-secondary"
+            disabled={saving}
             onClick={onClose}
           >
             Cancel
@@ -763,6 +766,12 @@ export default function FeesDashboard({
   const [term, setTerm] = useState(CURRENT_TERM);
   const [year, setYear] = useState(CURRENT_YEAR);
   const [currency, setCurrency] = useState("USD");
+  const paymentStorageKey = feePaymentStorageKey(user?.id);
+  const [pendingPayment, setPendingPayment] = useState(() => {
+    try { return loadFeePayment(sessionStorage, paymentStorageKey); }
+    catch { return { invalid: true }; }
+  });
+  const paymentBusy = useRef(false);
 
   const [error, setError] = useState("");
   const [feeLoading, setFeeLoading] = useState(true);
@@ -888,31 +897,61 @@ export default function FeesDashboard({
   const [showReportTermSettings, setShowReportTermSettings] = useState(false);
   const [savingStructure, setSavingStructure] = useState(false);
 
-  const savePayment = async (student, form) => {
+  const submitPayment = async (submission) => {
+    if (paymentBusy.current || submission?.invalid) return;
+    paymentBusy.current = true;
     setSaving(true);
     setError("");
-    const { error: saveError } = await supabase.rpc("record_learner_fee_payment", {
+    let timeout;
+    try {
+    const { error: saveError } = await Promise.race([
+      supabase.rpc("record_learner_fee_payment", submission.payload),
+      new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('Confirmation timed out')), 15000); }),
+    ]);
+    if (saveError) throw saveError;
+    sessionStorage.removeItem(paymentStorageKey);
+    setPendingPayment(null);
+    setEditTarget(null);
+    setToast(`Payment confirmed for ${submission.name}`);
+    logActivity(supabase, user, profile, {
+      actionType: "update", description: `Confirmed fee payment for ${submission.name}`,
+      targetTable: "fee_balances", targetId: submission.payload.p_student_id,
+    });
+    await loadFees();
+    } catch (failure) {
+      // An explicit database validation exception rolls back the whole RPC.
+      // Network errors and changed-request conflicts remain unresolved.
+      if (failure.code === 'P0001') {
+        sessionStorage.removeItem(paymentStorageKey);
+        setPendingPayment(null);
+        setError(failure.message);
+      } else {
+        setEditTarget(null);
+        setError('Payment confirmation is unresolved. Use Retry saved payment below before collecting another payment. The same submission will not be charged twice.');
+      }
+    } finally {
+      clearTimeout(timeout);
+      paymentBusy.current = false;
+      setSaving(false);
+    }
+  };
+  const savePayment = async (student, form) => {
+    if (paymentBusy.current || pendingPayment) return;
+    const submission = { name: student.full_name, payload: {
       p_student_id: student.id, p_term: term, p_academic_year: year,
       p_amount: Number(form.amount), p_paid_on: form.paid_on,
       p_payment_method: form.payment_method, p_reference_number: form.reference_number || null,
       p_currency: student.currency,
       p_total_fees: Number(student.totalFees),
-    });
-    if (saveError) {
-      setSaving(false);
-      setError(saveError.message);
+      p_request_id: crypto.randomUUID(),
+    } };
+    try { saveFeePayment(sessionStorage, paymentStorageKey, submission); }
+    catch {
+      setError('This browser cannot save payment recovery details. Enable session storage before collecting payment.');
       return;
     }
-    setSaving(false);
-    logActivity(supabase, user, profile, {
-      actionType: "update",
-      description: `Recorded ${money(form.amount, student.currency)} payment for ${student.full_name}`,
-      targetTable: "fee_balances",
-      targetId: student.id,
-    });
-    setEditTarget(null);
-    setToast(`Payment updated for ${student.full_name}`);
-    loadFees();
+    setPendingPayment(submission);
+    await submitPayment(submission);
   };
 
   const openStructure = () => {
@@ -1026,6 +1065,13 @@ export default function FeesDashboard({
 
   return (
     <div className="fees-dashboard">
+      {pendingPayment && <section role="status" className="card">
+        <h2>Saved payment awaiting confirmation</h2>
+        {pendingPayment.invalid ? <p>Saved recovery details could not be read. Ask Main Admin to reconcile the payment before collecting again.</p> : <>
+          <p>{pendingPayment.name} · {money(pendingPayment.payload.p_amount, pendingPayment.payload.p_currency)} · {pendingPayment.payload.p_term} {pendingPayment.payload.p_academic_year}</p>
+          <button type="button" className="fee-button fee-button-primary" disabled={saving} onClick={() => submitPayment(pendingPayment)}>{saving ? 'Confirming…' : 'Retry saved payment'}</button>
+        </>}
+      </section>}
       <header className="fees-page-header">
         <div>
           <p className="fees-kicker">
@@ -1136,7 +1182,7 @@ export default function FeesDashboard({
       ) : (
         <MasterTable
           students={enriched}
-          onEdit={setEditTarget}
+          onEdit={student => { if (!pendingPayment && !saving) setEditTarget(student); else setError('Confirm the saved payment before collecting another payment.'); }}
           onHistory={onOpenPaymentHistory || onOpenStudent}
           onOpenStudent={onOpenStudent}
           onExport={exportReport}
@@ -1153,6 +1199,7 @@ export default function FeesDashboard({
           onClose={() => setEditTarget(null)}
           onSave={savePayment}
           saving={saving}
+          error={error}
         />
       )}
       {showEnrolmentModal && (

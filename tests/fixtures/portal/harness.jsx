@@ -201,6 +201,15 @@ const supabase = {
       const result=window.fixtureRolloverError?{data:null,error:{message:'Synthetic unavailable preview'}}:{data:{source_year:2026,target_year:2027,campus:sourceCampus,total:data.length,standard_count:standard,review_count:data.length-standard,missing_target_count:0,rows:data.slice(payload.p_offset,payload.p_offset+payload.p_limit)},error:null}
       return {abortSignal(){return this},then(resolve,reject){return Promise.resolve(result).then(resolve,reject)}}
     }
+    if (params.has('feeRetry') && name === 'record_learner_fee_payment') {
+      window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
+      const key=`fixture-fee-server:${payload.p_request_id}`
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key,JSON.stringify(payload))
+        return Promise.reject(new Error('Synthetic response lost after payment committed'))
+      }
+      return Promise.resolve({data:null,error:null})
+    }
     if (params.has('delayPayment') && name === 'record_learner_fee_payment') {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
       return new Promise(resolve => { window.fixtureResolvePayment = () => resolve({ data: null, error: null }) })
