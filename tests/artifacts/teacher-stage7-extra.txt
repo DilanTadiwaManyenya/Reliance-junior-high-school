@@ -1,0 +1,41 @@
+PASS senior Blue at 320px: layout, navigation, validation, marks and assessment creation
+PASS senior all at 320px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 1 at 320px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 4 at 320px: layout, navigation, validation, marks and assessment creation
+PASS senior Blue at 390px: layout, navigation, validation, marks and assessment creation
+PASS senior all at 390px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 1 at 390px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 4 at 390px: layout, navigation, validation, marks and assessment creation
+PASS senior Blue at 600px: layout, navigation, validation, marks and assessment creation
+PASS senior all at 600px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 1 at 600px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 4 at 600px: layout, navigation, validation, marks and assessment creation
+PASS senior Blue at 768px: layout, navigation, validation, marks and assessment creation
+PASS senior all at 768px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 1 at 768px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 4 at 768px: layout, navigation, validation, marks and assessment creation
+PASS senior Blue at 1024px: layout, navigation, validation, marks and assessment creation
+PASS senior all at 1024px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 1 at 1024px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 4 at 1024px: layout, navigation, validation, marks and assessment creation
+PASS senior Blue at 1440px: layout, navigation, validation, marks and assessment creation
+PASS senior all at 1440px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 1 at 1440px: layout, navigation, validation, marks and assessment creation
+PASS junior Grade 4 at 1440px: layout, navigation, validation, marks and assessment creation
+PASS junior dashboard at 320px: teacher workspace and return navigation
+PASS junior entry at 320px: teacher workspace and return navigation
+PASS junior roster at 320px: teacher workspace and return navigation
+PASS senior dashboard at 320px: teacher workspace and return navigation
+PASS senior entry at 320px: teacher workspace and return navigation
+PASS senior roster at 320px: teacher workspace and return navigation
+PASS junior dashboard at 768px: teacher workspace and return navigation
+PASS junior entry at 768px: teacher workspace and return navigation
+PASS junior roster at 768px: teacher workspace and return navigation
+PASS senior dashboard at 768px: teacher workspace and return navigation
+PASS senior entry at 768px: teacher workspace and return navigation
+PASS senior roster at 768px: teacher workspace and return navigation
+Verified 24 coursework viewport/scenario combinations , 12 surrounding teacher workspace views, and the ECD route using synthetic records only.
+PASS senior: invalid marks, discard cancellation, failed save retains draft, retry and explicit discard
+PASS junior: invalid marks, discard cancellation, failed save retains draft, retry and explicit discard
+PASS senior: native Back/Forward cancellation, confirmed discard, preserved history, pending save protection and clean return
+PASS junior: native Back/Forward cancellation, confirmed discard, preserved history, pending save protection and clean return

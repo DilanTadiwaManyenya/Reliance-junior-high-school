@@ -1,0 +1,169 @@
+{
+  "live_database_requested": true,
+  "completed_at": "2026-10-20T20:34:48.8888297+00:00",
+  "automated_checks_passed": true,
+  "production_session_pilot": "NOT_RUN_BY_THIS_SCRIPT",
+  "checks": [
+    {
+      "passed": true,
+      "check": "Content helpers and role routing"
+    },
+    {
+      "passed": true,
+      "check": "learning-library browser"
+    },
+    {
+      "passed": true,
+      "check": "parent-learning-library browser"
+    },
+    {
+      "passed": true,
+      "check": "school-newsletters browser"
+    },
+    {
+      "passed": true,
+      "check": "library-support browser"
+    },
+    {
+      "passed": true,
+      "check": "Production build"
+    },
+    {
+      "result": [
+        {
+          "content_storage_policies": [
+            {
+              "command": "DELETE",
+              "name": "content_storage_pending_delete"
+            },
+            {
+              "command": "SELECT",
+              "name": "content_storage_read"
+            },
+            {
+              "command": "INSERT",
+              "name": "content_storage_upload"
+            }
+          ],
+          "junior_curriculum_pairs": 69,
+          "private_buckets_checked": true,
+          "rls_and_grants_checked": true
+        }
+      ],
+      "check": "learning_library_stage2_checks",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "assertions_passed": 171,
+          "test_scope": "ROLLBACK-only SQL role tests; physical upload and browser tests follow in UI stages"
+        }
+      ],
+      "check": "learning_library_stage2_access",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "newsletter_sixth_form_targets_checked": true,
+          "sixth_form_allocations_checked": 22,
+          "split_create_read_checked": true,
+          "teacher_allocations_checked": 67
+        }
+      ],
+      "check": "library_stage7_create_requests",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "assertions_passed": 48,
+          "selected_learner_isolation_checked": true,
+          "staff_contact_details_excluded": true
+        }
+      ],
+      "check": "learning_library_stage4_access",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "all_checks_passed": true,
+          "passed_groups": 39
+        }
+      ],
+      "check": "newsletters_stage5_access",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "all_checks_passed": true,
+          "passed_groups": 40
+        }
+      ],
+      "check": "library_support_stage6_access",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "anonymous_editor_denied": true,
+          "anonymous_reader_denied": true,
+          "atomic_audience_editor_live": true,
+          "migration_recorded": true,
+          "parent_reader_live": true,
+          "private_10mb_bucket_live": true
+        }
+      ],
+      "check": "newsletters_stage5_live",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "activity_reader_live": true,
+          "anonymous_activity_denied": true,
+          "anonymous_support_denied": true,
+          "client_audit_writes_denied": true,
+          "migration_recorded": true,
+          "support_reader_live": true
+        }
+      ],
+      "check": "library_support_stage6_live",
+      "passed": true
+    },
+    {
+      "result": [
+        {
+          "bucket": "learning-library",
+          "current_finalized_files": 0,
+          "finalized_files_missing_objects": 0,
+          "finalized_metadata_mismatches": 0,
+          "objects_without_reservations_review_only": 0,
+          "pending_older_than_7_days_review_only": 0,
+          "preserved_previous_versions": 0,
+          "stored_objects": 0,
+          "unfinished_reservations_without_bytes": 0,
+          "unfinished_uploads_with_bytes": 0
+        },
+        {
+          "bucket": "school-newsletters",
+          "current_finalized_files": 0,
+          "finalized_files_missing_objects": 0,
+          "finalized_metadata_mismatches": 0,
+          "objects_without_reservations_review_only": 0,
+          "pending_older_than_7_days_review_only": 0,
+          "preserved_previous_versions": 0,
+          "stored_objects": 0,
+          "unfinished_reservations_without_bytes": 0,
+          "unfinished_uploads_with_bytes": 0
+        }
+      ],
+      "check": "learning_library_retention_review",
+      "passed": true
+    }
+  ],
+  "physical_storage_requested": false
+}

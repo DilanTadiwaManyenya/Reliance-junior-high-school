@@ -1,0 +1,94 @@
+
+> reliance@0.0.0 build
+> vite build
+
+vite v8.2.1 building client environment for production...
+[2K
+transforming...✓ 3142 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                    0.45 kB │ gzip:   0.28 kB
+dist/assets/reliance-primary2-rIyng18T.jpg       115.84 kB
+dist/assets/reliance5-C8B8Pg3H.jpg               156.21 kB
+dist/assets/reilance3-DhXsG5ft.jpg               174.55 kB
+dist/assets/reliance-sports-ANBZJSSc.jpg         185.33 kB
+dist/assets/reliance4-CCz9H3fn.jpg               198.86 kB
+dist/assets/reliance-junior-crest-AUE42G4c.webp  202.13 kB
+dist/assets/reliance1-a5tZ7VmI.jpg               210.31 kB
+dist/assets/reliance-senior-crest-DC9J9IAR.webp  216.83 kB
+dist/assets/reliance-example-BRZcsuVF.jpg        276.67 kB
+dist/assets/reliance2-D_K3HNnY.jpg               293.58 kB
+dist/assets/reliance-sports1-CvUfLdeS.jpg        296.35 kB
+dist/assets/reliance-primary1-DgP2Q72U.jpg       423.35 kB
+dist/assets/reliance6-0ngeTQ_B.jpg               439.68 kB
+dist/assets/reliance-sports2-jk6dyNSZ.jpg        498.70 kB
+dist/assets/shopCatalog-DXSpp6i2.css               0.40 kB │ gzip:   0.25 kB
+dist/assets/schoolNewsletters-BUoVNQ_e.css         1.40 kB │ gzip:   0.54 kB
+dist/assets/CampusBrandMark-1JKiIPea.css           3.16 kB │ gzip:   0.81 kB
+dist/assets/parentLearningLibrary-dx7q51FT.css     3.32 kB │ gzip:   0.98 kB
+dist/assets/RoleDashboard-uV_8905e.css             4.06 kB │ gzip:   1.34 kB
+dist/assets/StaffDashboard-epIxna-r.css           27.58 kB │ gzip:   5.90 kB
+dist/assets/AcademicReportCard-DK3cggYM.css       30.71 kB │ gzip:   5.47 kB
+dist/assets/index-CyLeaEMN.css                   242.54 kB │ gzip:  44.27 kB
+dist/assets/reliance1-ClvXOvnx.js                  0.05 kB │ gzip:   0.07 kB
+dist/assets/reliance2-DY0FMtO1.js                  0.05 kB │ gzip:   0.07 kB
+dist/assets/reliance4-rUHPPQpm.js                  0.05 kB │ gzip:   0.07 kB
+dist/assets/reliance6-DgE7pcQ-.js                  0.05 kB │ gzip:   0.07 kB
+dist/assets/cn-Cg8Nmoqi.js                         0.05 kB │ gzip:   0.07 kB
+dist/assets/reliance-senior-crest-BAck3-jp.js      0.11 kB │ gzip:   0.10 kB
+dist/assets/PortalSiteExitLink-BFldygyS.js         0.16 kB │ gzip:   0.14 kB
+dist/assets/use-reduced-motion-DdV0uHqS.js         0.20 kB │ gzip:   0.17 kB
+dist/assets/Card-jRODT8ns.js                       0.21 kB │ gzip:   0.18 kB
+dist/assets/PortalNotice-DUOLoulG.js               0.24 kB │ gzip:   0.20 kB
+dist/assets/navigation-Bryz9T1M.js                 0.27 kB │ gzip:   0.18 kB
+dist/assets/PageHeader-CSilCkTD.js                 0.35 kB │ gzip:   0.22 kB
+dist/assets/clsx-DB0hHKMi.js                       0.36 kB │ gzip:   0.23 kB
+dist/assets/SectionHeading-C1UpXip3.js             0.38 kB │ gzip:   0.24 kB
+dist/assets/currency-DAi-sCGM.js                   0.44 kB │ gzip:   0.30 kB
+dist/assets/NotFound-8RQ79nYb.js                   0.45 kB │ gzip:   0.29 kB
+dist/assets/Button-CXrT6G5f.js                     0.46 kB │ gzip:   0.30 kB
+dist/assets/siteContent-BqBTgKrW.js                0.53 kB │ gzip:   0.39 kB
+dist/assets/CampusBrandMark-fmkpAFSh.js            0.57 kB │ gzip:   0.38 kB
+dist/assets/StudentLife-BrMVqRpt.js                0.64 kB │ gzip:   0.42 kB
+dist/assets/CTABanner-CpZ5kLnH.js                  0.65 kB │ gzip:   0.38 kB
+dist/assets/PasswordInput-op8XNrtB.js              0.67 kB │ gzip:   0.41 kB
+dist/assets/Academics-BcScY00z.js                  0.70 kB │ gzip:   0.45 kB
+dist/assets/shopCatalog-C5cV14Wn.js                0.74 kB │ gzip:   0.47 kB
+dist/assets/PageTemplate-C6ctt6_W.js               0.76 kB │ gzip:   0.39 kB
+dist/assets/learnerFees-Bt3qGQs4.js                0.90 kB │ gzip:   0.46 kB
+dist/assets/edgeFunction-BU-VVGH-.js               0.94 kB │ gzip:   0.54 kB
+dist/assets/ForgotPassword-BtFuqE4o.js             1.19 kB │ gzip:   0.60 kB
+dist/assets/Footer-DJTLm7nd.js                     1.35 kB │ gzip:   0.59 kB
+dist/assets/news-BMupUvEh.js                       1.35 kB │ gzip:   0.69 kB
+dist/assets/News-BqBeQUKt.js                       1.36 kB │ gzip:   0.65 kB
+dist/assets/About-DPHOzLqd.js                      1.45 kB │ gzip:   0.75 kB
+dist/assets/Announcements-Cs3ZVTJ5.js              1.54 kB │ gzip:   0.77 kB
+dist/assets/Staff-BMhYGWFi.js                      1.62 kB │ gzip:   0.78 kB
+dist/assets/PortalEntry-ClljYu_n.js                1.79 kB │ gzip:   0.76 kB
+dist/assets/TeacherFirstLogin-sHYdu2wF.js          1.85 kB │ gzip:   0.89 kB
+dist/assets/Facilities-hepUnOry.js                 1.91 kB │ gzip:   0.92 kB
+dist/assets/SetNewPassword-CCfcT1DH.js             2.06 kB │ gzip:   0.96 kB
+dist/assets/Contact-DY3O1TMp.js                    2.29 kB │ gzip:   0.85 kB
+dist/assets/Gallery-CJ-G0bL7.js                    2.45 kB │ gzip:   1.06 kB
+dist/assets/Navbar-kSRlwI15.js                     2.64 kB │ gzip:   1.02 kB
+dist/assets/PortalLogin-D4iQAJ1B.js                2.65 kB │ gzip:   1.22 kB
+dist/assets/Admissions-B-_bQlKf.js                 2.70 kB │ gzip:   1.02 kB
+dist/assets/PortalLayout-PC-hcftj.js               3.40 kB │ gzip:   1.52 kB
+dist/assets/PortalSignup-B_Hk6pV8.js               3.88 kB │ gzip:   1.45 kB
+dist/assets/PhoneInput-B02SaPuh.js                 4.10 kB │ gzip:   2.34 kB
+dist/assets/Home-sSXLsKxu.js                       4.92 kB │ gzip:   1.70 kB
+dist/assets/schoolNewsletters-QH2w7-gV.js          5.27 kB │ gzip:   2.09 kB
+dist/assets/fi-CBlGEtFG.js                         7.56 kB │ gzip:   2.06 kB
+dist/assets/ParentDashboard-z5O3DDOr.js            7.58 kB │ gzip:   2.52 kB
+dist/assets/ParentRecordPage-B8m4zV28.js          10.18 kB │ gzip:   2.67 kB
+dist/assets/ParentUniformCatalogue-BiBE_UIv.js    12.15 kB │ gzip:   4.14 kB
+dist/assets/ParentLearningLibrary-D609JY3v.js     16.48 kB │ gzip:   5.16 kB
+dist/assets/StaffPortalLayout-CfTPJESX.js         27.79 kB │ gzip:   9.00 kB
+dist/assets/AcademicReportCard-CWb72Ldc.js        56.37 kB │ gzip:  17.53 kB
+dist/assets/browser-CB9WaMml.js                   70.71 kB │ gzip:  19.69 kB
+dist/assets/proxy-B0xn78jW.js                    121.41 kB │ gzip:  39.42 kB
+dist/assets/StaffDashboard-BYGylLy-.js           412.30 kB │ gzip: 102.75 kB
+dist/assets/RoleDashboard-C6f_O3ZC.js            412.90 kB │ gzip: 117.50 kB
+dist/assets/index-Z9YSi_xv.js                    453.71 kB │ gzip: 132.20 kB
+
+✓ built in 2.97s
