@@ -8,6 +8,8 @@ Reliance is the school portal for learner administration, academics and reportin
 - [Stage 14 reliability and environments](docs/stage14-reliability-environments.md)
 - [Campus isolation](docs/security-stage1-campus-isolation.md)
 - [Inventory and POS](docs/inventory-pos.md)
+- [Learning library and newsletter role guides](docs/learning-library-user-guide.md)
+- [Library release and school pilot checklist](docs/learning-library-stage7.md)
 
 Stage documents record SQL rollout, checks, tests, limits and recovery. An implemented stage does not mean school acceptance is complete.
 
@@ -21,4 +23,4 @@ Focused checks are listed in package.json, including npm run test:portal and npm
 ## Data and deployment
 Use named accounts and least-privilege campus assignments. Frontend pushes to master trigger connected Vercel builds. Supabase migrations and Edge Function deployments are separate: verify the linked project, review the exact migration/function, then run its verification checks. Never replay historical or reset migrations or push an unreviewed batch.
 
-Backups, a separate restore target, currency support and official Zimbabwe report templates remain open as described in Stage 14 and Stage 15. Finance records are USD-only.
+Backups, a separate restore/test target and official Zimbabwe report templates remain open as described in Stage 14 and Stage 15. Finance supports USD and ZWG per record without conversion; school accounting acceptance and approved currency-specific fee bands remain separate.
