@@ -19,3 +19,7 @@ Add a subject/form/stream context strip and Markbook, Course Work and Library sh
 - Existing Senior/Junior native Back/Forward draft protection suite passed in Stage 1.
 
 Screenshots under `tests/artifacts` use synthetic data and are not committed. Live inspection used the existing Senior account; no grades, attendance, learners or published content were changed. Automated viewport tests emulate screen sizes and do not establish physical-device acceptance. Production rendering of this new stage must be checked after deployment; a push alone is not deployment verification. Actual library byte download remains unconfirmed from the earlier pilot.
+
+## Production follow-up
+
+After both pushes, reloaded the signed-in Senior portal. The library displayed its restored Back to allocations action and the new subject work-area strip for Statistics / Lower Six. Clicking Course Work retained the same allocation ID, subject and level in the URL; the loaded page confirmed that allocation and the current 2026 Term 3 period. No assessment or mark was created. This confirms these deployed navigation elements, not every teacher action or physical device.
