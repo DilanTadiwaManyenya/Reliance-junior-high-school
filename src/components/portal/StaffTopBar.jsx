@@ -71,22 +71,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
 
   const initials = (profile?.full_name || 'Portal User').split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase()
   const hasTeacherSubjectScope = activeRole === 'teacher' && teacherWorkspace === 'subjects' && Boolean(selectedSubjectAllocationId)
-  // A Senior teacher can be allocated a form through either a class-teacher
-  // assignment or a subject allocation. Class Work must offer every distinct
-  // assigned form; Subject Work continues to use its own subject allocation
-  // scope and is deliberately not mixed into this switcher.
-  const teacherClassOptions = activeRole === 'teacher' && !isJuniorTeacher
-    ? [...new Map([
-        ...(profile?.teacher_class_assignments || []),
-        ...(profile?.teacher_class_subject_assignments || []).map(assignment => ({
-          class_level: assignment.class_level,
-          class_stream: assignment.class_stream || '',
-        })),
-      ].filter(assignment => assignment.class_level).map(assignment => [
-        `${assignment.class_level}:${assignment.class_stream || ''}`,
-        assignment,
-      ])).values()]
-    : profile?.teacher_class_assignments || []
+  // Class Work belongs to class teachers; subject allocations stay in Subject Work.
+  const teacherClassOptions = profile?.teacher_class_assignments || []
   const showClassControl = activeRole === 'accountant' ? false : activeRole === 'teacher'
     ? teacherWorkspace !== 'subjects'
     : ['dashboard', 'roster', 'entry', 'progress-reports', 'classes'].includes(section)

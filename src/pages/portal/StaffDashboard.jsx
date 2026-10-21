@@ -1429,7 +1429,10 @@ export default function StaffDashboard() {
         : teacherSubjectAssignments;
     const workspaceStudents = isTeacher && teacherWorkspace === "subjects"
       ? students.filter((student) => activeSubjectAssignments.some((assignment) => assignment.class_level === student.class_level && (!assignment.class_stream || assignment.class_stream === (student.class_stream || "")) && (!selectedSubjectClassStream || selectedSubjectClassStream === (student.class_stream || ""))))
-      : students;
+      : isTeacher ? students.filter(student => teacherAssignments.some(assignment =>
+        assignment.class_level === student.class_level &&
+        (!assignment.class_stream || assignment.class_stream === (student.class_stream || ""))
+      )) : students;
     const filterApplied = level
       ? `class_level = '${level}' AND class_stream = '${stream || ""}'`
       : teacherWorkspace === "subjects" ? "SUBJECT WORKSPACE ASSIGNMENTS" : "NONE (Showing all students)";
@@ -1454,7 +1457,7 @@ export default function StaffDashboard() {
       (s) =>
         s.class_level === level && (stream ? s.class_stream === stream : true),
     );
-  }, [students, activeClassFilter, isTeacher, teacherSubjectAssignments, teacherWorkspace, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId, selectedSubjectClassStream]);
+  }, [students, activeClassFilter, isTeacher, teacherAssignments, teacherSubjectAssignments, teacherWorkspace, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId, selectedSubjectClassStream]);
 
   const visible = filteredStudents.filter((row) =>
     `${row.full_name} ${row.admission_number}`

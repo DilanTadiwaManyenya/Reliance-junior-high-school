@@ -27,6 +27,14 @@ const stream = campus === 'senior' && params.get('stream') !== 'all' ? 'Blue' : 
 const allocation = { id: 'allocation', teacher_id: 'teacher', class_level: classLevel, class_stream: stream, subject, campus }
 const profile = { role: 'teacher', active_role: 'teacher', full_name: 'Ms Mobile Test', campus, teacher_class_assignments: [allocation], teacher_class_subject_assignments: [allocation] }
 const learners = ['Alexandra Example Learner With A Longer Name', 'Brian Example', 'Chipo Example'].map((full_name, i) => ({ id: `learner-${i}`, full_name, class_level: classLevel, class_stream: stream, admission_number: `TEST-2026-00${i+1}`, campus, status: 'active' }))
+if (params.has('extraSubjectScopes')) {
+  profile.teacher_class_subject_assignments = [allocation,
+    { ...allocation, id: 'whole-form', class_stream: '' },
+    { ...allocation, id: 'sixth-form', class_level: 'Lower Six', class_stream: '', subject: 'Statistics' }]
+  learners.push({ id: 'subject-only', full_name: 'Subject Only Learner', class_level: 'Lower Six', class_stream: 'Arts', campus, status: 'active' },
+    { id: 'other-stream', full_name: 'Other Stream Learner', class_level: classLevel, class_stream: 'Green', campus, status: 'active' })
+}
+if (params.has('noClassAssignment')) profile.teacher_class_assignments = []
 const db = {
   reporting_periods: params.has('noCurrentPeriod')?[]:[{campus,is_current:true,state:'open',academic_year:Number(params.get('registryYear')||2026),term:Number(params.get('registryTerm')||3)}],
   students: learners,

@@ -58,6 +58,27 @@ try {
     console.log(`PASS Senior teacher allocation menu, scope reset, browser Back and class switch at ${width}px`)
     await page.close()
   }
+  for (const noClass of [false, true]) {
+    const page = await browser.newPage({ viewport: { width: 390, height: 900 } })
+    await page.route('https://fonts.googleapis.com/**', route => route.abort())
+    await page.route('https://fonts.gstatic.com/**', route => route.abort())
+    await page.addInitScript(() => sessionStorage.setItem('reliance_active_portal_class', 'Lower Six:'))
+    await page.goto(`${base}?campus=senior&extraSubjectScopes&${noClass ? 'noClassAssignment&' : ''}section=dashboard`)
+    await page.getByRole('heading', { name: 'Teaching dashboard', exact: true }).waitFor()
+    assert.equal(await page.locator('#portal-class-switcher').count(), 0, 'One class assignment must not become a subject-form dropdown')
+    await page.getByText(noClass ? 'No classes assigned' : 'Form 1 Blue', { exact: true }).first().waitFor()
+    await page.getByRole('button', { name: 'Open class roster', exact: true }).click()
+    await page.locator('.staff-content-area').waitFor()
+    assert.equal(await page.getByText('Subject Only Learner', { exact: true }).count(), 0)
+    assert.equal(await page.getByText('Other Stream Learner', { exact: true }).count(), 0)
+    if (noClass) assert.equal(await page.getByText('Alexandra Example Learner With A Longer Name', { exact: true }).count(), 0)
+    else await page.getByText('Alexandra Example Learner With A Longer Name', { exact: true }).first().waitFor()
+    await page.getByRole('button', { name: 'Subject work', exact: true }).click()
+    await page.getByRole('heading', { name: 'Choose a subject allocation', exact: true }).waitFor()
+    assert.equal(await page.locator('.subject-allocation-card').count(), 3, 'Subject allocations must remain available independently')
+    console.log(`PASS class-teacher-only roster and dropdown with ${noClass ? 'zero' : 'one'} class assignments and three subject allocations`)
+    await page.close()
+  }
 } finally {
   await browser?.close()
   await server.close()
