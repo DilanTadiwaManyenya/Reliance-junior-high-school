@@ -226,6 +226,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const [variantBusy, setVariantBusy] = useState(false);
   const [adjust, setAdjust] = useState({ product: "", change: "", reason: "" });
   const [receipt, setReceipt] = useState(null);
+  const [reversalReason, setReversalReason] = useState('');
   useReceiptPrint(receipt?.receipt_number);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
@@ -407,9 +408,11 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
         : [...current, { id: p.id, product_id: p.product_id || p.id, variant_id: p.variant_id || null, quantity: 1 }];
     });
   };
-  const period = sales.filter(
+  const activeSales = sales.filter(sale => sale.status !== 'reversed');
+  const receiptPeriod = sales.filter(
     (s) => (!month || s.created_at.slice(0, 7) === month) && (s.currency || "USD") === reportCurrency,
   );
+  const period = receiptPeriod.filter(sale => sale.status !== 'reversed');
   const revenue = period.reduce((sum, s) => sum + Number(s.total), 0);
   const costKnown = period.every((s) =>
     s.pos_sale_items.every((l) => l.unit_cost !== null),
@@ -430,7 +433,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     ['Month (sales/P&L)', month || 'all time'], ['Search', query],
     ['Generated at', new Date().toISOString()], [], ...rows,
   ], filename);
-  const salesVisible = period.filter((s) =>
+  const salesVisible = receiptPeriod.filter((s) =>
     `${s.receipt_number} ${s.customer_name || ""} ${methods[s.payment_method]}`
       .toLowerCase()
       .includes(query.toLowerCase()),
@@ -506,7 +509,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   );
   const topProducts = useMemo(() => {
     const totals = new Map();
-    sales.filter(sale => (sale.currency || "USD") === reportCurrency).forEach((sale) => sale.pos_sale_items.forEach((item) => {
+    sales.filter(sale => sale.status !== 'reversed' && (sale.currency || "USD") === reportCurrency).forEach((sale) => sale.pos_sale_items.forEach((item) => {
       const current = totals.get(item.product_name) || { name: item.product_name, units: 0, revenue: 0 };
       current.units += Number(item.quantity || 0);
       current.revenue += Number(item.line_total || 0);
@@ -522,7 +525,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       return {
         key,
         label: date.toLocaleString("en", { month: "short" }),
-        revenue: sales.filter((sale) => sale.created_at.slice(0, 7) === key && (sale.currency || "USD") === reportCurrency).reduce((sum, sale) => sum + Number(sale.total || 0), 0),
+        revenue: sales.filter((sale) => sale.status !== 'reversed' && sale.created_at.slice(0, 7) === key && (sale.currency || "USD") === reportCurrency).reduce((sum, sale) => sum + Number(sale.total || 0), 0),
       };
     });
   }, [sales, reportCurrency]);
@@ -867,7 +870,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             />
             <Stat
               label="All-time sales"
-              value={money(sales.filter(s => (s.currency || "USD") === reportCurrency).reduce((n, s) => n + Number(s.total), 0), reportCurrency)}
+              value={money(activeSales.filter(s => (s.currency || "USD") === reportCurrency).reduce((n, s) => n + Number(s.total), 0), reportCurrency)}
             />
             <Stat
               label="Low / empty stock"
@@ -921,7 +924,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 >
                   <span>
                     {s.customer_name || "Walk-in customer"}
-                    <small>{s.receipt_number}</small>
+                    <small>{s.receipt_number}{s.status === 'reversed' ? ' · REVERSED' : ''}</small>
                   </span>
                   <strong>{money(s.total, s.currency || "USD")}</strong>
                 </button>
@@ -1366,17 +1369,17 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
           <div className="shop-receipts-layout">
             <div className="shop-panel shop-table">
               <h2>Receipt ledger</h2>
-              <p>Every completed sale for the selected period. Open a receipt to print or save it as a PDF.</p>
+              <p>Original receipts remain visible after reversal. Reversed sales are excluded from active totals. A reversal does not refund money; settlement must be reviewed separately.</p>
               <table>
                 <thead><tr><th>Receipt / buyer</th><th>Date & time</th><th>Payment</th><th>Total</th><th>Receipt</th></tr></thead>
                 <tbody>
                   {salesVisible.map((s) => (
                     <tr key={s.id}>
-                      <td><strong>{s.receipt_number}</strong><small>{s.customer_name || "Walk-in customer"}</small><small>{s.campus === "junior" ? "Junior School" : s.campus === "senior" ? "Senior School" : "Legacy school shop"}</small></td>
+                      <td><strong>{s.receipt_number}</strong><small>{s.customer_name || "Walk-in customer"}</small><small>{s.campus === "junior" ? "Junior School" : s.campus === "senior" ? "Senior School" : "Legacy school shop"}</small><small>{s.status === 'reversed' ? 'REVERSED · settlement review required' : 'Completed'}</small></td>
                       <td>{new Date(s.created_at).toLocaleString()}</td>
                       <td><span className="shop-payment-badge">{methods[s.payment_method]}</span></td>
                       <td className="shop-receipt-amount">{money(s.total, s.currency || "USD")}</td>
-                      <td><button onClick={() => setReceipt(s)}>Open</button></td>
+                      <td><button onClick={() => { setReceipt(s); setReversalReason(''); }}>Open</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1602,6 +1605,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               <label>
                 Campus
                 <select
+                  aria-label="Campus"
                   required
                   disabled={campusAdmin || Boolean(form.id && products.find(product => product.id === form.id)?.campus)}
                   value={form.campus || ""}
@@ -1675,6 +1679,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             <h2>{settings.store_name}</h2>
             <p>{settings.receipt_header}</p>
             <strong>{receipt.receipt_number}</strong>
+            {receipt.status === 'reversed' && <div className="shop-message error" role="status"><strong>REVERSED — excluded from active sales</strong><p>{receipt.reversal_reason}</p><p>{new Date(receipt.reversed_at).toLocaleString('en-ZW')} · Reversed by {receipt.reversed_by}</p><p>Stock restored. Money has not been automatically refunded; review settlement separately.</p></div>}
             <p>{receipt.campus === "junior" ? "Junior School" : receipt.campus === "senior" ? "Senior School" : "Legacy school shop"}</p>
             <p>Currency: {receipt.currency || "USD"}</p>
             <p>
@@ -1711,11 +1716,22 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               </strong>
             </div>
             <div className="shop-actions no-print">
-              <button onClick={() => setReceipt(null)}>Close</button>
+              <button disabled={busy} onClick={() => setReceipt(null)}>Close</button>
               <button className="primary" onClick={() => window.print()}>
                 <Printer size={16} /> Print / Save PDF
               </button>
             </div>
+            {admin && receipt.status !== 'reversed' && <form className="shop-reversal-form no-print" onSubmit={event => {
+              event.preventDefault();
+              if (!window.confirm(`Reverse ${receipt.receipt_number}? Stock will be restored once. The original receipt and audit remain. This does not refund money.`)) return;
+              run(async () => {
+                const result = await supabase.rpc('reverse_pos_sale', { p_sale_id: receipt.id, p_reason: reversalReason.trim() });
+                if (result.error) throw result.error;
+                setReceipt(current => current?.id === result.data.id ? { ...current, ...result.data } : current); setReversalReason('');
+                setNotice('Sale reversed. Stock restored; review any refund or settlement separately.');
+                await load();
+              });
+            }}><h3>Main Admin reversal</h3>{error && <p role="alert" className="shop-message error">{error}</p>}<label>Reason for reversal<textarea required minLength={5} maxLength={1000} value={reversalReason} onChange={event => setReversalReason(event.target.value)} disabled={busy} /></label><p>For an erroneous sale only. Review any money received separately; no refund is issued by this action.</p><button type="submit" disabled={busy || reversalReason.trim().length < 5}>Reverse sale and restore stock</button></form>}
           </article>
         </div>
       )}

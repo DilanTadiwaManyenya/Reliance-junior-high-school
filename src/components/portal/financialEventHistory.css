@@ -1,0 +1,8 @@
+.financial-event-history { min-width: 0; display: grid; gap: 16px; }
+.financial-event-history label { display: grid; gap: 8px; }
+.financial-event-history :is(button, select, summary) { min-height: 44px; font: inherit; }
+.financial-event-history :is(button, select) { padding: 10px 12px; border: 1px solid #b8c6de; border-radius: 8px; background: #fff; color: #1d2b55; }
+.financial-event-history article { margin-bottom: 16px; overflow-wrap: anywhere; }
+.financial-event-history pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.financial-event-history .library-pagination { display: flex; gap: 12px; align-items: center; justify-content: center; }
+@media (max-width: 600px) { .financial-event-history h1 { font-size: 1.5rem; } .financial-event-history select { font-size: 16px; width: 100%; } .financial-event-history article { padding: 16px; } }

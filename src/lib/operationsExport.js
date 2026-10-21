@@ -63,8 +63,8 @@ export const reportOptions = {
     ['Product ID','Product','Campus','Category','Product active','Variant ID','Size','SKU','Variant active','Stock','Currency','Unit price','Unit cost','Reorder level'],
     r => (r.product_variants?.length ? r.product_variants : [null]).map(v => [r.id,r.name,r.campus||'unassigned',r.category,String(r.active),v?.id,v?.size,v?.sku||r.sku,v ? String(v.active) : '',n(v ? v.quantity_on_hand : r.quantity_on_hand),r.currency||'USD',n(r.selling_price),n(r.cost_price),n(r.reorder_level)])],
   sales: ['POS receipts', 'pos_sales', '*,pos_sale_items(*)',
-    ['Sale ID','Receipt','Date','Campus','Customer','Method','Currency','Total','Tendered'],
-    r => [r.id,r.receipt_number,r.created_at,r.campus||'legacy',r.customer_name,r.payment_method,r.currency||'USD',n(r.total),n(r.amount_paid??r.total)]],
+    ['Sale ID','Receipt','Date','Campus','Customer','Method','Currency','Total','Tendered','Status','Reversed at','Reversed by','Reason'],
+    r => [r.id,r.receipt_number,r.created_at,r.campus||'legacy',r.customer_name,r.payment_method,r.currency||'USD',n(r.total),n(r.amount_paid??r.total),r.status||'completed',r.reversed_at,r.reversed_by,r.reversal_reason]],
   orders: ['Parent order history', 'parent_uniform_orders', '*,students!inner(admission_number,full_name,campus)',
     ['Order ID','Date','Admission ID','Learner','Campus','Status','Method','Reference','Currency','Total'],
     r => [r.id,r.created_at,r.students?.admission_number,r.students?.full_name,r.students?.campus,r.payment_status,r.payment_method,r.transaction_reference||r.ecocash_reference,r.currency||'USD',n(r.total)]],
@@ -86,7 +86,7 @@ export function reportTotals(kind, records) {
   if (kind === 'fees') return Object.fromEntries(Object.entries(sumByCurrency(records, row => row.total_fees)).flatMap(([currency, total]) => [[`Term fees ${currency}`, total.toFixed(2)], [`Paid ${currency}`, (sumByCurrency(records.filter(row => (row.currency||'USD') === currency), row => row.amount_paid)[currency] || 0).toFixed(2)], [`Net balance ${currency}`, (total - (sumByCurrency(records.filter(row => (row.currency||'USD') === currency), row => row.amount_paid)[currency] || 0)).toFixed(2)]]))
   if (kind === 'payments') return Object.fromEntries(Object.entries(byCurrency(records, 'amount')).map(([currency,total]) => [`Ledger payments ${currency}`, total]))
   if (kind === 'expenses') return Object.fromEntries(['pending','approved','rejected'].flatMap(status => Object.entries(byCurrency(records.filter(row => row.status === status), 'amount')).map(([currency,total]) => [`${status} ${currency}`, total])))
-  if (kind === 'sales') return { ...Object.fromEntries(Object.entries(byCurrency(records, 'total')).map(([currency,total]) => [`Sales ${currency}`, total])), 'Receipts': String(records.length) }
+  if (kind === 'sales') return { ...Object.fromEntries(Object.entries(byCurrency(records.filter(row => row.status !== 'reversed'), 'total')).map(([currency,total]) => [`Sales ${currency}`, total])), 'Receipts': String(records.length), 'Reversed receipts excluded': String(records.filter(row => row.status === 'reversed').length) }
   if (kind === 'orders') return Object.fromEntries(['pending','verified','rejected'].flatMap(status => Object.entries(byCurrency(records.filter(row => row.payment_status === status), 'total')).map(([currency,total]) => [`${status} orders ${currency}`, total])))
   return { 'Stock units (including hidden sizes)': String(records.reduce((total,row) => total + (row.product_variants?.length ? row.product_variants.reduce((qty,v) => qty + Number(v.quantity_on_hand||0),0) : Number(row.quantity_on_hand||0)),0)) }
 }

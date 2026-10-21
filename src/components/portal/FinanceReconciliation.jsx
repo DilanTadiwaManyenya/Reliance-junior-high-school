@@ -45,7 +45,7 @@ export default function FinanceReconciliation({ supabase, profile }) {
             return query
           }, { signal: controller.signal }),
           readAllRows(() => {
-            let query = supabase.from('pos_sales').select('id, receipt_number, created_at, campus, customer_name, total, currency')
+            let query = supabase.from('pos_sales').select('id, receipt_number, created_at, campus, customer_name, total, currency, status')
             if (campusFilter && campusFilter !== 'all') query = query.eq('campus', campusFilter)
             if (from) query = query.gte('created_at', localDateBoundary(from))
             if (to) query = query.lte('created_at', localDateBoundary(to, true))
@@ -92,13 +92,13 @@ export default function FinanceReconciliation({ supabase, profile }) {
       ...totals,
       [],
       ['Date', 'Campus', 'Currency', 'Direction', 'Source', 'Reference', 'Description', 'Amount', 'Status', 'Source ID'],
-      ...visibleEntries.map(row => [row.date, campusName(row.campus), row.currency, row.direction === 'in' ? 'Collected' : row.direction === 'out' ? 'Expense' : 'Excluded expense', row.kind, row.reference, row.description, row.amount, row.status, row.sourceId]),
+      ...visibleEntries.map(row => [row.date, campusName(row.campus), row.currency, row.direction === 'in' ? 'Collected' : row.direction === 'out' ? 'Expense' : 'Excluded record', row.kind, row.reference, row.description, row.amount, row.status, row.sourceId]),
     ], `reliance-reconciliation-${campus}-${new Date().toISOString().slice(0, 10)}.csv`)
   }
 
   return <section className="shop-app finance-reconciliation" aria-labelledby="finance-reconciliation-title">
     <header className="shop-header"><div><span className="shop-kicker">SCHOOL FINANCE</span><h1 id="finance-reconciliation-title">Income &amp; expense reconciliation</h1><p>Compare recorded fee collections and POS sales against approved expenses.</p></div><button type="button" onClick={exportCsv} disabled={loading || !visibleEntries.length}>Download CSV</button></header>
-    <PortalNotice>USD and ZWG stay separate. This view totals portal records; it does not confirm bank or cash settlement. Parent uniform orders are excluded because they are orders, not payment receipts. Pending and rejected expenses are excluded from net movement.</PortalNotice>
+    <PortalNotice>USD and ZWG stay separate. This view totals portal records; it does not confirm bank or cash settlement. Parent uniform orders, reversed sales, pending and rejected expenses are excluded from net movement. A reversed sale does not prove money was refunded; review its settlement separately.</PortalNotice>
     <div className="shop-toolbar finance-reconciliation-filters">
       <label>Campus<select value={mainAdmin ? campus : assignedCampus} onChange={event => setCampus(event.target.value)} disabled={!mainAdmin}><option value="all">All campuses</option><option value="junior">Junior School</option><option value="senior">Senior School</option></select></label>
       <label>Currency<select value={currency} onChange={event => setCurrency(event.target.value)}><option value="all">Both, separate totals</option>{FINANCE_CURRENCIES.map(code => <option key={code}>{code}</option>)}</select></label>
@@ -123,7 +123,7 @@ export default function FinanceReconciliation({ supabase, profile }) {
           <thead><tr><th>Date</th><th>Campus</th><th>Currency</th><th>Type</th><th>Reference</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
           <tbody>{visibleEntries.map(row => <tr key={row.id}>
             <td>{row.date || '—'}</td><td>{campusName(row.campus)}</td><td>{row.currency}</td>
-            <td>{row.direction === 'in' ? 'Collection' : row.direction === 'out' ? 'Expense' : 'Excluded expense'}</td>
+            <td>{row.direction === 'in' ? 'Collection' : row.direction === 'out' ? 'Expense' : 'Excluded record'}</td>
             <td>{row.reference || '—'}</td><td>{row.description || row.kind}</td>
             <td>{money(row.amount, row.currency)}</td><td>{row.status}</td>
           </tr>)}</tbody>

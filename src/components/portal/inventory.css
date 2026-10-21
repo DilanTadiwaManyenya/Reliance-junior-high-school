@@ -514,7 +514,13 @@
 }
 .shop-receipt {
   max-width: 460px;
+  overflow-wrap: anywhere;
 }
+.shop-reversal-form { margin-top: 20px; padding-top: 16px; border-top: 1px solid #dce3ed; }
+.shop-reversal-form label { display: grid; gap: 8px; }
+.shop-reversal-form textarea { box-sizing: border-box; width: 100%; min-height: 90px; font: inherit; font-size: 16px; padding: 10px; }
+.shop-reversal-form button { min-height: 44px; white-space: normal; }
+.shop-receipts-layout > .shop-table { min-width: 0; margin-inline: 0; }
 .shop-receipt > p {
   font-size: 13px;
   line-height: 1.8;

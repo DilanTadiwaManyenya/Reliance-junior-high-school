@@ -17,6 +17,16 @@ const sourceRows = () => buildReconciliationEntries({
   ],
 })
 
+test('Reversed POS receipts stay traceable but do not count as collections', () => {
+  const rows = buildReconciliationEntries({ sales: [
+    { id: 'original', total: 25, currency: 'USD', status: 'reversed', created_at: '2026-10-21', campus: 'senior' },
+    { id: 'valid', total: 20, currency: 'USD', status: 'completed', created_at: '2026-10-21', campus: 'senior' },
+  ] })
+  assert.equal(rows.length, 2)
+  assert.equal(rows.find(row => row.sourceId === 'original').direction, 'excluded')
+  assert.equal(summarizeReconciliationEntries(rows).USD.collected, 20)
+})
+
 test('Builds a read-only ledger from actual fee receipts, POS totals, and approved expenses', () => {
   const rows = sourceRows()
   const totals = summarizeReconciliationEntries(rows)

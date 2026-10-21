@@ -22,11 +22,13 @@ test('Exports reconcile stored totals, keep statuses separate and never resolve 
   assert.equal(sales[1].rows[1][2],'Old shirt name')
   assert.equal(sales[1].rows[1][7],15)
   assert.equal(sales[1].rows[1][8],'')
-  assert.deepEqual(reportTotals('sales',[sale]),{'Sales USD':'15.00',Receipts:'1'})
+  assert.deepEqual(reportTotals('sales',[sale]),{'Sales USD':'15.00',Receipts:'1','Reversed receipts excluded':'0'})
   assert.deepEqual(reportTotals('sales', [
     { total: 20, currency: 'USD' },
     { total: 500, currency: 'ZWG' },
-  ]), { 'Sales USD': '20.00', 'Sales ZWG': '500.00', Receipts: '2' })
+  ]), { 'Sales USD': '20.00', 'Sales ZWG': '500.00', Receipts: '2', 'Reversed receipts excluded':'0' })
+  assert.deepEqual(reportTotals('sales',[sale,{...sale,id:'reversed',total:100,status:'reversed'}]),{'Sales USD':'15.00',Receipts:'2','Reversed receipts excluded':'1'})
+  assert.equal(reportSheets('sales',[{...sale,status:'reversed'}])[0].rows[1][9],'reversed')
   const fees=[{total_fees:160,amount_paid:25},{total_fees:160,amount_paid:180}]
   assert.deepEqual(reportTotals('fees',fees),{'Term fees USD':'320.00','Paid USD':'205.00','Net balance USD':'115.00'})
   assert.equal(reportSheets('fees',fees)[0].rows[2][9],-20)

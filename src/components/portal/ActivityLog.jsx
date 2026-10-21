@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, RotateCcw, Search, SlidersHorizontal, UsersRound } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import RecordChangeHistory from './RecordChangeHistory'
+import FinancialEventHistory from './FinancialEventHistory'
 
-const tabs = { parents: ['parent'], students: ['student'], staff: ['admin', 'principal', 'teacher', 'accountant'] }
+const tabs = { parents: ['parent'], staff: ['admin', 'principal', 'teacher', 'accountant'] }
 const relativeTime = date => {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 1000))
   if (seconds < 60) return 'just now'; if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`; return `${Math.floor(seconds / 86400)}d ago`
@@ -17,7 +18,8 @@ export default function ActivityLog({ campusScope = null }) {
   return <><div className="record-history-switch" aria-label="Audit view">
     <button type="button" aria-pressed={view === 'activity'} onClick={() => setView('activity')}>Portal activity</button>
     <button type="button" aria-pressed={view === 'changes'} onClick={() => setView('changes')}>Record changes</button>
-  </div>{view === 'changes' ? <RecordChangeHistory campusScope={campusScope} /> : <PortalActivityLog campusScope={campusScope} />}</>
+    <button type="button" aria-pressed={view === 'finance'} onClick={() => setView('finance')}>Inventory &amp; POS audit</button>
+  </div>{view === 'finance' ? <FinancialEventHistory campusScope={campusScope} /> : view === 'changes' ? <RecordChangeHistory campusScope={campusScope} /> : <PortalActivityLog campusScope={campusScope} />}</>
 }
 function PortalActivityLog({ campusScope }) {
   const { supabase } = useAuth(); const [tab, setTab] = useState('staff'); const [rows, setRows] = useState([]); const [query, setQuery] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(true)

@@ -141,7 +141,63 @@ test('Stage 2 campus POS authorization, receipt isolation and retry safety', asy
     assert.deepEqual((await db.query('select product_name,unit_price,size_label from pos_sale_items where sale_id=$1',[juniorSale.id])).rows[0],snapshot)
     await db.exec('reset role')
     assert.equal((await db.query("select count(*)::integer count from pg_proc where proname='complete_pos_sale'")).rows[0].count,2,'Only new campus function and safe wrapper remain')
+    // New reversal stage runs against the real project helpers/stock triggers.
+    await db.exec(`reset role; create function public.portal_mfa_satisfied() returns boolean language sql as $$select coalesce(nullif(current_setting('test.mfa',true),'')::boolean,true)$$;
+      alter table profiles add column full_name text default 'Synthetic staff';
+      alter table pos_sales add column currency text not null default 'USD';`)
+    await db.exec(await migration('20261021200000_main_admin_pos_reversals.sql'))
+    const reverse = async id => (await db.query('select * from reverse_pos_sale($1,$2)',[id,'Incorrect test entry'])).rows[0]
+    for (const id of [accountant,seniorAccountant,juniorAdmin,seniorAdmin,invalidAdmin,parent,teacher]) {
+      await actAs(id)
+      await assert.rejects(reverse(juniorSale.id),/Only Main Admin/)
+    }
+    await actAs(admin)
+    await db.exec("select set_config('test.mfa','false',false)")
+    await assert.rejects(reverse(juniorSale.id),/sign-in verification/)
+    await db.exec("select set_config('test.mfa','true',false)")
+    await assert.rejects(db.query('select reverse_pos_sale($1,$2)',[juniorSale.id,' ']),/reversal reason/)
+    await assert.rejects(db.exec("update pos_sales set status='reversed'"),/permission denied/)
+    // Fail the audit insert: status and stock must roll back with it.
+    await db.exec(`reset role; create function reject_test_financial_audit() returns trigger language plpgsql as $$begin raise exception 'Synthetic audit failure'; end$$;
+      create trigger reject_test_audit before insert on financial_events for each row execute function reject_test_financial_audit();`)
+    const stockBeforeAuditFailure=await stock()
+    await actAs(admin)
+    await assert.rejects(reverse(seniorSale.id),/Synthetic audit failure/)
+    assert.deepEqual(await stock(),stockBeforeAuditFailure)
+    assert.equal((await db.query('select status from pos_sales where id=$1',[seniorSale.id])).rows[0].status,'completed')
+    await db.exec('drop trigger reject_test_audit on financial_events; drop function reject_test_financial_audit()')
+    // New checkout writes both sale and exact line/stock events.
+    await actAs(admin)
+    const audited=await checkout('senior',rowsFor('senior'))
+    assert.equal((await db.query('select count(*)::int n from financial_events')).rows[0].n,2)
+    // Hidden sizes still receive their own original stock, without being shown.
+    await db.exec(`reset role; update product_variants set active=false where id='${small}'`)
+    const variantBefore=(await db.query('select quantity_on_hand from product_variants where id=$1',[small])).rows[0].quantity_on_hand
+    await actAs(admin)
+    const reversed=await reverse(juniorSale.id)
+    assert.equal(reversed.status,'reversed')
+    assert.equal(reversed.reversed_by,admin)
+    await reverse(juniorSale.id)
+    assert.equal((await db.query('select quantity_on_hand from product_variants where id=$1',[small])).rows[0].quantity_on_hand,variantBefore+1)
+    assert.equal((await db.query("select count(*)::int n from financial_events where action='sale_reversed' and record_id=$1",[juniorSale.id])).rows[0].n,1)
+    assert.equal((await db.query('select count(*)::int n from pos_sale_items where sale_id=$1',[juniorSale.id])).rows[0].n,1)
+    const replayBefore=await stock()
+    await actAs(admin)
+    assert.equal((await checkout('junior',rowsFor('junior'),mainRequest)).status,'reversed')
+    assert.deepEqual(await stock(),replayBefore,'Retrying original checkout cannot recreate a reversed sale')
+    await actAs(admin)
+    await reverse(audited.id)
+    await assert.rejects(db.exec('delete from financial_events'),/permission denied/)
+    await assert.rejects(db.exec("update financial_events set reason='changed'"),/permission denied/)
+    await actAs(seniorAccountant)
+    assert.ok((await db.query('select * from financial_events')).rows.every(row=>row.campus==='senior'))
+    for(const id of [parent,teacher]) { await actAs(id); assert.equal((await db.query('select * from financial_events')).rows.length,0) }
+    await db.exec(`reset role; update profiles set active_role='teacher' where id='${admin}'`)
+    await actAs(admin)
+    await assert.rejects(reverse(seniorSale.id),/Only Main Admin/)
+    await db.exec(`reset role; update profiles set active_role='admin' where id='${admin}'`)
     await actAs('', 'anon')
+    await assert.rejects(reverse(seniorSale.id),/permission denied/)
     await assert.rejects(checkout('junior',rowsFor('junior')),/permission denied/)
     console.log('Verified Stage 2: admin/accountant campus sales, both Main Admin campuses, safe legacy wrapper, receipt RLS, immutable snapshots and no stock loss on rejected requests.')
   } finally { await db.close() }

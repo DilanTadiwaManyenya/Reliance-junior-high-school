@@ -55,6 +55,7 @@ const db = {
   school_expenses: [{ id: 'expense', expense_date: today, category: 'Stationery', description: 'Classroom books and materials for the new school term', supplier: 'Example supplier', amount: 40, status: 'pending', campus: 'senior', created_at: today }],
   announcements: [{ id: 'announcement', title: 'Term update for parents and staff', body: 'A longer school announcement to check wrapping and reading on mobile screens.', content: 'School term update.', audience: 'all', created_at: today }],
   audit_logs: [{ id: 'audit', actor_role: 'admin', description: 'Updated an example learner record', action_type: 'update', created_at: today }],
+  financial_events: Array.from({ length: 51 }, (_, index) => ({ id: `financial-${index}`, module: 'pos', action: index % 2 ? 'sale_recorded' : 'sale_reversed', record_id: `sale-${index}`, campus: 'senior', currency: 'USD', actor_name: 'Example Main Admin', actor_role: 'admin', created_at: today, reason: index % 2 ? null : 'Incorrect test entry', details: { stock_changes: [{ size: 'M', before: 4, after: 5 }] } })),
   school_record_changes: Array.from({ length: 51 }, (_, index) => ({ id: `change-${index}`, created_at: new Date(Date.now() - index * 60000).toISOString(), source_table: index % 3 === 0 ? 'academic_records' : index % 3 === 1 ? 'students' : 'attendance', operation: 'UPDATE', actor_name: 'Example Teacher With A Longer Display Name', actor_role: 'teacher', learner_name: index === 50 ? 'Brian Example' : 'Alexandra Example Learner With A Longer Name', campus: campus === 'all' ? 'senior' : campus, context: { subject: 'Combined Science', term: '3', year: 2026 }, old_values: { score: 60 }, new_values: { score: 75 }, changed_fields: ['score'] })),
 }
 if (params.has('printFixture')) {
@@ -124,6 +125,7 @@ function query(table) {
       if(table==='report_period_contexts') data=data.filter(row=>role==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||row.campus===campus))
       data=data.slice(start,end+1)
       if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
+      if(table==='financial_events' && window.fixtureFinancialError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if (table === 'academic_records' && window.fixtureParentError) return Promise.resolve({ data: null, error: { message: 'Synthetic learner records unavailable' } }).then(resolve, reject)
       if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
       if (operation !== 'select') { window.fixtureWrites.push({ table, operation, payload }); data = [{ id: 'created', ...payload }] }
