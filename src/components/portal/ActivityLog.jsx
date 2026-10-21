@@ -18,7 +18,7 @@ export default function ActivityLog({ campusScope = null }) {
   return <><div className="record-history-switch" aria-label="Audit view">
     <button type="button" aria-pressed={view === 'activity'} onClick={() => setView('activity')}>Portal activity</button>
     <button type="button" aria-pressed={view === 'changes'} onClick={() => setView('changes')}>Record changes</button>
-    <button type="button" aria-pressed={view === 'finance'} onClick={() => setView('finance')}>Inventory &amp; POS audit</button>
+    <button type="button" aria-pressed={view === 'finance'} onClick={() => setView('finance')}>Inventory, fees &amp; expenses audit</button>
   </div>{view === 'finance' ? <FinancialEventHistory campusScope={campusScope} /> : view === 'changes' ? <RecordChangeHistory campusScope={campusScope} /> : <PortalActivityLog campusScope={campusScope} />}</>
 }
 function PortalActivityLog({ campusScope }) {
