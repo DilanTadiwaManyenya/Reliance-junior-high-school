@@ -1,0 +1,8 @@
+.grade-fields-v2 .ecd-rating-grid { min-width: 0; max-width: 100%; }
+@media (max-width: 600px) {
+ .grade-fields-v2 .ecd-rating-head,
+ .grade-fields-v2 .ecd-rating-row { min-width: 0; grid-template-columns: repeat(5,minmax(0,1fr)); }
+ .grade-fields-v2 .ecd-rating-head span:first-child { display: none; }
+ .grade-fields-v2 .ecd-rating-row strong { grid-column: 1 / -1; overflow-wrap: anywhere; }
+ .grade-fields-v2 .ecd-rating-row label { min-height: 44px; }
+}

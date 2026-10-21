@@ -98,6 +98,12 @@ export default function ClassSelector({
   useEffect(() => {
     if (isTeacher) {
       if (!teacherOptions.length) return
+      // A selection made in the markbook or class workspace is authoritative.
+      // Restoring an older session choice here used to switch ECD B back to A.
+      if (teacherOptions.some(option => option.key === activeClassKey)) {
+        sessionStorage.setItem(SESSION_KEY, activeClassKey)
+        return
+      }
       
       const stored = sessionStorage.getItem(SESSION_KEY)
       const validStored = teacherOptions.find(o => o.key === stored)

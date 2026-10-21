@@ -6,6 +6,7 @@ import { useAuth } from "../../context/useAuth";
 import PortalNotice from "./PortalNotice";
 import TeacherSavedMarksExport from './TeacherSavedMarksExport';
 import { useSection } from "./StaffPortalLayout";
+import './juniorMarkbookMobile.css';
 
 const currentTerm = () =>
   String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1));
@@ -49,7 +50,7 @@ export default function JuniorTeacherMarkbook() {
     () => [...new Set(assignedClasses.map((assignment) => assignment.level))],
     [assignedClasses],
   );
-  const [classLevel, setClassLevel] = useState("");
+  const classLevel = assignedLevels.includes(activeClassFilter.level) ? activeClassFilter.level : assignedLevels[0] || '';
   const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState("");
   const [form, setForm] = useState(blank);
@@ -106,12 +107,12 @@ export default function JuniorTeacherMarkbook() {
   const gradeOneTwoEntryComplete =
     !isGradeOneTwo ||
     (components.length > 0 && savedComponentCount === components.length);
-  const visible = useMemo(
-    () => students.filter((student) => student.class_level === classLevel),
-    [students, classLevel],
-  );
   const activeClassAssignment = assignedClasses.find(
-    (assignment) => assignment.level === classLevel,
+    assignment => assignment.level === classLevel && assignment.stream === (activeClassFilter.stream || ''),
+  ) || assignedClasses.find(assignment => assignment.level === classLevel);
+  const visible = useMemo(
+    () => students.filter(student => student.class_level === classLevel && (student.class_stream || '') === (activeClassAssignment?.stream || '')),
+    [students, classLevel, activeClassAssignment?.stream],
   );
   const classScopeLabel = activeClassAssignment?.stream
     ? `${classLevel} · ${activeClassAssignment.stream}`
@@ -150,18 +151,14 @@ export default function JuniorTeacherMarkbook() {
 
   const selectClassLevel = (level) => {
     const assignment = assignedClasses.find((item) => item.level === level);
-    setClassLevel(level);
     setActiveClassKey(`${level}:${assignment?.stream || ""}`);
     setActiveClassFilter({ level, stream: assignment?.stream || null });
   };
 
   useEffect(() => {
     const sharedLevel = activeClassFilter.level;
-    if (sharedLevel && assignedLevels.includes(sharedLevel)) {
-      if (classLevel !== sharedLevel) setClassLevel(sharedLevel);
-      return;
-    }
-    if (!classLevel && assignedLevels.length) selectClassLevel(assignedLevels[0]);
+    if (sharedLevel && assignedLevels.includes(sharedLevel)) return;
+    if (assignedLevels.length) selectClassLevel(assignedLevels[0]);
   }, [
     activeClassFilter.level,
     assignedLevels,
@@ -215,7 +212,7 @@ export default function JuniorTeacherMarkbook() {
     setEcdRatings({});
     setShowRecordedMarks(false);
     setForm((value) => ({ ...blank(), term: value.term, year: value.year }));
-  }, [classLevel]);
+  }, [classLevel, activeClassFilter.stream]);
 
   useEffect(() => {
     setRecordId("");
@@ -700,6 +697,7 @@ export default function JuniorTeacherMarkbook() {
           <label>
             Class
             <select
+              aria-label="Class"
               value={classLevel}
               onChange={(event) => selectClassLevel(event.target.value)}
               disabled={!assignedLevels.length}
@@ -753,6 +751,7 @@ export default function JuniorTeacherMarkbook() {
           <label>
             Learner
             <select
+              aria-label="Learner"
               value={studentId}
               onChange={(event) => setStudentId(event.target.value)}
               disabled={!selectionReady}

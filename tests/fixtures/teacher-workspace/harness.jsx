@@ -35,6 +35,11 @@ if (params.has('extraSubjectScopes')) {
     { id: 'other-stream', full_name: 'Other Stream Learner', class_level: classLevel, class_stream: 'Green', campus, status: 'active' })
 }
 if (params.has('noClassAssignment')) profile.teacher_class_assignments = []
+if (params.has('extraEcdScopes')) {
+ profile.teacher_class_assignments.push({...allocation,id:'ecd-b',class_level:'ECD B'})
+ learners.push({id:'ecd-b-learner',full_name:'ECD B Only Learner',class_level:'ECD B',class_stream:'',campus:'junior',status:'active',admission_number:'TEST-ECD-B'})
+ learners.push({id:'outside-campus',full_name:'Outside Campus Learner',class_level:'Form 1',class_stream:'Blue',campus:'senior',status:'active',admission_number:'TEST-SENIOR'})
+}
 const db = {
   reporting_periods: params.has('noCurrentPeriod')?[]:[{campus,is_current:true,state:'open',academic_year:Number(params.get('registryYear')||2026),term:Number(params.get('registryTerm')||3)}],
   students: learners,
@@ -44,6 +49,7 @@ const db = {
   school_classes: [{ ...allocation, active: true }],
 }
 window.fixtureWrites = []
+if(params.has('extraEcdScopes'))db.school_classes.push({...allocation,id:'ecd-b-class',class_level:'ECD B',active:true})
 const supabase = {
   from(table) {
     let operation = 'select', payload, single = false

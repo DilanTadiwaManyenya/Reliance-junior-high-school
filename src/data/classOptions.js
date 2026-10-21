@@ -14,7 +14,7 @@ export const SENIOR_LEVELS = [
 export const CLASS_LEVELS = [...JUNIOR_LEVELS, ...SENIOR_LEVELS]
 
 export const isJuniorLevel = level => JUNIOR_LEVELS.includes(level)
-export const isSeniorLevel = level => SENIOR_LEVELS.includes(level)
+export const isSeniorLevel = level => SENIOR_LEVELS.includes(level) || ['Form 5', 'Form 6', 'Lower 6', 'Upper 6'].includes(level)
 
 export const getCampusForLevel = level =>
   JUNIOR_LEVELS.includes(level) ? 'junior' : 'senior'
