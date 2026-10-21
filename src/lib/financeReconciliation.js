@@ -8,7 +8,7 @@ const dateOf = value => {
   return `${fields.year}-${fields.month}-${fields.day}`
 }
 
-export function buildReconciliationEntries({ feePayments = [], sales = [], expenses = [] }) {
+export function buildReconciliationEntries({ feePayments = [], sales = [], posPayments = [], expenses = [] }) {
   return [
     ...feePayments.map(row => ({
       id: `fee:${row.id}`,
@@ -23,7 +23,7 @@ export function buildReconciliationEntries({ feePayments = [], sales = [], expen
       amount: amountOf(row),
       status: 'recorded',
     })),
-    ...sales.map(row => ({
+    ...sales.filter(row => !row.payment_tracking).map(row => ({
       id: `pos:${row.id}`,
       sourceId: row.id,
       date: dateOf(row.created_at),
@@ -35,6 +35,13 @@ export function buildReconciliationEntries({ feePayments = [], sales = [], expen
       description: row.customer_name || 'Counter sale',
       amount: amountOf(row),
       status: row.status === 'reversed' ? 'reversed — settlement review required' : 'recorded',
+    })),
+    ...posPayments.map(row => ({
+      id: `pos-payment:${row.id}`, sourceId: row.id, date: dateOf(row.paid_on || row.created_at),
+      campus: row.campus, currency: currencyOf(row), direction: row.pos_sales?.status === 'reversed' ? 'excluded' : 'in',
+      kind: 'POS payment', reference: row.pos_sales?.receipt_number || row.reference_number || '',
+      description: row.pos_sales?.customer_name || 'Uniform payment', amount: amountOf(row),
+      status: row.pos_sales?.status === 'reversed' ? 'reversed sale — settlement review required' : 'recorded',
     })),
     ...expenses.map(row => ({
       id: `expense:${row.id}`,

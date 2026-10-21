@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import OperationsExports from './OperationsExports';
 import { useReceiptPrint } from '../../hooks/useReceiptPrint';
 import { downloadCsv, reportSheets } from '../../lib/operationsExport';
+import { salePaid, saleBalance, saleCollections } from '../../lib/posPayments';
 import {
   Package,
   ShoppingCart,
@@ -82,11 +83,12 @@ const helpTopics = [
     id: "ERR_PAYMENT_AMOUNT",
     category: "checkout",
     title: "Amount received is below the total",
-    solution: "A sale can only be completed when the recorded payment covers the basket total.",
+    solution: "Partial payment needs a selected learner so the remaining balance stays on the original receipt.",
     steps: [
       "Confirm the payment method and total payable.",
       "Enter the amount actually received.",
-      "Record a separate sale if the customer pays later; do not force a partial checkout.",
+      "Select the learner before completing a partly paid sale. Items are issued now.",
+      "Use Sales & receipts to record later payments on the same receipt; do not create another sale.",
     ],
   },
   {
@@ -227,6 +229,15 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const [adjust, setAdjust] = useState({ product: "", change: "", reason: "" });
   const [receipt, setReceipt] = useState(null);
   const [reversalReason, setReversalReason] = useState('');
+  const [balanceAmount, setBalanceAmount] = useState('');
+  const [balanceMethod, setBalanceMethod] = useState('cash');
+  const [balanceReference, setBalanceReference] = useState('');
+  const [receiptFilter, setReceiptFilter] = useState('all');
+  const paymentStorageKey = `${storageKey}:receipt-payment`;
+  const [pendingBalance, setPendingBalance] = useState(() => {
+    const request = readSession(paymentStorageKey);
+    return request?.id && request.saleId && Number.isFinite(request.tendered) && request.tendered > 0 && methods[request.method] ? request : null;
+  });
   useReceiptPrint(receipt?.receipt_number);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
@@ -250,7 +261,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
         for (let start = 0; ; start += 500) {
           let request = supabase
             .from(table)
-            .select(table === "pos_sales" ? "*,pos_sale_items(*)" : table === "inventory_products" ? "*,product_variants(*)" : "*")
+            .select(table === "pos_sales" ? "*,pos_sale_items(*),pos_payments(*)" : table === "inventory_products" ? "*,product_variants(*)" : "*")
             .order("id")
             .range(start, start + 499);
           if (["inventory_products", "pos_sales"].includes(table) && !admin && campus) request = request.eq("campus", campus);
@@ -433,7 +444,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     ['Month (sales/P&L)', month || 'all time'], ['Search', query],
     ['Generated at', new Date().toISOString()], [], ...rows,
   ], filename);
-  const salesVisible = receiptPeriod.filter((s) =>
+  const salesVisible = receiptPeriod.filter(s => receiptFilter === 'all' || (receiptFilter === 'balance' ? saleBalance(s) > 0 : s.status === 'reversed')).filter((s) =>
     `${s.receipt_number} ${s.customer_name || ""} ${methods[s.payment_method]}`
       .toLowerCase()
       .includes(query.toLowerCase()),
@@ -445,14 +456,16 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   );
   const grossProfit = costKnown ? revenue - cost : null;
   const grossMargin = grossProfit !== null && revenue ? (grossProfit / revenue) * 100 : null;
+  const collections = saleCollections(sales).filter(p => (!month || (p.paid_on || p.created_at).slice(0,7) === month) && (p.currency || 'USD') === reportCurrency);
+  const collectedTotal = collections.reduce((sum,p) => sum + Number(p.amount),0);
   const paymentSummary = Object.entries(methods)
     .map(([id, label]) => {
-      const matching = period.filter((sale) => sale.payment_method === id);
+      const matching = collections.filter((sale) => sale.payment_method === id);
       return {
         id,
         label,
         count: matching.length,
-        total: matching.reduce((sum, sale) => sum + Number(sale.total || 0), 0),
+        total: matching.reduce((sum, sale) => sum + Number(sale.amount || 0), 0),
       };
     })
     .filter((method) => method.count);
@@ -533,6 +546,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const checkout = () =>
     run(async () => {
       if (!checkoutCampus || legacyPending) throw new Error("Choose the sale campus and resolve any earlier checkout first.");
+      if (pendingBalance) throw new Error('Recover the pending receipt payment before starting another checkout.');
       if (pending && pending.campus !== checkoutCampus) throw new Error("Recover this pending sale in its original campus.");
       const request = pending || {
         id: crypto.randomUUID(),
@@ -541,15 +555,16 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
         customer,
         payment,
         paid: Number(paid),
+        studentId: learnerId || null,
       };
       if (
         !pending &&
         (!cart.length ||
           invalid ||
           !Number.isFinite(Number(paid)) ||
-          Number(paid) < total)
+          Number(paid) <= 0 || (Number(paid) < total && !learnerId))
       )
-        throw new Error("Check stock and enter sufficient payment.");
+        throw new Error("Check stock, enter a positive payment and select a learner for an unpaid balance.");
       sessionStorage.setItem(
         storageKey,
         JSON.stringify({
@@ -569,6 +584,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
         p_request_id: request.id,
         p_amount_paid: request.paid,
         p_campus: request.campus,
+        p_student_id: request.studentId || null,
       });
       if (result.error) {
         // Server validation errors roll back the whole transaction; uncertain network failures retain the same request.
@@ -604,12 +620,28 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       await load();
       const detail = await supabase
         .from("pos_sales")
-        .select("*,pos_sale_items(*)")
+        .select("*,pos_sale_items(*),pos_payments(*)")
         .eq("id", result.data.id)
         .single();
       if (detail.error) throw detail.error;
       setReceipt(detail.data);
     });
+  const payReceiptBalance = () => run(async () => {
+    const request = pendingBalance || { id: crypto.randomUUID(), saleId: receipt?.id, tendered: Number(balanceAmount), method: balanceMethod, reference: balanceReference.trim() };
+    if (!request.saleId || !Number.isFinite(request.tendered) || request.tendered <= 0) throw new Error('Enter a positive amount received.');
+    sessionStorage.setItem(paymentStorageKey, JSON.stringify(request)); setPendingBalance(request);
+    const result = await supabase.rpc('record_pos_payment', { p_sale_id: request.saleId, p_tendered: request.tendered, p_payment_method: request.method, p_request_id: request.id, p_reference: request.reference || null });
+    if (result.error) {
+      if (['P0001','23514','22P02','22003','42501'].includes(result.error.code)) { sessionStorage.removeItem(paymentStorageKey); setPendingBalance(null); }
+      throw result.error;
+    }
+    sessionStorage.removeItem(paymentStorageKey); setPendingBalance(null); setBalanceAmount(''); setBalanceReference(''); setReceipt(null);
+    setNotice('Payment recorded against the original receipt. Stock is unchanged.');
+    await load();
+    const detail = await supabase.from('pos_sales').select('*,pos_sale_items(*),pos_payments(*)').eq('id',request.saleId).single();
+    if (detail.error) throw new Error('Payment recorded. Refresh and reopen the receipt to see the latest balance.');
+    setReceipt(detail.data);
+  });
   const recoverLegacyCheckout = () => run(async () => {
     if (!checkoutCampus || !legacyPending || pending) throw new Error("Choose the original checkout campus before recovery.");
     const result = await supabase.rpc("complete_pos_sale", {
@@ -630,7 +662,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     setLegacyPending(null);
     setNotice(`Earlier sale ${result.data.receipt_number} confirmed using its original request ID.`);
     await load();
-    const detail = await supabase.from("pos_sales").select("*,pos_sale_items(*)").eq("id", result.data.id).single();
+    const detail = await supabase.from("pos_sales").select("*,pos_sale_items(*),pos_payments(*)").eq("id", result.data.id).single();
     if (detail.error) throw detail.error;
     setReceipt(detail.data);
   });
@@ -834,6 +866,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             </button>
           ))}
       </nav>
+      {pendingBalance && <div className="shop-message" role="status"><p>A receipt payment is awaiting confirmation. Retry the same request; do not collect the money again.</p><button type="button" disabled={busy} onClick={payReceiptBalance}>Recover pending receipt payment</button></div>}
       {admin && tab !== "pos" && <div className="shop-campus-controls">
         <label>Catalog campus<select aria-label="Catalog campus" value={campusView} onChange={event => setCampusView(event.target.value)}>
           <option value="all">Both campuses</option><option value="junior">Junior School</option><option value="senior">Senior School</option><option value="unassigned">Unassigned</option>
@@ -1161,7 +1194,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 )}
                 <fieldset disabled={frozen}>
                   <div className="shop-learner-picker">
-                    <span>Attach a learner <em>Optional</em></span>
+                    <span>Attach a learner <em>Required for an unpaid balance</em></span>
                     <div>
                       <label>
                         Class
@@ -1178,13 +1211,13 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                       </label>
                       <label>
                         Learner
-                        <select value={learnerId} onChange={(e) => selectLearner(e.target.value)}>
+                        <select aria-label="Learner for sale" value={learnerId} onChange={(e) => selectLearner(e.target.value)}>
                           <option value="">Select a learner</option>
                           {visibleLearners.map((learner) => <option key={learner.id} value={learner.id}>{learner.full_name} · {learner.admission_number}</option>)}
                         </select>
                       </label>
                     </div>
-                    <small>Selecting a learner fills their name below. You can also type any customer name manually.</small>
+                    <small>Selecting a learner links their receipt to the family portal. Walk-in sales must be fully paid.</small>
                   </div>
                   <label>
                     Student / customer name
@@ -1229,6 +1262,8 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                     <span>Change due</span>
                     <strong>{money(Math.max(0, Number(paid) - total), lines[0]?.product?.currency || "USD")}</strong>
                   </div>
+                  <div className="shop-row"><span>Balance due</span><strong>{money(Math.max(0,total-Number(paid || 0)),lines[0]?.product?.currency || 'USD')}</strong></div>
+                  {Number(paid)<total && <p>Select a learner for an unpaid balance. Completing checkout issues the items now; the balance remains on this receipt.</p>}
                   <div className="shop-actions">
                     <button
                       onClick={() => {
@@ -1268,12 +1303,12 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                   className="primary shop-full"
                   disabled={
                     busy ||
-                    !ready || !checkoutCampus || !!legacyPending ||
+                    !ready || !checkoutCampus || !!legacyPending || !!pendingBalance ||
                     (!pending &&
                       (!cart.length ||
                         invalid ||
                         paid === "" ||
-                        Number(paid) < total))
+                        Number(paid) <= 0 || (Number(paid) < total && !learnerId)))
                   }
                   onClick={checkout}
                 >
@@ -1340,6 +1375,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               />
             </label>
             <button onClick={() => setMonth("")}>All time</button>
+            <label>Receipt status<select value={receiptFilter} onChange={event => { setReceiptFilter(event.target.value); if(event.target.value === 'balance') setMonth(''); }}><option value="all">All receipts</option><option value="balance">Outstanding balances</option><option value="reversed">Reversed receipts</option></select></label>
             <label className="shop-search">
               <Search size={17} />
               <input
@@ -1362,7 +1398,8 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
           </div>
           <div className="shop-stats">
             <Stat label="Completed sales" value={period.length} />
-            <Stat label="Collected" value={money(revenue)} tone="positive" />
+            <Stat label="Collected" value={money(collectedTotal,reportCurrency)} tone="positive" />
+            <Stat label="Outstanding balance" value={money(period.reduce((sum,s)=>sum+saleBalance(s),0),reportCurrency)} />
             <Stat label="Items sold" value={unitsSold} />
             <Stat label="Average sale" value={money(period.length ? revenue / period.length : 0)} />
           </div>
@@ -1378,8 +1415,8 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                       <td><strong>{s.receipt_number}</strong><small>{s.customer_name || "Walk-in customer"}</small><small>{s.campus === "junior" ? "Junior School" : s.campus === "senior" ? "Senior School" : "Legacy school shop"}</small><small>{s.status === 'reversed' ? 'REVERSED · settlement review required' : 'Completed'}</small></td>
                       <td>{new Date(s.created_at).toLocaleString()}</td>
                       <td><span className="shop-payment-badge">{methods[s.payment_method]}</span></td>
-                      <td className="shop-receipt-amount">{money(s.total, s.currency || "USD")}</td>
-                      <td><button onClick={() => { setReceipt(s); setReversalReason(''); }}>Open</button></td>
+                      <td className="shop-receipt-amount">{money(s.total, s.currency || "USD")}<small>Paid {money(salePaid(s),s.currency || 'USD')}</small><small>Balance {money(saleBalance(s),s.currency || 'USD')}</small></td>
+                      <td><button onClick={() => { setReceipt(s); setReversalReason(''); setBalanceAmount(''); setBalanceReference(''); }}>Open</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1391,7 +1428,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               <p>How completed payments were received in this period.</p>
               <div className="shop-payment-list">
                 {paymentSummary.map((method) => (
-                  <div key={method.id}><span>{method.label}<small>{method.count} sale{method.count === 1 ? "" : "s"}</small></span><strong>{money(method.total, reportCurrency)}</strong></div>
+                  <div key={method.id}><span>{method.label}<small>{method.count} payment{method.count === 1 ? "" : "s"}</small></span><strong>{money(method.total, reportCurrency)}</strong></div>
                 ))}
                 {!paymentSummary.length && <p className="shop-empty">No payments recorded.</p>}
               </div>
@@ -1676,12 +1713,13 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             aria-modal="true"
             aria-label="Sale receipt"
           >
-            <h2>{settings.store_name}</h2>
+            <div className="shop-receipt-heading"><h2>{settings.store_name}</h2><button className="no-print" type="button" aria-label="Close receipt" disabled={busy} onClick={()=>setReceipt(null)}>×</button></div>
             <p>{settings.receipt_header}</p>
             <strong>{receipt.receipt_number}</strong>
             {receipt.status === 'reversed' && <div className="shop-message error" role="status"><strong>REVERSED — excluded from active sales</strong><p>{receipt.reversal_reason}</p><p>{new Date(receipt.reversed_at).toLocaleString('en-ZW')} · Reversed by {receipt.reversed_by}</p><p>Stock restored. Money has not been automatically refunded; review settlement separately.</p></div>}
             <p>{receipt.campus === "junior" ? "Junior School" : receipt.campus === "senior" ? "Senior School" : "Legacy school shop"}</p>
             <p>Currency: {receipt.currency || "USD"}</p>
+            {receipt.status !== 'reversed' && <p>Payment status: {saleBalance(receipt)>0 ? 'Partly paid' : 'Paid'}</p>}
             <p>
               {new Date(receipt.created_at).toLocaleString()}
               <br />
@@ -1702,19 +1740,22 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               <strong>{money(receipt.total, receipt.currency || "USD")}</strong>
             </div>
             <div className="shop-row">
-              <span>Received</span>
-              <strong>{money(receipt.amount_paid ?? receipt.total, receipt.currency || "USD")}</strong>
+              <span>Paid to date</span>
+              <strong>{money(salePaid(receipt), receipt.currency || "USD")}</strong>
             </div>
             <div className="shop-row">
-              <span>Change</span>
+              <span>Initial change</span>
               <strong>
                 {money(
-                  Number(receipt.amount_paid ?? receipt.total) -
-                    Number(receipt.total),
+                  Math.max(0,Number(receipt.amount_paid ?? receipt.total) - Number(receipt.total)),
                   receipt.currency || "USD",
                 )}
               </strong>
             </div>
+            <div className="shop-total"><span>Balance due</span><strong>{money(saleBalance(receipt),receipt.currency || 'USD')}</strong></div>
+            {receipt.issued_at && <p>Items issued: {new Date(receipt.issued_at).toLocaleString('en-ZW')}</p>}
+            {receipt.payment_tracking && <section aria-label="Receipt payments"><h3>Payment history</h3>{(receipt.pos_payments || []).map(p=><div key={p.id} className="shop-row"><span>{new Date(p.created_at).toLocaleString('en-ZW')} · {methods[p.payment_method]}<small>Payment {p.id}</small><small>Tendered {money(p.tendered,receipt.currency)} · Change {money(p.change_due,receipt.currency)}</small></span><strong>{money(p.amount,receipt.currency)}</strong></div>)}</section>}
+            {receipt.payment_tracking && saleBalance(receipt)>0 && <form className="shop-reversal-form no-print" onSubmit={event=>{event.preventDefault();payReceiptBalance()}}><h3>Record balance payment</h3>{error && <p role="alert">{error}</p>}<fieldset disabled={busy || Boolean(pendingBalance)}><label>Amount received ({receipt.currency})<input type="number" required min="0.01" step="0.01" value={balanceAmount} onChange={event=>setBalanceAmount(event.target.value)} /></label><label>Payment method<select value={balanceMethod} onChange={event=>setBalanceMethod(event.target.value)}>{Object.entries(methods).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label><label>Payment reference (optional)<input maxLength={200} value={balanceReference} onChange={event=>setBalanceReference(event.target.value)} /></label></fieldset><p>Record money already received in {receipt.currency}. This updates this receipt only; stock will not move again.</p><button type="submit" disabled={busy || Boolean(pendingBalance)}>Save balance payment</button></form>}
             <div className="shop-actions no-print">
               <button disabled={busy} onClick={() => setReceipt(null)}>Close</button>
               <button className="primary" onClick={() => window.print()}>

@@ -36,7 +36,7 @@ export default function FinanceReconciliation({ supabase, profile }) {
           return
         }
         const campusFilter = mainAdmin ? campus : assignedCampus
-        const [feePayments, sales, expenses] = await Promise.all([
+        const [feePayments, sales, expenses, posPayments] = await Promise.all([
           readAllRows(() => {
             let query = supabase.from('fee_payments').select('id, student_id, term, academic_year, amount, currency, paid_on, reference_number, students!inner(full_name, admission_number, campus)')
             if (campusFilter && campusFilter !== 'all') query = query.eq('students.campus', campusFilter)
@@ -45,7 +45,7 @@ export default function FinanceReconciliation({ supabase, profile }) {
             return query
           }, { signal: controller.signal }),
           readAllRows(() => {
-            let query = supabase.from('pos_sales').select('id, receipt_number, created_at, campus, customer_name, total, currency, status')
+            let query = supabase.from('pos_sales').select('id, receipt_number, created_at, campus, customer_name, total, currency, status, payment_tracking')
             if (campusFilter && campusFilter !== 'all') query = query.eq('campus', campusFilter)
             if (from) query = query.gte('created_at', localDateBoundary(from))
             if (to) query = query.lte('created_at', localDateBoundary(to, true))
@@ -58,8 +58,15 @@ export default function FinanceReconciliation({ supabase, profile }) {
             if (to) query = query.lte('expense_date', to)
             return query
           }, { signal: controller.signal }),
+          readAllRows(() => {
+            let query = supabase.from('pos_payments').select('id,sale_id,paid_on,created_at,amount,currency,campus,reference_number,pos_sales!inner(receipt_number,customer_name,status)')
+            if (campusFilter && campusFilter !== 'all') query = query.eq('campus',campusFilter)
+            if (from) query = query.gte('paid_on',from)
+            if (to) query = query.lte('paid_on',to)
+            return query
+          }, { signal: controller.signal }),
         ])
-        if (active) setEntries(buildReconciliationEntries({ feePayments, sales, expenses }))
+        if (active) setEntries(buildReconciliationEntries({ feePayments, sales, expenses, posPayments }))
       } catch (cause) {
         if (active) setError(controller.signal.aborted ? 'Loading timed out or was cancelled. Refresh the report and try again.' : cause.message || 'Reconciliation records could not be loaded. Try again.')
       } finally {
@@ -88,7 +95,7 @@ export default function FinanceReconciliation({ supabase, profile }) {
       ['Currency', currency === 'all' ? 'USD and ZWG separately; no conversion' : currency],
       ['Period', `${from || 'All dates'} to ${to || 'Present'}`],
       ['Generated at', new Date().toISOString()],
-      ['Basis', 'Saved fee payments and POS totals less approved expenses. Not a bank statement or proof of external settlement.'],
+      ['Basis', 'Saved fee payments, POS payment ledger and legacy fully-paid POS receipts, less approved expenses. Not a bank statement or proof of external settlement.'],
       ...totals,
       [],
       ['Date', 'Campus', 'Currency', 'Direction', 'Source', 'Reference', 'Description', 'Amount', 'Status', 'Source ID'],

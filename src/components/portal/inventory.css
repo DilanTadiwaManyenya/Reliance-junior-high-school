@@ -518,6 +518,13 @@
 }
 .shop-reversal-form { margin-top: 20px; padding-top: 16px; border-top: 1px solid #dce3ed; }
 .shop-reversal-form label { display: grid; gap: 8px; }
+.shop-reversal-form fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; min-width: 0; }
+.shop-reversal-form :is(input,select) { box-sizing: border-box; width: 100%; min-height: 44px; font: inherit; font-size: 16px; padding: 10px; border: 1px solid #b8c6de; border-radius: 8px; }
+.shop-receipt .shop-row > strong { flex-shrink: 0; white-space: nowrap; }
+.shop-receipt .shop-row > span { min-width: 0; }
+.shop-receipt-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.shop-receipt-heading h2 { min-width: 0; }
+.shop-receipt-heading button { flex-shrink: 0; min-width: 44px; min-height: 44px; }
 .shop-reversal-form textarea { box-sizing: border-box; width: 100%; min-height: 90px; font: inherit; font-size: 16px; padding: 10px; }
 .shop-reversal-form button { min-height: 44px; white-space: normal; }
 .shop-receipts-layout > .shop-table { min-width: 0; margin-inline: 0; }

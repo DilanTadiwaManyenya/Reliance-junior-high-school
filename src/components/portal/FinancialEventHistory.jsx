@@ -27,7 +27,7 @@ export default function FinancialEventHistory({ campusScope }) {
   }, [supabase, campusScope, page, action, key])
   return <section className="record-history financial-event-history" aria-label="POS financial audit"><h1>Inventory &amp; POS audit</h1>
     <p>Database-confirmed sales, stock lines and reversals. History starts when this tracking was enabled. Reversing a sale does not refund money.</p>
-    <label>Event type<select value={action} onChange={event => { setAction(event.target.value); setPage(0) }}><option value="all">All POS events</option><option value="sale_recorded">Sale recorded</option><option value="sale_line_recorded">Stock sold</option><option value="sale_reversed">Sale reversed</option></select></label>
+    <label>Event type<select value={action} onChange={event => { setAction(event.target.value); setPage(0) }}><option value="all">All POS events</option><option value="sale_recorded">Sale recorded</option><option value="sale_line_recorded">Stock sold</option><option value="sale_reversed">Sale reversed</option><option value="payment_recorded">Payment recorded</option></select></label>
     <button type="button" disabled={loading} onClick={() => { setPage(0); setRevision(value => value + 1) }}>Refresh financial audit</button>
     {error && <p role="alert">{error} <button type="button" onClick={() => setRevision(value => value + 1)}>Retry audit</button></p>}{loading ? <p role="status">Loading financial audit…</p> : <div>{rows.slice(0, 50).map(row => <article className="card" key={row.id}>
       <h2>{row.action.replaceAll('_', ' ')}</h2><p>{row.actor_name || 'Recorded actor'} · {row.actor_role} · {row.campus || 'Legacy'} · {row.currency}</p>

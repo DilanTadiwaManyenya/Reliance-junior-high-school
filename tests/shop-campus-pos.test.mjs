@@ -199,6 +199,68 @@ test('Stage 2 campus POS authorization, receipt isolation and retry safety', asy
     await actAs('', 'anon')
     await assert.rejects(reverse(seniorSale.id),/permission denied/)
     await assert.rejects(checkout('junior',rowsFor('junior')),/permission denied/)
+    await db.exec(`reset role; alter table inventory_products add column currency text not null default 'USD';
+      alter table students add column full_name text; alter table students add column campus text; alter table students add column status text;
+      insert into students values('10000000-0000-4000-8000-000000000001','Senior learner','senior','active'),
+      ('10000000-0000-4000-8000-000000000002','Junior learner','junior','active'),
+      ('10000000-0000-4000-8000-000000000003','Unlinked learner','senior','active');
+      insert into parent_student values('${parent}','10000000-0000-4000-8000-000000000001',now());
+      update inventory_products set selling_price=25,quantity_on_hand=20 where id='${seniorProduct}';`)
+    await db.exec(await migration('20261021210000_pos_partial_payments.sql'))
+    const learner='10000000-0000-4000-8000-000000000001'
+    const partialCheckout=async(studentId,paid=20,requestId=crypto.randomUUID())=>(await db.query(
+      "select * from complete_pos_sale($1::jsonb,'cash','Uniform buyer',$2,$3,'senior',$4)",
+      [JSON.stringify(rowsFor('senior')),requestId,paid,studentId])).rows[0]
+    const payment=async(saleId,tendered=5,requestId=crypto.randomUUID())=>(await db.query(
+      "select * from record_pos_payment($1,$2,'cash',$3,'test reference')",[saleId,tendered,requestId])).rows[0]
+    await actAs(seniorAccountant)
+    await assert.rejects(partialCheckout(null),/Select a learner/)
+    await assert.rejects(partialCheckout('10000000-0000-4000-8000-000000000002'),/active learner in the sale campus/)
+    await assert.rejects(partialCheckout(learner,0),/positive payment/)
+    await assert.rejects(partialCheckout(learner,20.001),/two decimal places/)
+    const originalRequest=crypto.randomUUID()
+    const partial=await partialCheckout(learner,20,originalRequest)
+    assert.equal(Number(partial.total),25);assert.equal(Number(partial.paid_total),20);assert.equal(Number(partial.balance_due),5)
+    assert.ok(partial.issued_at);assert.equal(partial.student_id,learner)
+    assert.equal((await partialCheckout(learner,20,originalRequest)).id,partial.id)
+    const afterIssue=await stock()
+    for(const id of [accountant,juniorAdmin,parent,teacher]) {await actAs(id);await assert.rejects(payment(partial.id),/restricted to the sale campus/)}
+    await actAs(seniorAccountant)
+    const paymentRequest=crypto.randomUUID()
+    const finalPayment=await payment(partial.id,10,paymentRequest)
+    assert.equal(Number(finalPayment.amount),5);assert.equal(Number(finalPayment.change_due),5)
+    assert.equal((await payment(partial.id,10,paymentRequest)).id,finalPayment.id)
+    await assert.rejects(payment(partial.id),/no outstanding balance/)
+    assert.deepEqual(await stock(),afterIssue,'Later payments do not move stock')
+    await actAs(seniorAccountant)
+    const settled=(await db.query('select * from pos_sales where id=$1',[partial.id])).rows[0]
+    assert.equal(Number(settled.paid_total),25);assert.equal(Number(settled.balance_due),0)
+    assert.equal((await db.query('select count(*)::int n from pos_payments where sale_id=$1',[partial.id])).rows[0].n,2)
+    await assert.rejects(db.exec('delete from pos_payments'),/permission denied/)
+    await actAs(parent)
+    const parentReceipts=(await db.query('select parent_pos_receipts($1) as rows',[learner])).rows[0].rows
+    assert.equal(parentReceipts.length,1);assert.equal(parentReceipts[0].payments.length,2)
+    assert.equal(Number(parentReceipts[0].paid_total),25)
+    assert.equal('sold_by' in parentReceipts[0],false);assert.equal('reversal_reason' in parentReceipts[0],false)
+    await assert.rejects(db.query('select parent_pos_receipts($1)',['10000000-0000-4000-8000-000000000003']),/verified parent/)
+    assert.equal((await db.query('select * from pos_sales')).rows.length,0,'Parent cannot read raw staff receipts')
+    await actAs(seniorAccountant)
+    const toReverse=await partialCheckout(learner)
+    await db.exec(`reset role; create function reject_test_payment_audit() returns trigger language plpgsql as $$begin if new.action='payment_recorded' then raise exception 'Synthetic payment audit failure'; end if; return new; end$$;
+      create trigger reject_test_payment_audit before insert on financial_events for each row execute function reject_test_payment_audit();`)
+    const beforeFailedPayment=await stock()
+    await actAs(seniorAccountant)
+    await assert.rejects(payment(toReverse.id),/Synthetic payment audit failure/)
+    assert.equal(Number((await db.query('select paid_total from pos_sales where id=$1',[toReverse.id])).rows[0].paid_total),20)
+    await assert.rejects(partialCheckout(learner),/Synthetic payment audit failure/)
+    assert.deepEqual(await stock(),beforeFailedPayment,'Audit failure rolls back initial checkout and later payment effects')
+    await db.exec('drop trigger reject_test_payment_audit on financial_events; drop function reject_test_payment_audit()')
+    await actAs(admin)
+    const cancelled=await reverse(toReverse.id)
+    assert.equal(Number(cancelled.balance_due),0);assert.equal(Number(cancelled.paid_total),20)
+    await assert.rejects(payment(toReverse.id),/reversed sale/)
+    assert.equal((await db.query('select count(*)::int n from pos_payments where sale_id=$1',[toReverse.id])).rows[0].n,1)
+    console.log('Verified partial sale 25/20/5, learner/campus scope, issue once, final payment/change/retry, parent isolation and reversal preservation.')
     console.log('Verified Stage 2: admin/accountant campus sales, both Main Admin campuses, safe legacy wrapper, receipt RLS, immutable snapshots and no stock loss on rejected requests.')
   } finally { await db.close() }
 })

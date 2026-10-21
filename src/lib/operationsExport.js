@@ -62,9 +62,9 @@ export const reportOptions = {
   stock: ['Stock and sizes', 'inventory_products', '*,product_variants(*)',
     ['Product ID','Product','Campus','Category','Product active','Variant ID','Size','SKU','Variant active','Stock','Currency','Unit price','Unit cost','Reorder level'],
     r => (r.product_variants?.length ? r.product_variants : [null]).map(v => [r.id,r.name,r.campus||'unassigned',r.category,String(r.active),v?.id,v?.size,v?.sku||r.sku,v ? String(v.active) : '',n(v ? v.quantity_on_hand : r.quantity_on_hand),r.currency||'USD',n(r.selling_price),n(r.cost_price),n(r.reorder_level)])],
-  sales: ['POS receipts', 'pos_sales', '*,pos_sale_items(*)',
-    ['Sale ID','Receipt','Date','Campus','Customer','Method','Currency','Total','Tendered','Status','Reversed at','Reversed by','Reason'],
-    r => [r.id,r.receipt_number,r.created_at,r.campus||'legacy',r.customer_name,r.payment_method,r.currency||'USD',n(r.total),n(r.amount_paid??r.total),r.status||'completed',r.reversed_at,r.reversed_by,r.reversal_reason]],
+  sales: ['POS receipts', 'pos_sales', '*,pos_sale_items(*),pos_payments(*)',
+    ['Sale ID','Receipt','Date','Campus','Customer','Method','Currency','Total','Initial tendered','Status','Reversed at','Reversed by','Reason','Learner ID','Paid total','Balance due'],
+    r => [r.id,r.receipt_number,r.created_at,r.campus||'legacy',r.customer_name,r.payment_method,r.currency||'USD',n(r.total),n(r.amount_paid??r.total),r.status||'completed',r.reversed_at,r.reversed_by,r.reversal_reason,r.student_id,n(r.payment_tracking?r.paid_total:r.total),n(r.status==='reversed'?0:r.balance_due||0)]],
   orders: ['Parent order history', 'parent_uniform_orders', '*,students!inner(admission_number,full_name,campus)',
     ['Order ID','Date','Admission ID','Learner','Campus','Status','Method','Reference','Currency','Total'],
     r => [r.id,r.created_at,r.students?.admission_number,r.students?.full_name,r.students?.campus,r.payment_status,r.payment_method,r.transaction_reference||r.ecocash_reference,r.currency||'USD',n(r.total)]],
@@ -77,6 +77,10 @@ export function reportSheets(kind, records) {
   if (kind === 'sales' || kind === 'orders') sheets.push({ name: 'Saved order lines', rows: [
     ['Order or sale ID','Product ID','Product name at purchase','Size','Quantity','Currency','Unit price','Line total','Unit cost'],
     ...records.flatMap(r => (r.pos_sale_items || r.items || []).map(line => [r.id,line.product_id,line.product_name||line.name,line.size_label,n(line.quantity),r.currency||'USD',n(line.unit_price),n(line.line_total??Number(line.quantity)*Number(line.unit_price)),n(line.unit_cost)])),
+  ] })
+  if (kind === 'sales') sheets.push({ name: 'POS payment entries', rows: [
+    ['Receipt','Sale ID','Payment ID','Date','Currency','Applied payment','Tendered','Change','Method','Reference','Collector ID'],
+    ...records.flatMap(r=>(r.pos_payments||[]).map(p=>[r.receipt_number,r.id,p.id,p.created_at,p.currency,n(p.amount),n(p.tendered),n(p.change_due),p.payment_method,p.reference_number,p.received_by])),
   ] })
   return sheets
 }

@@ -33,7 +33,7 @@ function ParentFixture() {
     { id: 'student-unverified', full_name: 'Unverified Learner', campus: 'junior', status: 'active' },
   ] : [{ id: 'student', full_name: 'Test Learner', campus: new URLSearchParams(location.search).get('campus') || 'junior', status: 'active' }];
   const [studentId, setStudentId] = useState(students[0].id);
-  return <>{family && <label>Buying for<select value={studentId} onChange={event => setStudentId(event.target.value)}>{students.map(student => <option key={student.id} value={student.id}>{student.full_name}</option>)}</select></label>}<ParentUniformShop supabase={supabase} parentId="parent" student={students.find(student => student.id === studentId)} /></>;
+  return <>{family && <label>Buying for<select aria-label="Buying for" value={studentId} onChange={event => setStudentId(event.target.value)}>{students.map(student => <option key={student.id} value={student.id}>{student.full_name}</option>)}</select></label>}<ParentUniformShop supabase={supabase} parentId="parent" student={students.find(student => student.id === studentId)} /></>;
 }
 createRoot(document.getElementById('root')).render(role === 'parent'
   ? <ParentFixture />
