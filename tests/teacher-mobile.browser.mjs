@@ -279,6 +279,45 @@ try {
     markbookChecks++
     await page.close()
   }
+  // Shorter phone viewports keep mark fields and the save action reachable for both campuses.
+  let compactChecks = 0
+  for (const campus of ['senior', 'junior']) for (const [width, height] of [[320, 568], [390, 667]]) {
+    const compactPage = await teacherPage({ viewport: { width, height }, isMobile: true, hasTouch: true })
+    const compactErrors = []
+    compactPage.on('pageerror', error => compactErrors.push(error.message))
+    const classLevel = campus === 'senior' ? 'Form 1' : 'Grade 4'
+    const params = new URLSearchParams({ campus, class: classLevel, section: 'entry', workspace: 'subjects', allocation: 'allocation', subject: 'Combined Science', level: 'Form 1' })
+    await compactPage.goto(`${base}/tests/fixtures/teacher-workspace/index.html?${params}`, { waitUntil: 'domcontentloaded' })
+    const markbook = compactPage.locator('.grade-entry-v2')
+    await markbook.waitFor()
+    assert.ok(await compactPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${campus} Markbook must not overflow horizontally at ${width}×${height}`)
+    const learnerPicker = compactPage.locator('.grade-filterbar label').filter({ hasText: 'Learner' }).locator('select')
+    if (campus === 'senior') {
+      await learnerPicker.selectOption('learner-0')
+      await compactPage.getByLabel('Term mark (%)').fill('73')
+    } else {
+      await compactPage.locator('.grade-filterbar label').filter({ hasText: 'Subject' }).locator('select').selectOption({ index: 1 })
+      await learnerPicker.selectOption('learner-0')
+      const papers = compactPage.locator('.combined-paper-card')
+      await papers.waitFor()
+      await papers.locator('div').nth(0).getByLabel('Score').fill('32')
+      await papers.locator('div').nth(1).getByLabel('Score').fill('37')
+    }
+    const saveButton = campus === 'senior'
+      ? compactPage.getByRole('button', { name: 'Save Combined Science mark', exact: true })
+      : compactPage.getByRole('button', { name: 'Save entry', exact: true })
+    await saveButton.scrollIntoViewIfNeeded()
+    const saveBox = await saveButton.boundingBox()
+    const toolbarBox = await compactPage.locator('.staff-top-bar').boundingBox()
+    assert.ok(saveBox && saveBox.height >= 44 && saveBox.x >= 0 && saveBox.x + saveBox.width <= width + 1 && saveBox.y >= (toolbarBox?.y || 0) + (toolbarBox?.height || 0) - 1 && saveBox.y + saveBox.height <= height + 1, `${campus} save action must remain visible, tappable, and clear of the sticky toolbar at ${width}×${height}`)
+    await saveButton.click()
+    const table = campus === 'senior' ? 'academic_records' : 'junior_component_marks'
+    await compactPage.waitForFunction(tableName => window.fixtureWrites.some(row => row.table === tableName), table, { timeout: 5000 })
+    assert.deepEqual(compactErrors, [])
+    console.log(`PASS ${campus} Markbook at ${width}×${height}: save remains reachable on a short screen`)
+    compactChecks++
+    await compactPage.close()
+  }
   // Teachers can open and return from an assigned learner profile without losing roster context.
   let profileChecks = 0
   for (const campus of ['senior', 'junior']) for (const width of [320, 390]) {
@@ -396,8 +435,8 @@ try {
   await page.getByRole('button', { name: 'Open developmental markbook' }).click()
   await page.locator('.coursework-page').waitFor({ state: 'detached' })
   await page.close()
-  if (process.env.TEACHER_FOCUSED_ONLY === '1') console.log(`Verified ${markbookChecks} Senior and Junior Markbook phone scenarios, ${profileChecks} learner-profile flows, ${settingsChecks} account-settings flows, and ${ecdChecks} Junior ECD checklist scenarios using synthetic records only.`)
-  else console.log(`Verified ${checks} coursework viewport/scenario combinations, 12 surrounding teacher workspace views, ${markbookChecks} Markbook phone scenarios, ${profileChecks} learner-profile flows, ${settingsChecks} account-settings flows, ${ecdChecks} ECD checklist scenarios, and the ECD route using synthetic records only.`)
+  if (process.env.TEACHER_FOCUSED_ONLY === '1') console.log(`Verified ${markbookChecks} Senior and Junior Markbook phone scenarios, ${compactChecks} compact-height Markbook scenarios, ${profileChecks} learner-profile flows, ${settingsChecks} account-settings flows, and ${ecdChecks} Junior ECD checklist scenarios using synthetic records only.`)
+  else console.log(`Verified ${checks} coursework viewport/scenario combinations, 12 surrounding teacher workspace views, ${markbookChecks} Markbook phone scenarios, ${compactChecks} compact-height Markbook scenarios, ${profileChecks} learner-profile flows, ${settingsChecks} account-settings flows, ${ecdChecks} ECD checklist scenarios, and the ECD route using synthetic records only.`)
 } finally {
   await browser?.close()
   await server.close()
