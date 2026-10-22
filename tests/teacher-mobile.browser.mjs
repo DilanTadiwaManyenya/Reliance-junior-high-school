@@ -238,6 +238,26 @@ try {
     await juniorPage.close()
   }
   }
+  // Separate Upper Six Senior allocations must never share Arts and Commercials learners.
+  {
+    const page = await teacherPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+    const params = new URLSearchParams({ campus: 'senior', class: 'Form 1', section: 'subject-allocations', workspace: 'subjects', extraSubjectScopes: '' })
+    await page.goto(`${base}/tests/fixtures/teacher-workspace/index.html?${params}`, { waitUntil: 'domcontentloaded' })
+    const arts = page.locator('.subject-allocation-card').filter({ hasText: 'Accounting' }).filter({ hasText: 'Arts · assigned stream' })
+    await arts.waitFor()
+    await arts.click()
+    await page.getByRole('heading', { name: 'Accounting · Upper Six', exact: true }).waitFor()
+    assert.equal(await page.getByText('Arts Learner', { exact: true }).count(), 1)
+    assert.equal(await page.getByText('Commercials Learner', { exact: true }).count(), 0)
+    await page.getByRole('button', { name: 'Open markbook', exact: true }).click()
+    await page.getByRole('heading', { name: 'Enter Accounting marks', exact: true }).waitFor()
+    const learners = page.locator('.grade-filterbar label').filter({ hasText: 'Learner' }).locator('select option')
+    const learnerOptions = await learners.allTextContents()
+    assert.equal(learnerOptions.some(row => row.includes('Arts Learner')), true, JSON.stringify({ url: page.url(), learnerOptions }))
+    assert.equal(learnerOptions.some(row => row.includes('Commercials Learner')), false, JSON.stringify({ url: page.url(), learnerOptions }))
+    await page.close()
+    console.log('PASS Senior Upper Six Arts allocation excludes Commercials learners in allocation review and Markbook')
+  }
   // Markbook entry stays usable and saves synthetic records on narrow phones for both campuses.
   for (const campus of ['senior', 'junior']) for (const width of [320, 390]) {
     const page = await teacherPage({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true })

@@ -30,9 +30,13 @@ const learners = ['Alexandra Example Learner With A Longer Name', 'Brian Example
 if (params.has('extraSubjectScopes')) {
   profile.teacher_class_subject_assignments = [allocation,
     { ...allocation, id: 'whole-form', class_stream: '' },
-    { ...allocation, id: 'sixth-form', class_level: 'Lower Six', class_stream: '', subject: 'Statistics' }]
+    { ...allocation, id: 'sixth-form', class_level: 'Lower Six', class_stream: '', subject: 'Statistics' },
+    { ...allocation, id: 'upper-six-arts', class_level: 'Upper Six', class_stream: 'Arts', subject: 'Accounting' },
+    { ...allocation, id: 'upper-six-commercials', class_level: 'Upper Six', class_stream: 'Commercials', subject: 'Accounting' }]
   learners.push({ id: 'subject-only', full_name: 'Subject Only Learner', class_level: 'Lower Six', class_stream: 'Arts', campus, status: 'active' },
-    { id: 'other-stream', full_name: 'Other Stream Learner', class_level: classLevel, class_stream: 'Green', campus, status: 'active' })
+    { id: 'other-stream', full_name: 'Other Stream Learner', class_level: classLevel, class_stream: 'Green', campus, status: 'active' },
+    { id: 'upper-six-arts-learner', full_name: 'Arts Learner', class_level: 'Upper Six', class_stream: 'Arts', campus, status: 'active' },
+    { id: 'upper-six-commercials-learner', full_name: 'Commercials Learner', class_level: 'Upper Six', class_stream: 'Commercials', campus, status: 'active' })
 }
 if (params.has('noClassAssignment')) profile.teacher_class_assignments = []
 if (params.has('extraEcdScopes')) {

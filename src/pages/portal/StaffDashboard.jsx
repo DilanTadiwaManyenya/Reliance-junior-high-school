@@ -41,6 +41,7 @@ import LibrarySupport from "../../components/portal/LibrarySupport";
 import AdminNewsletters from "../../components/portal/AdminNewsletters";
 import TeacherLearningLibrary from "../../components/portal/TeacherLearningLibrary";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
+import { matchesTeacherSubjectAllocation } from "../../lib/teacherAllocationScope";
 
 const workingNameFor = (legalFullName, workingTitle) => {
   const names = String(legalFullName || "").trim().split(/\s+/).filter(Boolean);
@@ -115,8 +116,7 @@ function SubjectWorkspaceLanding({ assignments, students, teacherName, selectedA
   }, new Map()).values()].sort((a, b) => `${a.subject} ${a.classLevel}`.localeCompare(`${b.subject} ${b.classLevel}`));
   const selectedAllocation = assignments.find(assignment => assignment.id === selectedAllocationId);
   const learnersFor = option => students.filter(student => option.assignments.some(assignment => (
-    assignment.class_level === student.class_level &&
-    (!assignment.class_stream || assignment.class_stream === student.class_stream)
+    matchesTeacherSubjectAllocation(student, assignment)
   )));
   if (selectedAllocation) {
     const selectedOption = options.find(option => option.assignments.some(assignment => assignment.id === selectedAllocationId));
@@ -1382,9 +1382,13 @@ export default function StaffDashboard() {
   const addSubjectAllocation = () => {
     const subject = staffEditor.subjectName.trim();
     const classLevel = staffEditor.subjectLevel;
-    const classStream = staffEditor.subjectStream;
+    const classStream = staffEditor.subjectStream === "__all__" ? "" : staffEditor.subjectStream;
     if (!subject || !classLevel) {
       showError("Choose a form and subject before adding the subject allocation.");
+      return;
+    }
+    if (staffEditor.campus === "senior" && !staffEditor.subjectStream) {
+      showError("Choose a Senior stream, or explicitly choose all streams, before adding the subject allocation.");
       return;
     }
     const exists = staffEditor.subjectAssignments.some((assignment) =>
@@ -1572,7 +1576,7 @@ export default function StaffDashboard() {
         ? teacherSubjectAssignments.filter((assignment) => assignment.subject === selectedSubject && assignment.class_level === selectedSubjectLevel)
         : teacherSubjectAssignments;
     const workspaceStudents = isTeacher && teacherWorkspace === "subjects"
-      ? students.filter((student) => activeSubjectAssignments.some((assignment) => assignment.class_level === student.class_level && (!assignment.class_stream || assignment.class_stream === (student.class_stream || "")) && (!selectedSubjectClassStream || selectedSubjectClassStream === (student.class_stream || ""))))
+      ? students.filter((student) => activeSubjectAssignments.some((assignment) => matchesTeacherSubjectAllocation(student, assignment)) && (!selectedSubjectClassStream || selectedSubjectClassStream === (student.class_stream || "")))
       : isTeacher ? students.filter(student => teacherAssignments.some(assignment =>
         assignment.class_level === student.class_level &&
         (!assignment.class_stream || assignment.class_stream === (student.class_stream || ""))
@@ -2710,7 +2714,7 @@ export default function StaffDashboard() {
                           </p>
                           <div className="portal-form" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", alignItems: "end" }}>
                             <label>Class<select value={staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectLevel: e.target.value, subjectStream: "" }))}><option value="">Choose class</option>{adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
-                            <label>Teaching scope<select value={staffEditor.subjectStream} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">Whole form · all streams</option>{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream} only</option>)}</select></label>
+                            <label>Teaching scope<select required={staffEditor.campus === "senior"} value={staffEditor.subjectStream} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">{staffEditor.campus === "senior" ? "Choose a stream scope" : "Junior class · no streams"}</option>{staffEditor.campus === "senior" && <option value="__all__">All streams · whole form</option>}{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream} only</option>)}</select></label>
                             <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{subjectOptionsForLevel(staffEditor.subjectLevel, staffEditor.campus).map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
                             <Button type="button" onClick={addSubjectAllocation}>Add subject</Button>
                           </div>

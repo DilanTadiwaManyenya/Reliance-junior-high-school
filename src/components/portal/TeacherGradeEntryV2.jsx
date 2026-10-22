@@ -5,6 +5,7 @@ import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
 import TeacherSavedMarksExport from './TeacherSavedMarksExport'
 import { useSection } from './StaffPortalLayout'
+import { matchesTeacherSubjectAllocation } from '../../lib/teacherAllocationScope'
 
 const schoolTerm = () => String(Math.min(3, Math.floor(new Date().getMonth() / 4) + 1))
 const blank = () => ({ subject: '', percentage: '', exam_mark: '', term: schoolTerm(), year: new Date().getFullYear(), comment: '' })
@@ -51,8 +52,7 @@ export default function TeacherGradeEntryV2() {
   ), [subjectAssignments, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId])
   const hasSubjectScope = Boolean(selectedSubject && selectedSubjectLevel && selectedSubjectAllocationId && activeSubjectAssignments.length)
   const visible = useMemo(() => students.filter(student => activeSubjectAssignments.some(assignment => (
-    assignment.class_level === student.class_level
-      && (!assignment.class_stream || assignment.class_stream === (student.class_stream || ''))
+    matchesTeacherSubjectAllocation(student, assignment)
   ))), [students, activeSubjectAssignments])
   const visibleStudentIds = useMemo(() => visible.map(student => student.id), [visible])
   const assignedStreams = useMemo(() => [...new Set(activeSubjectAssignments.map(assignment => assignment.class_stream).filter(Boolean))], [activeSubjectAssignments])
