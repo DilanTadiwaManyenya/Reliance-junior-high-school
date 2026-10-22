@@ -55,8 +55,8 @@ const classParentSearch = (search) => {
 }
 
 export default function StaffPortalLayout() {
-  const { activeRole } = useAuth()
-  return <StaffPortalWorkspace key={activeRole} />
+  const { activeRole, user } = useAuth()
+  return <StaffPortalWorkspace key={`${user?.id || 'signed-out'}:${activeRole}`} />
 }
 
 function StaffPortalWorkspace() {

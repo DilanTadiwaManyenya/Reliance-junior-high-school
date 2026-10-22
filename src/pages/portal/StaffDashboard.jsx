@@ -5,7 +5,8 @@ import MobileRecordTable from '../../components/portal/MobileRecordTable'
 import InventoryPOS from "../../components/portal/InventoryPOS";
 import ExpensesCashbook from "../../components/portal/ExpensesCashbook";
 import FinanceReconciliation from "../../components/portal/FinanceReconciliation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { possibleLearnerDuplicates } from '../../lib/learnerDuplicates';
 import Button from "../../components/ui/Button";
 import PasswordInput from "../../components/ui/PasswordInput";
 import Card from "../../components/ui/Card";
@@ -801,6 +802,11 @@ export default function StaffDashboard() {
   const [recent, setRecent] = useState([]);
   const [student, setStudent] = useState(emptyStudent);
   const [editingId, setEditingId] = useState(null);
+  const [savingLearner, setSavingLearner] = useState(false);
+  const learnerSaveBusy = useRef(false);
+  const learnerAdmissionAttempt = useRef(null);
+  const rosterHeading = useRef(null);
+  const [duplicateLearners, setDuplicateLearners] = useState(null);
   const [staff, setStaff] = useState([]);
   const [staffForm, setStaffForm] = useState({
     fullName: "",
@@ -1068,8 +1074,9 @@ export default function StaffDashboard() {
     loadRecent();
   };
 
-  const saveStudent = async (event) => {
-    event.preventDefault();
+  const saveStudent = async (event, duplicateChoice = false, replacementId = null) => {
+    event?.preventDefault();
+    if (learnerSaveBusy.current) return;
     if (!isAdmin && activeRole !== "teacher")
       return showError(
         "Only administrators or assigned teachers can add learners.",
@@ -1090,6 +1097,7 @@ export default function StaffDashboard() {
 
     const row = {
       ...student,
+      ...(activeRole === 'teacher' ? { campus: profile.campus } : {}),
       // New admission numbers are assigned by the database trigger. It holds a
       // class-level lock, so simultaneous enrolments cannot receive the same ID.
       ...(editingId ? { admission_number: student.admission_number } : {}),
@@ -1098,7 +1106,26 @@ export default function StaffDashboard() {
       inactive_reason:
         student.status === "inactive" ? student.inactive_reason : null,
     };
-    const request = editingId
+    if (!editingId && !duplicateChoice) {
+      const matches = possibleLearnerDuplicates(students, row);
+      if (matches.length) { setDuplicateLearners(matches); return; }
+    }
+    learnerSaveBusy.current = true;
+    setSavingLearner(true);
+    setError('');
+    try {
+    if (!editingId && !replacementId) {
+      const fingerprint = JSON.stringify(row);
+      if (learnerAdmissionAttempt.current?.fingerprint !== fingerprint) learnerAdmissionAttempt.current = { fingerprint, id: crypto.randomUUID() };
+      row.id = learnerAdmissionAttempt.current.id;
+    }
+    const existingAttempt = !editingId && !replacementId
+      ? await supabase.from('students').select('id').eq('id', row.id).maybeSingle()
+      : { data: null, error: null };
+    if (existingAttempt.error) return showError(`Could not check whether this learner was saved: ${existingAttempt.error.message}. Retry after the connection recovers.`);
+    const request = existingAttempt.data ? Promise.resolve({ error: null }) : replacementId
+      ? supabase.rpc('correct_assigned_learner', { p_student: replacementId, p_details: { full_name: row.full_name, date_of_birth: row.date_of_birth } })
+      : editingId
       ? supabase.from("students").update(row).eq("id", editingId)
       : supabase.from("students").insert(row);
     const { error: requestError } = await request;
@@ -1107,21 +1134,48 @@ export default function StaffDashboard() {
       actionType: editingId ? "update" : "create",
       description: `${editingId ? "Updated" : "Created"} learner ${student.full_name}`,
       targetTable: "students",
-      targetId: editingId,
+      targetId: replacementId || editingId,
     });
     setNotice(
-      editingId
-        ? "Learner updated successfully."
-        : "Learner added successfully.",
+      `${row.full_name} ${editingId || replacementId ? 'updated' : 'added'} successfully. The saved learner is shown in the roster.`,
     );
     setStudent(emptyStudent());
+    learnerAdmissionAttempt.current = null;
     setEditingId(null);
-    loadStudents();
+    setDuplicateLearners(null);
+    setQuery(row.full_name);
+    const savedScope = replacementId ? students.find(item => item.id === replacementId) || row : row;
+    setActiveClassKey(`${savedScope.class_level}:${savedScope.class_stream || ''}`);
+    setActiveClassFilter({ level: savedScope.class_level, stream: savedScope.class_stream || null });
+    await loadStudents();
+    requestAnimationFrame(() => { rosterHeading.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); rosterHeading.current?.focus({ preventScroll: true }); });
+    } catch (saveError) {
+      showError(`Could not confirm the save: ${saveError.message}. Check the roster before adding this learner again.`);
+    } finally { learnerSaveBusy.current = false; setSavingLearner(false); }
   };
 
   const editStudent = (row) => {
     setStudent({ ...row, class_stream: row.class_stream ?? "" });
     setEditingId(row.id);
+  };
+
+  const disableLearner = async (row) => {
+    const reason = window.prompt(`Disable ${row.full_name}? Their records will be kept. Enter the reason:`);
+    if (!reason) return;
+    if (reason.trim().length < 5) return showError('Enter a reason of at least five characters.');
+    const { error: disableError } = await supabase.rpc('correct_assigned_learner', { p_student: row.id, p_details: { disable_reason: reason } });
+    if (disableError) return showError(disableError.message);
+    setNotice(`${row.full_name} disabled. Their history is retained for Main Admin review.`);
+    await loadStudents();
+  };
+
+  const deleteDisabledLearner = async (row) => {
+    if (!isMainAdmin || row.status !== 'inactive' || !window.confirm(`Permanently delete disabled learner ${row.full_name}? This cannot be undone. Linked school history may prevent deletion.`)) return;
+    const { data, error: deleteError } = await supabase.from('students').delete().eq('id', row.id).eq('status', 'inactive').select('id');
+    if (deleteError) return showError(deleteError.code === '23503' ? 'This learner has linked school history. The record remains disabled; its history has not been deleted.' : deleteError.message);
+    if (!data?.length) return showError('Deletion was not authorized or the learner status changed. Refresh the roster.');
+    setNotice(`${row.full_name} deleted.`);
+    await loadStudents();
   };
 
   const createStaff = async (event) => {
@@ -1698,7 +1752,7 @@ export default function StaffDashboard() {
           <div className="portal-workspace">
             <Card>
               <div className="portal-card-title">
-                <h2>{isCampusAdmin ? `${adminCampusScope === "junior" ? "Junior" : "Senior"} learner register` : "Learner roster"}</h2>
+                <h2 ref={rosterHeading} tabIndex={-1}>{isCampusAdmin ? `${adminCampusScope === "junior" ? "Junior" : "Senior"} learner register` : "Learner roster"}</h2>
                 <label className="portal-inline-search">
                   Search
                   <input
@@ -1726,7 +1780,7 @@ export default function StaffDashboard() {
                         <th>Stream</th>
                         <th>Status</th>
                         {isTeacher && <th>Today's Attendance</th>}
-                        {isAdmin && <th />}
+                        {(isAdmin || isTeacher) && <th>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -1809,19 +1863,22 @@ export default function StaffDashboard() {
                                 </button>
                               ) : (
                                 <span className="roster-inactive-attendance">
-                                  Left school
+                                  {row.record_disable_reason ? 'Disabled for review' : 'Left school'}
                                 </span>
                               )}
                             </td>
                           )}
-                          {isAdmin && (
+                          {(isAdmin || isTeacher) && (
                             <td>
-                              <Button
+                              {isAdmin && <Button
                                 variant="secondary"
                                 onClick={() => editStudent(row)}
                               >
                                 Edit
-                              </Button>
+                              </Button>}
+                              {row.status !== 'inactive' && <Button variant="secondary" onClick={() => disableLearner(row)}>Disable learner</Button>}
+                              {isMainAdmin && row.status === 'inactive' && <Button variant="secondary" onClick={() => deleteDisabledLearner(row)}>Delete disabled learner</Button>}
+                              {row.record_disable_reason && <small>{row.record_disable_reason}</small>}
                             </td>
                           )}
                         </tr>
@@ -1910,6 +1967,7 @@ export default function StaffDashboard() {
                   <label>
                     Class level
                     <select
+                      aria-label="Class level"
                       required
                       value={student.class_level}
                       onChange={(e) =>
@@ -1936,6 +1994,7 @@ export default function StaffDashboard() {
                   <label>
                     Class stream
                     <select
+                      aria-label="Class stream"
                       required
                       disabled={
                         !student.class_level ||
@@ -1982,8 +2041,8 @@ export default function StaffDashboard() {
                     />
                   </label>
                   <div className="portal-action-row">
-                    <Button type="submit">
-                      {editingId ? "Save changes" : "Add learner"}
+                    <Button type="submit" disabled={savingLearner}>
+                      {savingLearner ? 'Saving learner…' : editingId ? "Save changes" : "Add learner"}
                     </Button>
                     {editingId && (
                       <Button
@@ -1999,6 +2058,7 @@ export default function StaffDashboard() {
                     )}
                   </div>
                 </form>
+                {duplicateLearners && <section role="alert" className="portal-notice"><h3>Could this learner already be enrolled?</h3><p>Similar names can be different learners. Compare the date of birth and class. Replacing updates the name and birth date on the existing record and keeps its admission number, class, fees and marks.</p>{duplicateLearners.map(match => <div key={match.id}><p><strong>{match.full_name}</strong> · {match.date_of_birth} · {match.class_level} {match.class_stream} · {match.admission_number}</p><Button type="button" variant="secondary" disabled={savingLearner} onClick={() => { if (window.confirm(`Update ${match.full_name} (${match.admission_number}) with the entered name and birth date?`)) saveStudent(null, true, match.id); }}>Replace this learner's details</Button></div>)}<div className="portal-action-row"><Button type="button" disabled={savingLearner} onClick={() => saveStudent(null, true)}>Save as a different learner</Button><Button type="button" variant="secondary" disabled={savingLearner} onClick={() => setDuplicateLearners(null)}>Cancel</Button></div></section>}
               </Card>
             )}
           </div>

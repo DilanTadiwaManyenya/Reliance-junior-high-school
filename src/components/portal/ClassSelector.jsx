@@ -38,7 +38,9 @@ export default function ClassSelector({
   // Campus Administrators never choose a campus in this control. Their
   // permitted campus is established by their profile and by Supabase RLS.
   campusScope = 'all',
+  storageScope = 'default',
 }) {
+  const sessionKey = `${SESSION_KEY}:${storageScope}:${role}:${campusScope}`
   const isTeacher = role === 'teacher'
   const isCampusLocked = ['junior', 'senior'].includes(campusScope)
 
@@ -46,8 +48,8 @@ export default function ClassSelector({
   const teacherOptions = useMemo(() => {
     if (!isTeacher) return []
     return assignedClasses.map(c => ({
-      key: `${c.class_level}:${c.class_stream}`,
-      label: `${c.class_level} ${c.class_stream}`.trim(),
+      key: `${c.class_level}:${c.class_stream || ''}`,
+      label: `${c.class_level} ${c.class_stream || ''}`.trim(),
       level: c.class_level,
       stream: c.class_stream
     })).sort((a, b) => a.label.localeCompare(b.label))
@@ -101,11 +103,11 @@ export default function ClassSelector({
       // A selection made in the markbook or class workspace is authoritative.
       // Restoring an older session choice here used to switch ECD B back to A.
       if (teacherOptions.some(option => option.key === activeClassKey)) {
-        sessionStorage.setItem(SESSION_KEY, activeClassKey)
+        sessionStorage.setItem(sessionKey, activeClassKey)
         return
       }
       
-      const stored = sessionStorage.getItem(SESSION_KEY)
+      const stored = sessionStorage.getItem(sessionKey)
       const validStored = teacherOptions.find(o => o.key === stored)
       
       if (validStored) {
@@ -114,14 +116,14 @@ export default function ClassSelector({
         }
       } else {
         const defaultClass = teacherOptions[0]
-        sessionStorage.setItem(SESSION_KEY, defaultClass.key)
+        sessionStorage.setItem(sessionKey, defaultClass.key)
         if (activeClassKey !== defaultClass.key) {
           onClassChange(defaultClass.key, defaultClass)
         }
       }
     } else {
       // Admin / Accountant mode
-      const stored = sessionStorage.getItem(SESSION_KEY)
+      const stored = sessionStorage.getItem(sessionKey)
       if (stored) {
         if (stored === 'ALL') {
           if (activeClassKey !== 'ALL') onClassChange('ALL')
@@ -141,12 +143,12 @@ export default function ClassSelector({
 
   const handleCampusChange = (nextCampus) => {
     setCampusFilter(nextCampus)
-    sessionStorage.setItem(SESSION_KEY, 'ALL')
+    sessionStorage.setItem(sessionKey, 'ALL')
     onClassChange('ALL')
   }
 
   const handleSelect = (key) => {
-    sessionStorage.setItem(SESSION_KEY, key)
+    sessionStorage.setItem(sessionKey, key)
     const opt = teacherOptions.find(o => o.key === key) || adminOptions.find(o => o.key === key)
     if (!isTeacher && opt?.campus && !isCampusLocked && campusFilter !== opt.campus) setCampusFilter(opt.campus)
     onClassChange(key, opt)

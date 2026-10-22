@@ -19,11 +19,11 @@ import '../../../src/portalResponsive.css'
 
 const params = new URLSearchParams(location.search)
 const campus = params.get('campus') || 'senior'
-const classLevel = campus === 'senior' ? 'Form 1' : params.get('class') || 'Grade 4'
+const classLevel = params.get('class') || (campus === 'senior' ? 'Form 1' : 'Grade 4')
 const junior = getJuniorReportBook(classLevel)
 const subject = campus === 'senior' ? 'Combined Science' : junior?.subjects?.[0]?.subject || 'English'
 const component = /^Grade [12]$/.test(classLevel) ? null : junior?.subjects?.[0]?.components?.[0] || null
-const stream = campus === 'senior' && params.get('stream') !== 'all' ? 'Blue' : ''
+const stream = campus === 'senior' && params.get('stream') !== 'all' ? params.get('stream') || 'Blue' : ''
 const allocation = { id: 'allocation', teacher_id: 'teacher', class_level: classLevel, class_stream: stream, subject, campus }
 const profile = { role: 'teacher', active_role: 'teacher', full_name: 'Ms Mobile Test', campus, teacher_class_assignments: [allocation], teacher_class_subject_assignments: [allocation] }
 const learners = ['Alexandra Example Learner With A Longer Name', 'Brian Example', 'Chipo Example'].map((full_name, i) => ({ id: `learner-${i}`, full_name, class_level: classLevel, class_stream: stream, admission_number: `TEST-2026-00${i+1}`, campus, status: 'active' }))
@@ -71,7 +71,7 @@ const supabase = {
         let data = (db[table] || []).filter(row => filters.every(([key, value]) => row[key] === value))
         if (operation !== 'select') {
           window.fixtureWrites.push({ table, operation, payload })
-          if (table === 'coursework_assessments') { const row = { id: `created-${window.fixtureWrites.length}`, ...payload }; db[table].unshift(row); data = [row] }
+          if (table === 'coursework_assessments' || table === 'students') { const row = { id: `created-${window.fixtureWrites.length}`, admission_number: 'TEST-ADMISSION', ...payload }; db[table].unshift(row); data = [row] }
           else data = []
         }
         return Promise.resolve({ data: single ? data[0] : data, error: null }).then(resolve, reject)

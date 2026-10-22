@@ -27,7 +27,7 @@ const LogoutIcon = () => (
 )
 
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpen = false }) {
-  const { profile, activeRole, signOut, supabase } = useAuth()
+  const { profile, user, activeRole, signOut, supabase } = useAuth()
   const navigate = useNavigate()
   const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, clearSubjectGroup } = useSection()
   const { classes: schoolClasses } = useSchoolClasses(supabase)
@@ -126,6 +126,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
           {hasTeacherSubjectScope && <div className="teacher-subject-scope" aria-label="Active subject allocation"><span>Subject work</span><strong>{selectedSubject} · {selectedSubjectLevel}</strong></div>}
           {showClassControl && <div className="top-bar-class-control" style={{ marginRight: '20px' }}>
             <ClassSelector 
+              storageScope={user?.id || 'signed-out'}
               role={activeRole}
               assignedClasses={teacherClassOptions}
               allClasses={visibleSchoolClasses.map((row) => ({ class_level: row.class_level, class_stream: row.class_stream || '', campus: row.campus || '' }))}
