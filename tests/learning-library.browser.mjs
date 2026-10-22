@@ -58,7 +58,15 @@ try {
       await page.evaluate(() => { window.libraryFixture.failUpload = true })
       await page.locator('input[type=file]').setInputFiles({ ...pdf, name: 'replacement.pdf' })
       await page.getByRole('button', { name: 'Save changes', exact: true }).click()
-      await page.getByText(/Upload connection dropped/).waitFor()
+      const uploadAlert = page.getByRole('alert').filter({ hasText: /Upload connection dropped/ })
+      await uploadAlert.waitFor()
+      assert.equal(await uploadAlert.isVisible(), true, 'Failed upload must show an alert')
+      await page.waitForFunction(() => {
+        const element = document.querySelector('.library-error-focus [role="alert"]')
+        if (!element) return false
+        const box = element.getBoundingClientRect()
+        return box.bottom > 0 && box.top < innerHeight
+      }, null, { timeout: 5000 })
       state = await fileState(page)
       assert.equal(state.rows.length, 1)
       assert.equal(state.files.find(file => file.active).original_name, 'fractions.pdf')

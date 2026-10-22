@@ -25,6 +25,7 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
   const [download, setDownload] = useState(null)
   const fileInput = useRef(null)
   const formRef = useRef(null)
+  const errorRef = useRef(null)
   const busyRef = useRef(false)
   const effectiveForm = { ...form, academic_year: form.academic_year || period.data?.academic_year || '', term: form.term || period.data?.term || '' }
   const dirty = Boolean(file) || (baseline ? JSON.stringify(form) !== baseline : !emptyForm(form))
@@ -34,6 +35,11 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
     const timer = setTimeout(() => setDownload(null), 55000)
     return () => clearTimeout(timer)
   }, [download])
+  useEffect(() => {
+    if (!error || !errorRef.current) return
+    errorRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    errorRef.current.focus({ preventScroll: true })
+  }, [error])
   const feedKey = `${filter}:${page}:${revision}`
   useEffect(() => {
     let active = true
@@ -126,7 +132,7 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
   return <section className="learning-library" aria-labelledby="learning-library-title">
     <header className="dash-page-header"><div><p className="eyebrow">Teaching resources</p><h1 id="learning-library-title" className="dash-page-title">Learning library</h1><p className="dash-page-sub">Share notes with parents of learners in your allocation.</p></div><Button type="button" variant="secondary" className="library-back" onClick={onBack}>Back to allocations</Button></header>
     <div className="library-scope"><strong>{scope.class_level}{scope.class_stream ? ` · ${scope.class_stream}` : scope.campus === 'senior' ? ' · all allocated streams' : ''}</strong><span>{scope.campus === 'junior' ? 'Junior School' : 'Senior School'}</span>{subjects.length ? <label>Subject<select aria-label="Subject" data-draft-navigation value={scope.subject} onChange={event => onSubjectChange(event.target.value)}>{subjects.map(subject => <option key={subject}>{subject}</option>)}</select></label> : <strong>{scope.subject}</strong>}</div>
-    {error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}
+    {error && <div ref={errorRef} tabIndex={-1} className="library-error-focus"><PortalNotice tone="error">{error}</PortalNotice></div>}{notice && <PortalNotice>{notice}</PortalNotice>}
     {busy && <p className="library-progress" role="status" aria-live="polite">{busy}</p>}
     <Card><form ref={formRef} className="library-form" aria-label={saved ? 'Edit learning notes' : 'Add learning notes'} onSubmit={submit}>
       <h2>{saved ? 'Edit notes' : 'Upload learning notes'}</h2><p className="muted">Your class and subject stay fixed. Save a draft or publish when the file is ready.</p>
