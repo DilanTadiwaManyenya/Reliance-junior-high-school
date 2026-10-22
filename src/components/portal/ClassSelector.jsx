@@ -39,6 +39,8 @@ export default function ClassSelector({
   // permitted campus is established by their profile and by Supabase RLS.
   campusScope = 'all',
   storageScope = 'default',
+  campusFilter: controlledCampusFilter,
+  onCampusChange,
 }) {
   const sessionKey = `${SESSION_KEY}:${storageScope}:${role}:${campusScope}`
   const isTeacher = role === 'teacher'
@@ -55,7 +57,8 @@ export default function ClassSelector({
     })).sort((a, b) => a.label.localeCompare(b.label))
   }, [isTeacher, assignedClasses])
 
-  const [campusFilter, setCampusFilter] = useState('all')
+  const [localCampusFilter, setLocalCampusFilter] = useState('all')
+  const campusFilter = controlledCampusFilter ?? localCampusFilter
   const displayCampusFilter = isCampusLocked ? campusScope : campusFilter
 
   // Formatted admin class options
@@ -142,7 +145,8 @@ export default function ClassSelector({
   }, [isTeacher, teacherOptions, adminOptions, campusFilter])
 
   const handleCampusChange = (nextCampus) => {
-    setCampusFilter(nextCampus)
+    setLocalCampusFilter(nextCampus)
+    onCampusChange?.(nextCampus)
     sessionStorage.setItem(sessionKey, 'ALL')
     onClassChange('ALL')
   }
@@ -150,7 +154,10 @@ export default function ClassSelector({
   const handleSelect = (key) => {
     sessionStorage.setItem(sessionKey, key)
     const opt = teacherOptions.find(o => o.key === key) || adminOptions.find(o => o.key === key)
-    if (!isTeacher && opt?.campus && !isCampusLocked && campusFilter !== opt.campus) setCampusFilter(opt.campus)
+    if (!isTeacher && opt?.campus && !isCampusLocked && campusFilter !== opt.campus) {
+      setLocalCampusFilter(opt.campus)
+      onCampusChange?.(opt.campus)
+    }
     onClassChange(key, opt)
   }
 
@@ -209,6 +216,23 @@ export default function ClassSelector({
           <button type="button" className={campusFilter === 'senior' ? 'is-active' : ''} onClick={() => handleCampusChange('senior')}>Senior</button>
         </div>
       )}
+      {!isCampusLocked && <select
+        className="campus-scope-mobile"
+        aria-label="Campus and class scope"
+        value={activeClassKey && activeClassKey !== 'ALL' ? activeClassKey : `@campus:${campusFilter}`}
+        onChange={(event) => {
+          const value = event.target.value
+          if (value.startsWith('@campus:')) handleCampusChange(value.slice('@campus:'.length))
+          else handleSelect(value)
+        }}
+      >
+        <option value="@campus:all">All school · all classes</option>
+        <option value="@campus:junior">Junior School · all classes</option>
+        <option value="@campus:senior">Senior School · all classes</option>
+        {adminOptions.length > 0 && <optgroup label="Choose a class">
+          {adminOptions.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+        </optgroup>}
+      </select>}
       <div className="class-selector-bar admin-bar">
         <label htmlFor="admin-class-selector" className="class-switcher-label">
           Class scope

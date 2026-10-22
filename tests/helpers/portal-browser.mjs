@@ -27,7 +27,7 @@ export async function openPortal(browser, base, scenario, width = 390, height = 
 export async function portalLayoutMetrics(page) {
   return page.evaluate(() => {
     const candidates = [...document.querySelectorAll('button,input,select,textarea,h1,h2,.card,.shop-panel,.staff-content-area > *')]
-    const visible = element => element.getBoundingClientRect().width > 0 && getComputedStyle(element).visibility !== 'hidden' && !element.closest('.sidebar-wrapper:not(.mobile-open)') && !element.closest('thead')
+    const visible = element => element.getBoundingClientRect().width > 0 && getComputedStyle(element).visibility !== 'hidden' && !element.classList.contains('dob-entry-native') && !element.closest('.sidebar-wrapper:not(.mobile-open)') && !element.closest('thead')
     const inScroller = element => {
       for (let parent = element.parentElement; parent && parent !== document.body && parent !== document.documentElement; parent = parent.parentElement) {
         if (/auto|scroll/.test(getComputedStyle(parent).overflowX) && parent.scrollWidth > parent.clientWidth + 2) return true

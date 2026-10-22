@@ -29,7 +29,7 @@ const LogoutIcon = () => (
 export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpen = false }) {
   const { profile, user, activeRole, signOut, supabase } = useAuth()
   const navigate = useNavigate()
-  const { activeClassKey, setActiveClassKey, setActiveClassFilter, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, clearSubjectGroup } = useSection()
+  const { activeClassKey, setActiveClassKey, setActiveClassFilter, activeAdminCampusScope, setAdminCampusScope, goBack, canGoBack, section, setSection, teacherWorkspace, setTeacherWorkspace, selectedSubjectAllocationId, selectedSubject, selectedSubjectLevel, clearSubjectGroup } = useSection()
   const { classes: schoolClasses } = useSchoolClasses(supabase)
 
   const handleLogout = async () => {
@@ -133,6 +133,8 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
               activeClassKey={activeClassKey} 
               onClassChange={handleClassChange} 
               campusScope={campusScope}
+              campusFilter={isMainAdmin ? activeAdminCampusScope : undefined}
+              onCampusChange={isMainAdmin ? setAdminCampusScope : undefined}
             />
           </div>}
           {activeRole === 'teacher' ? (

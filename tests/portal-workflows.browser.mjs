@@ -5,6 +5,27 @@ let checks=0
 async function verify(page,label){const m=await portalLayoutMetrics(page);assert.ok(m.documentWidth<=m.width+1,`${label}: document overflow`);assert.deepEqual(m.clipped,[],`${label}: clipped content`);if(m.width<=900)assert.deepEqual(m.smallFields,[],`${label}: small fields`);assert.deepEqual(page.portalErrors,[],`${label}: runtime error`);checks++;console.log(`PASS ${label}`)}
 try{
  if(!process.env.PORTAL_PROFILE_ONLY){
+ for(const width of [320,390]){
+  const page=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'all',section:'roster',mfaDisabled:''},width)
+  const roster=page.locator('.mobile-record-table tbody')
+  await roster.waitFor()
+  const campus=page.getByLabel('Campus and class scope',{exact:true})
+  await campus.waitFor()
+  await campus.selectOption('@campus:senior')
+  await page.waitForFunction(()=>document.querySelectorAll('.mobile-record-table tbody tr').length===2)
+  assert.equal(await page.locator('#learner-row-learner-0').count(),1,'Main Admin Senior scope includes Senior learners')
+  assert.equal(await page.locator('#learner-row-learner-1').count(),0,'Main Admin Senior scope excludes Junior learners')
+  await campus.selectOption('@campus:junior')
+  await page.waitForFunction(()=>document.querySelectorAll('.mobile-record-table tbody tr').length===1)
+  assert.equal(await page.locator('#learner-row-learner-1').count(),1,'Main Admin Junior scope includes Junior learners')
+  assert.equal(await page.locator('#learner-row-learner-0').count(),0,'Main Admin Junior scope excludes Senior learners')
+  await campus.selectOption('@campus:all')
+  await page.waitForFunction(()=>document.querySelectorAll('.mobile-record-table tbody tr').length===3)
+  assert.deepEqual(page.portalErrors,[],'Main Admin campus switching should not produce runtime errors')
+  checks++
+  console.log('PASS Main Admin campus switch filters the roster across Senior, Junior and All school')
+  await page.close()
+ }
  for(const width of [320,768])for(const role of ['admin','accountant']){
   const page=await openPortal(runtime.browser,runtime.base,{role,section:'inventory'},width)
   const nav=page.getByRole('navigation',{name:'Shop sections'})

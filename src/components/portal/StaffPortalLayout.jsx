@@ -20,6 +20,8 @@ export const SectionContext = createContext({
   setActiveClassKey: () => {},
   activeClassFilter: { level: null, stream: null },
   setActiveClassFilter: () => {},
+  activeAdminCampusScope: 'all',
+  setAdminCampusScope: () => {},
   teacherWorkspace: 'classes',
   setTeacherWorkspace: () => {},
   selectedSubjectAllocationId: '',
@@ -97,6 +99,18 @@ function StaffPortalWorkspace() {
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [activeClassKey, setActiveClassKey] = useState('')
   const [activeClassFilter, setActiveClassFilter] = useState({ level: null, stream: null })
+  const adminCampusStorageKey = `reliance_active_admin_campus:${user?.id || 'signed-out'}`
+  const [activeAdminCampusScope, setActiveAdminCampusScope] = useState(() => {
+    const saved = sessionStorage.getItem(adminCampusStorageKey)
+    return ['junior', 'senior'].includes(saved) ? saved : 'all'
+  })
+  const changeAdminCampusScope = (campus) => {
+    if (!['all', 'junior', 'senior'].includes(campus)) return
+    setActiveAdminCampusScope(campus)
+    sessionStorage.setItem(adminCampusStorageKey, campus)
+    setActiveClassKey('ALL')
+    setActiveClassFilter({ level: null, stream: null })
+  }
 
   const toggleCollapse = () => setCollapsed(c => !c)
   const toggleMobile   = () => setMobileOpen(o => !o)
@@ -155,7 +169,7 @@ function StaffPortalWorkspace() {
   }, [section, location.pathname, profile, supabase, user])
 
   return (
-    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, teacherWorkspace, isJuniorTeacher, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
+    <SectionContext.Provider value={{ section, setSection: changeSection, goBack, canGoBack: section !== sectionConfig.defaultSection, activeClassKey, setActiveClassKey, activeClassFilter, setActiveClassFilter, activeAdminCampusScope, setAdminCampusScope: changeAdminCampusScope, teacherWorkspace, isJuniorTeacher, setTeacherWorkspace: changeTeacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, setSubjectAllocation: changeSubjectAllocation, selectedSubject, selectedSubjectLevel, setSubjectGroup: changeSubjectGroup, clearSubjectGroup }}>
       <div data-campus={['junior', 'senior'].includes(profile?.campus) ? profile.campus : 'all'} data-class-control={hasClassControl} data-role={role} data-workspace={teacherWorkspace} data-section={section} data-multiple-roles={roles.length > 1} className={`staff-shell${collapsed ? ' sidebar-collapsed' : ''}${role === 'accountant' ? ' no-sidebar' : ''}${profile?.campus === 'junior' ? ' campus-junior' : profile?.campus === 'senior' ? ' campus-senior' : ''}`}>
 
         {/* ── Top header bar ─────────────────────── */}
