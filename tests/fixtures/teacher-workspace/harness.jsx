@@ -38,6 +38,18 @@ if (params.has('extraSubjectScopes')) {
     { id: 'upper-six-arts-learner', full_name: 'Arts Learner', class_level: 'Upper Six', class_stream: 'Arts', campus, status: 'active' },
     { id: 'upper-six-commercials-learner', full_name: 'Commercials Learner', class_level: 'Upper Six', class_stream: 'Commercials', campus, status: 'active' })
 }
+if (params.has('legacyClassAliases')) {
+ profile.teacher_class_assignments = [
+  { ...allocation, class_level: 'Lower Six', class_stream: 'Commercials' },
+  { ...allocation, class_level: 'Upper 6', class_stream: 'Commercials' },
+  { ...allocation, class_level: 'Upper Six', class_stream: 'Commercials' },
+ ]
+ learners.splice(0, learners.length,
+  { id: 'lower-six-commercials', full_name: 'Lower Six Learner', class_level: 'Lower Six', class_stream: 'Commercials', campus, status: 'active' },
+  { id: 'upper-six-legacy-commercials', full_name: 'Legacy Upper Six Learner', class_level: 'Upper 6', class_stream: 'Commercials', campus, status: 'active' },
+  { id: 'upper-six-commercials', full_name: 'Upper Six Learner', class_level: 'Upper Six', class_stream: 'Commercials', campus, status: 'active' },
+  { id: 'upper-six-arts', full_name: 'Upper Six Arts Learner', class_level: 'Upper Six', class_stream: 'Arts', campus, status: 'active' })
+}
 if (params.has('noClassAssignment')) profile.teacher_class_assignments = []
 if (params.has('extraEcdScopes')) {
  profile.teacher_class_assignments.push({...allocation,id:'ecd-b',class_level:'ECD B'})

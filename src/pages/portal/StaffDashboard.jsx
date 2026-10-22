@@ -17,7 +17,7 @@ import FeesDashboard from "../../components/portal/FeesDashboard";
 import { useSection } from "../../components/portal/StaffPortalLayout";
 import { useAuth } from "../../context/useAuth";
 import { invokeEdgeFunction } from "../../lib/edgeFunction";
-import { isJuniorLevel } from "../../data/classOptions";
+import { canonicalizeClassLevel, isJuniorLevel } from "../../data/classOptions";
 import ClassSelector, {
   parseClassKey,
 } from "../../components/portal/ClassSelector";
@@ -1581,7 +1581,7 @@ export default function StaffDashboard() {
     const workspaceStudents = isTeacher && teacherWorkspace === "subjects"
       ? students.filter((student) => activeSubjectAssignments.some((assignment) => matchesTeacherSubjectAllocation(student, assignment)) && (!selectedSubjectClassStream || selectedSubjectClassStream === (student.class_stream || "")))
       : isTeacher ? students.filter(student => teacherAssignments.some(assignment =>
-        assignment.class_level === student.class_level &&
+        canonicalizeClassLevel(assignment.class_level) === canonicalizeClassLevel(student.class_level) &&
         (!assignment.class_stream || assignment.class_stream === (student.class_stream || ""))
       )) : mainAdminCampusStudents;
     const filterApplied = level
@@ -1597,7 +1597,7 @@ export default function StaffDashboard() {
       matchingStudentsCount: level
         ? workspaceStudents.filter(
             (s) =>
-              s.class_level === level &&
+              canonicalizeClassLevel(s.class_level) === canonicalizeClassLevel(level) &&
               (stream ? s.class_stream === stream : true),
           ).length
         : workspaceStudents.length,
@@ -1606,7 +1606,7 @@ export default function StaffDashboard() {
     if (!level) return workspaceStudents;
     return workspaceStudents.filter(
       (s) =>
-        s.class_level === level && (stream ? s.class_stream === stream : true),
+        canonicalizeClassLevel(s.class_level) === canonicalizeClassLevel(level) && (stream ? s.class_stream === stream : true),
     );
   }, [students, activeClassFilter, isTeacher, isMainAdmin, activeAdminCampusScope, teacherAssignments, teacherSubjectAssignments, teacherWorkspace, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId, selectedSubjectClassStream]);
 

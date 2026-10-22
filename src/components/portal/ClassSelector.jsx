@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { canonicalizeClassLevel } from '../../data/classOptions'
 
 const SESSION_KEY = 'reliance_active_portal_class'
 
@@ -45,16 +46,27 @@ export default function ClassSelector({
   const sessionKey = `${SESSION_KEY}:${storageScope}:${role}:${campusScope}`
   const isTeacher = role === 'teacher'
   const isCampusLocked = ['junior', 'senior'].includes(campusScope)
+  const canonicalTeacherKey = (key) => {
+    if (!key) return ''
+    const { level, stream } = parseClassKey(key)
+    return level ? `${canonicalizeClassLevel(level)}:${stream || ''}` : ''
+  }
 
   // Formatted teacher class options
   const teacherOptions = useMemo(() => {
     if (!isTeacher) return []
-    return assignedClasses.map(c => ({
-      key: `${c.class_level}:${c.class_stream || ''}`,
-      label: `${c.class_level} ${c.class_stream || ''}`.trim(),
-      level: c.class_level,
-      stream: c.class_stream
-    })).sort((a, b) => a.label.localeCompare(b.label))
+    const options = assignedClasses.map(c => {
+      const level = canonicalizeClassLevel(c.class_level)
+      const stream = String(c.class_stream || '').trim()
+      return {
+        key: `${level}:${stream}`,
+        label: `${level} ${stream}`.trim(),
+        level,
+        stream: stream || null
+      }
+    })
+    return [...new Map(options.map(option => [option.key, option])).values()]
+      .sort((a, b) => a.label.localeCompare(b.label))
   }, [isTeacher, assignedClasses])
 
   const [localCampusFilter, setLocalCampusFilter] = useState('all')
@@ -105,13 +117,15 @@ export default function ClassSelector({
       if (!teacherOptions.length) return
       // A selection made in the markbook or class workspace is authoritative.
       // Restoring an older session choice here used to switch ECD B back to A.
-      if (teacherOptions.some(option => option.key === activeClassKey)) {
-        sessionStorage.setItem(sessionKey, activeClassKey)
+      const activeOption = teacherOptions.find(option => option.key === canonicalTeacherKey(activeClassKey))
+      if (activeOption) {
+        sessionStorage.setItem(sessionKey, activeOption.key)
+        if (activeClassKey !== activeOption.key) onClassChange(activeOption.key, activeOption)
         return
       }
       
       const stored = sessionStorage.getItem(sessionKey)
-      const validStored = teacherOptions.find(o => o.key === stored)
+      const validStored = teacherOptions.find(o => o.key === canonicalTeacherKey(stored))
       
       if (validStored) {
         if (activeClassKey !== validStored.key) {

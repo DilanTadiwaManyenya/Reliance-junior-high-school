@@ -268,6 +268,23 @@ try {
     await page.close()
     console.log('PASS Senior Upper Six Arts allocation excludes Commercials learners in allocation review and Markbook')
   }
+  // Legacy sixth-form labels collapse to one choice while retaining both stored labels' learners.
+  {
+    const page = await teacherPage({ viewport: { width: 1280, height: 844 } })
+    const params = new URLSearchParams({ campus: 'senior', class: 'Upper Six', section: 'roster', legacyClassAliases: '' })
+    await page.goto(`${base}/tests/fixtures/teacher-workspace/index.html?${params}`, { waitUntil: 'domcontentloaded' })
+    const selector = page.locator('#portal-class-switcher')
+    await selector.waitFor()
+    const options = await selector.locator('option').allTextContents()
+    assert.deepEqual(options, ['Lower Six Commercials', 'Upper Six Commercials'])
+    await selector.selectOption({ label: 'Upper Six Commercials' })
+    await page.getByRole('button', { name: 'Open learner profile for Legacy Upper Six Learner', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Open learner profile for Upper Six Learner', exact: true }).waitFor()
+    assert.equal(await page.getByRole('button', { name: 'Open learner profile for Lower Six Learner', exact: true }).count(), 0)
+    assert.equal(await page.getByRole('button', { name: 'Open learner profile for Upper Six Arts Learner', exact: true }).count(), 0)
+    await page.close()
+    console.log('PASS Senior class switcher merges Upper 6 and Upper Six labels without mixing streams or forms')
+  }
   // Markbook entry stays usable and saves synthetic records on narrow phones for both campuses.
   for (const campus of ['senior', 'junior']) for (const width of [320, 390]) {
     const page = await teacherPage({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true })
