@@ -7,7 +7,7 @@ try {
   const p=await r.browser.newPage({viewport:{width:390,height:480}})
   await p.route('https://fonts.googleapis.com/**',route=>route.abort())
   await p.route('https://fonts.gstatic.com/**',route=>route.abort())
-  const params=new URLSearchParams({campus,class:'Grade 4',section:'coursework',workspace:'subjects',allocation:'allocation',subject:'Combined Science',level:'Form 1'})
+  const params=new URLSearchParams({campus,class:campus==='senior'?'Form 1':'Grade 4',section:'coursework',workspace:'subjects',allocation:'allocation',subject:'Combined Science',level:'Form 1'})
   await p.goto(`${r.base}/tests/fixtures/teacher-workspace/index.html?${params}`,{waitUntil:'domcontentloaded'})
   if(campus==='junior'){await p.locator('form select').nth(1).selectOption({index:1});await p.locator('form select').nth(2).selectOption({index:1})}
   const assessment=p.locator('.coursework-heading select')

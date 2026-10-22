@@ -9,6 +9,7 @@ const displayValue = (value) => {
 export default function DateOfBirthInput({ value = '', onChange, required = false, disabled = false, id, className = '' }) {
   const [draft, setDraft] = useState(() => displayValue(value))
   const [invalid, setInvalid] = useState(false)
+  const textRef = useRef(null)
   const pickerRef = useRef(null)
   const previousValue = useRef(value || '')
 
@@ -16,6 +17,7 @@ export default function DateOfBirthInput({ value = '', onChange, required = fals
     const nextValue = value || ''
     if (nextValue !== previousValue.current) {
       previousValue.current = nextValue
+      textRef.current?.setCustomValidity('')
       setDraft(displayValue(nextValue))
       setInvalid(false)
     }
@@ -51,6 +53,7 @@ export default function DateOfBirthInput({ value = '', onChange, required = fals
   }
 
   const pickerChanged = (event) => {
+    textRef.current?.setCustomValidity('')
     const nextValue = event.target.value
     setDraft(displayValue(nextValue))
     setInvalid(false)
@@ -60,6 +63,7 @@ export default function DateOfBirthInput({ value = '', onChange, required = fals
   return <div className={`dob-entry ${className}`.trim()}>
     <input
       id={id}
+      ref={textRef}
       className="dob-entry-text"
       type="text"
       inputMode="numeric"
