@@ -57,6 +57,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
         { id: 'library-support', label: 'Library oversight', iconKey: 'roster', show: activeRole === 'admin' },
         { id: 'newsletters', label: 'Newsletters', iconKey: 'roster', show: activeRole === 'admin' },
         { id: 'staff', label: 'Staff', iconKey: 'staff', show: manager },
+        { id: 'parent-accounts', label: 'Parent accounts', iconKey: 'staff', show: activeRole === 'admin' || accountant },
         { id: 'activity', label: 'Activity Log', iconKey: 'staff', show: manager }
       ].filter(i => i.show)
     }

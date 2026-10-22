@@ -31,6 +31,7 @@ import YearRolloverReadiness from "../../components/portal/YearRolloverReadiness
 import TeacherAttendanceHistory from "../../components/portal/TeacherAttendanceHistory";
 import StaffLearnerProfile from "../../components/portal/StaffLearnerProfile";
 import AccountantLearnerProfiles from "../../components/portal/AccountantLearnerProfiles";
+import ParentAccountSupport from "../../components/portal/ParentAccountSupport";
 import { logActivity } from "../../lib/logActivity";
 import BulkLearnerExport from "../../components/portal/BulkLearnerExport";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
@@ -1911,6 +1912,9 @@ export default function StaffDashboard() {
         />
       </div>
     );
+
+  if (section === "parent-accounts" && (isAdmin || isAccountant))
+    return <div className="staff-content-area"><ParentAccountSupport supabase={supabase} user={user} profile={profile} /></div>;
 
   if (section === "progress-reports" && (isAdmin || isAccountant || isTeacher))
     return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : managerCampusScope ? `${managerCampusScope === "junior" ? "Junior" : "Senior"} School` : "All school"} query={progressQuery} onQueryChange={setProgressQuery} onOpenProgress={student => openLearnerProfile(student, { initialTab: isTeacher ? "Summary" : "Academics", origin: "progress-reports" })} /></div>;

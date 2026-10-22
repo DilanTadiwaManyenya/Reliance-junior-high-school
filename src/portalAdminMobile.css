@@ -72,3 +72,19 @@
   .staff-shell .staff-category-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
   .staff-shell .staff-category-tabs button { white-space: normal; }
 }
+/* Compact parent-access support view for admin and campus-accountant phones. */
+.parent-account-support { display: grid; gap: 16px; min-width: 0; }
+.parent-account-toolbar { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+.parent-account-toolbar .portal-inline-search { flex: 1 1 260px; min-width: min(100%, 220px); }
+.parent-account-list { display: grid; gap: 10px; }
+.parent-account-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; align-items: center; gap: 12px; min-width: 0; padding: 14px; border: 1px solid #dce5f0; border-radius: 12px; background: #fff; }
+.parent-account-identity, .parent-account-learner { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.parent-account-identity span, .parent-account-learner span, .parent-account-learner small { color: #64748b; }
+.parent-account-reset-card .form { max-width: 560px; }
+@media (max-width: 700px) {
+  .parent-account-toolbar { align-items: stretch; }
+  .parent-account-toolbar > * { width: 100%; }
+  .parent-account-card { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .parent-account-identity, .parent-account-learner { grid-column: 1 / -1; }
+  .parent-account-card > .btn { grid-column: 1 / -1; width: 100%; }
+}

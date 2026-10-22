@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { normalizeParentLearnerDetails } from '../../../shared/parentRegistration.js'
 
 const INTERNATIONAL_PHONE = /^\+[1-9]\d{7,14}$/
 const normalizePhone = (raw: unknown) => {
@@ -29,11 +30,12 @@ Deno.serve(async (request) => {
   try {
     const { fullName: rawFullName, phone: rawPhone, password, admissionNumber: rawAdmissionNumber, dateOfBirth } = await request.json()
     const fullName = String(rawFullName ?? '').trim()
-    const admissionNumber = String(rawAdmissionNumber ?? '').trim()
+    const learnerDetails = normalizeParentLearnerDetails(rawAdmissionNumber, dateOfBirth)
     const phone = normalizePhone(rawPhone)
     if (!fullName || !isInternationalPhone(phone)) throw new Error('Enter a valid international phone number.')
     if (!password || password.length < 8) throw new Error('The password must be at least 8 characters.')
-    if (!admissionNumber || !dateOfBirth) throw new Error('Enter the learner admission number and date of birth.')
+    if (!learnerDetails) throw new Error('Enter a valid learner admission number and date of birth.')
+    const { admissionNumber, dateOfBirth: normalizedBirthDate } = learnerDetails
 
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -52,8 +54,8 @@ Deno.serve(async (request) => {
     const { data: student, error: studentError } = await serviceClient
       .from('students')
       .select('id')
-      .ilike('admission_number', admissionNumber)
-      .eq('date_of_birth', dateOfBirth)
+      .eq('admission_number', admissionNumber)
+      .eq('date_of_birth', normalizedBirthDate)
       .maybeSingle()
     if (studentError) throw studentError
     if (!student) throw new Error('We could not verify that admission number and date of birth. Please check them and try again.')
