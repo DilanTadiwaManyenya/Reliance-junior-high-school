@@ -157,3 +157,17 @@
   .staff-shell[data-role="teacher"][data-section="coursework"] .top-bar-back { display: none !important; }
   .coursework-page .coursework-back { display: inline-flex; min-height: 44px; margin-bottom: 16px; white-space: normal; }
 }
+
+/* Narrow-phone coursework entry */
+@media (max-width: 390px) {
+  .coursework-marks-table .coursework-learner-mark,
+  .coursework-marks-table .coursework-learner-status {
+    grid-column: 1 / -1;
+  }
+
+  .coursework-marks-table .coursework-learner-status .class-status {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
