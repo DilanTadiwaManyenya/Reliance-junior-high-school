@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateGrade } from '../../utils/GradeCalculator'
 import { useGradeBands } from '../../hooks/useGradeBands'
+import { useReportingPeriodDefault } from '../../hooks/useReportingPeriodDefault'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from './PortalNotice'
 import TeacherSavedMarksExport from './TeacherSavedMarksExport'
@@ -18,6 +19,7 @@ export default function TeacherGradeEntryV2() {
   const [studentId, setStudentId] = useState('')
   const [form, setForm] = useState(() => ({ ...blank(), subject: selectedSubject || '' }))
   const [recordId, setRecordId] = useState('')
+  const [recordTerm, setRecordTerm] = useState('')
   const [markedStudentIds, setMarkedStudentIds] = useState(() => new Set())
   const [loading, setLoading] = useState(true)
   const [loadingRecord, setLoadingRecord] = useState(false)
@@ -25,6 +27,7 @@ export default function TeacherGradeEntryV2() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [showRecordedMarks, setShowRecordedMarks] = useState(false)
+  const reportingPeriod = useReportingPeriodDefault(supabase, profile?.campus, setForm)
   const recordedMarksRef = useRef(null)
   const openRecordedMarks = () => {
     setShowRecordedMarks(true)
@@ -67,6 +70,7 @@ export default function TeacherGradeEntryV2() {
     let active = true
     const reset = () => {
       setRecordId('')
+      setRecordTerm('')
       setShowRecordedMarks(false)
       setForm(value => ({ ...blank(), term: value.term, year: value.year, subject: selectedSubject || '' }))
     }
@@ -81,11 +85,13 @@ export default function TeacherGradeEntryV2() {
       setNotice('')
       const { data, error: requestError } = await supabase
         .from('academic_records')
-        .select('id, term_mark, exam_mark, percentage, score, comment')
+        .select('id, term, term_mark, exam_mark, percentage, score, comment')
         .eq('student_id', learner.id)
         .eq('subject', selectedSubject)
-        .eq('term', form.term)
+        .in('term', [form.term, `Term ${form.term}`])
         .eq('year', Number(form.year))
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
       if (!active) return
       if (requestError) {
@@ -94,6 +100,7 @@ export default function TeacherGradeEntryV2() {
         return
       }
       setRecordId(data?.id || '')
+      setRecordTerm(data?.term || '')
       setShowRecordedMarks(false)
       setForm(value => ({
         ...blank(),
@@ -121,7 +128,7 @@ export default function TeacherGradeEntryV2() {
         .from('academic_records')
         .select('student_id')
         .eq('subject', selectedSubject)
-        .eq('term', form.term)
+        .in('term', [form.term, `Term ${form.term}`])
         .eq('year', Number(form.year))
         .in('student_id', visibleStudentIds)
       if (!active) return
@@ -139,6 +146,9 @@ export default function TeacherGradeEntryV2() {
     if (!learner || !hasSubjectScope || !selectedSubject || !outcome) {
       return setError('Select a learner and enter a valid mark before saving.')
     }
+    if (!reportingPeriod.period) {
+      return setError(reportingPeriod.error || 'There is no open reporting period for your campus. Ask your campus administrator to open one before saving marks.')
+    }
     setSaving(true)
     const payload = {
       student_id: learner.id,
@@ -147,16 +157,15 @@ export default function TeacherGradeEntryV2() {
       term_mark: form.percentage === '' ? null : Number(form.percentage),
       exam_mark: form.exam_mark === '' ? null : Number(form.exam_mark),
       grade: outcome.grade,
-      term: form.term,
+      term: recordId && recordTerm ? recordTerm : form.term,
       year: Number(form.year),
       comment: form.comment || null,
     }
     const wasSaved = Boolean(recordId)
-    const { data, error: requestError } = await supabase
-      .from('academic_records')
-      .upsert(payload, { onConflict: 'student_id,subject,term,year' })
-      .select('id')
-      .single()
+    const request = recordId
+      ? supabase.from('academic_records').update(payload).eq('id', recordId)
+      : supabase.from('academic_records').upsert(payload, { onConflict: 'student_id,subject,term,year' })
+    const { data, error: requestError } = await request.select('id').single()
     setSaving(false)
     if (requestError) return setError(requestError.message || 'The mark could not be saved. Please try again.')
     setRecordId(data?.id || recordId)
@@ -176,6 +185,7 @@ export default function TeacherGradeEntryV2() {
       <h1>Enter {selectedSubject || 'subject'} marks</h1>
       <p>Only your allocated subject is available here. Saved marks remain editable.</p>
     </header>
+    {reportingPeriod.error && <PortalNotice tone="error">{reportingPeriod.error}</PortalNotice>}
     {error && <PortalNotice tone="error">{error}</PortalNotice>}
     {notice && <PortalNotice>{notice}</PortalNotice>}
     {!hasSubjectScope && <PortalNotice tone="error">Choose a subject and form from Subject allocations before entering marks.</PortalNotice>}
@@ -202,7 +212,7 @@ export default function TeacherGradeEntryV2() {
             <label>Exam mark (%) <span className="grade-info" title="The exam mark is used for the final grade when entered.">i</span><input type="number" min="0" max="100" placeholder="Optional" value={form.exam_mark} onChange={change('exam_mark')} disabled={loadingRecord} /></label>
             <label className="wide">Teacher’s comment<textarea placeholder="Add constructive feedback, strengths, or next steps…" value={form.comment} onChange={change('comment')} disabled={loadingRecord} /></label>
           </div>
-          <footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved mark…' : 'Enter the marks and save. You can open the private recorded-mark view to check what was saved.'}</p><div className="grade-action-buttons">{recordId && <button type="button" className="btn subtle" onClick={openRecordedMarks}>Open recorded marks</button>}<button className="btn primary" disabled={saving || loadingRecord || !learner || !hasSubjectScope || !visible.length}>{saving ? 'Saving mark…' : recordId ? `Update ${selectedSubject || 'subject'} mark` : `Save ${selectedSubject || 'subject'} mark`}</button></div></footer>
+          <footer className="grade-form-actions"><p>{loadingRecord ? 'Loading saved mark…' : reportingPeriod.period ? `Current report period: Term ${reportingPeriod.period.term} · ${reportingPeriod.period.academic_year}. Saved marks feed the learner report.` : 'Marks can be saved when your campus has an open reporting period.'}</p><div className="grade-action-buttons">{recordId && <button type="button" className="btn subtle" onClick={openRecordedMarks}>Open recorded marks</button>}<button className="btn primary" disabled={saving || loadingRecord || !learner || !hasSubjectScope || !visible.length || !reportingPeriod.period}>{saving ? 'Saving mark…' : recordId ? `Update ${selectedSubject || 'subject'} mark` : `Save ${selectedSubject || 'subject'} mark`}</button></div></footer>
         </section>
 
         <aside className="subject-progress" aria-live="polite">

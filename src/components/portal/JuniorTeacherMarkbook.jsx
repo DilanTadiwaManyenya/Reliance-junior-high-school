@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calculateGrade } from "../../utils/GradeCalculator";
 import { useGradeBands } from "../../hooks/useGradeBands";
+import { useReportingPeriodDefault } from "../../hooks/useReportingPeriodDefault";
 import { getJuniorReportBook } from "../../utils/CurriculumData";
 import { useAuth } from "../../context/useAuth";
 import PortalNotice from "./PortalNotice";
@@ -54,6 +55,7 @@ export default function JuniorTeacherMarkbook() {
   const [students, setStudents] = useState([]);
   const [studentId, setStudentId] = useState("");
   const [form, setForm] = useState(blank);
+  const reportingPeriod = useReportingPeriodDefault(supabase, 'junior', setForm);
   const [ecdRatings, setEcdRatings] = useState({});
   const [recordId, setRecordId] = useState("");
   const [savedComponentCount, setSavedComponentCount] = useState(0);
@@ -477,6 +479,11 @@ export default function JuniorTeacherMarkbook() {
     event.preventDefault();
     setError("");
     setNotice("");
+    if (!reportingPeriod.period)
+      return setError(
+        reportingPeriod.error ||
+          "There is no open Junior reporting period. Ask the campus administrator to open one before saving marks.",
+      );
     if (!assignedLevels.includes(classLevel) || !learner || !selectionReady)
       return setError(
         "Choose your class, learner, and report-book item first.",
@@ -671,6 +678,9 @@ export default function JuniorTeacherMarkbook() {
         <h1>{heading}</h1>
         <p>{description}</p>
       </header>
+      {reportingPeriod.error && (
+        <PortalNotice tone="error">{reportingPeriod.error}</PortalNotice>
+      )}
       {error && <PortalNotice tone="error">{error}</PortalNotice>}
       {notice && <PortalNotice>{notice}</PortalNotice>}
       {!assignedLevels.length && (
@@ -1156,7 +1166,7 @@ export default function JuniorTeacherMarkbook() {
                 <button
                   className="btn primary"
                   disabled={
-                    saving || loadingRecord || !learner || !selectionReady || (isEcd && !ecdChecklistComplete)
+                    saving || loadingRecord || !learner || !selectionReady || !reportingPeriod.period || (isEcd && !ecdChecklistComplete)
                   }
                 >
                   {saving

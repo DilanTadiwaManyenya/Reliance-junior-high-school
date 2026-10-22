@@ -101,7 +101,9 @@ if(params.has('expenseControls')) {db.school_expenses[0].status='approved';db.sc
 if(params.has('operationsLarge')) db.school_expenses=Array.from({length:1007},(_,i)=>({...db.school_expenses[0],id:'expense-'+String(i).padStart(5,'0'),supplier:i===0?' =SUM(1,2)':'Supplier',receipt_reference:'0000123',amount:1.25}));
 if(params.has('academicLarge')) db.academic_records=Array.from({length:1007},(_,i)=>({id:'mark-'+i,student_id:'learner-0',year:2026,term:'3',subject:'Subject '+String(i).padStart(4,'0'),score:i===0?0:75,percentage:null,exam_mark:i===0?0:75,comment:i===0?' =SUM(1,2)':'Saved comment'}));
 if(params.has('academicTeacher')) db.academic_records=[{id:'own-mark',student_id:'learner-0',year:2026,term:'3',subject:'Combined Science',score:0,term_mark:0,exam_mark:null,grade:'U'}, {id:'other-subject',student_id:'learner-0',year:2026,term:'3',subject:'Mathematics',score:90},{id:'other-campus',student_id:'learner-1',year:2026,term:'3',subject:'Combined Science',score:99}];
-window.fixtureWrites = []
+if(params.has('academicTeacher')) db.grade_bands=['primary','olevel','alevel'].map(band_group=>({band_group,minimum_score:0,maximum_score:100,grade:'A',points:5,description:'Fixture grade'}));
+if(params.has('legacyAcademicTerm')) { const row=db.academic_records.find(item=>item.student_id==='learner-0'&&item.subject==='Combined Science'); if(row)row.term='Term 3' }
+window.fixtureActiveRole = role; window.fixtureWrites = []
 window.fixtureRegisterError=params.has('registerError')
 window.fixtureRegisterRequests=[]
 window.fixtureReportError = params.has('reportError')
@@ -123,14 +125,26 @@ function query(table) {
       let data = (db[table] || []).map(row => projection.includes('students!inner') ? {...row,students:db.students.find(s => s.id===row.student_id)} : row).filter(row => filters.every(filter => filter(row)))
       if(params.has('operationsError') && window.fixtureOperationsError !== false && ['school_expenses','fee_payments'].includes(table)) return Promise.resolve({data:null,error:{message:'Synthetic export connection failure'}}).then(resolve,reject)
       if(table==='portal_security_settings'&&params.has('mfaSettingsError'))return Promise.resolve({data:null,error:{message:'Synthetic requirements unavailable'}}).then(resolve,reject)
-      if(table==='report_period_contexts') data=data.filter(row=>role==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||row.campus===campus))
+      if(table==='report_period_contexts') { const currentRole=window.fixtureActiveRole||role; data=data.filter(row=>currentRole==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(currentRole)&&(campus==='all'&&currentRole!=='accountant'||row.campus===campus)) }
       if(table==='school_expenses'&&params.has('expenseControls')&&role==='accountant')data=data.filter(row=>row.campus===campus)
       data=data.slice(start,end+1)
       if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if(table==='financial_events' && window.fixtureFinancialError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if (table === 'academic_records' && window.fixtureParentError) return Promise.resolve({ data: null, error: { message: 'Synthetic learner records unavailable' } }).then(resolve, reject)
       if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
-      if (operation !== 'select') { window.fixtureWrites.push({ table, operation, payload }); data = [{ id: 'created', ...payload }] }
+      if (operation !== 'select') {
+        window.fixtureWrites.push({ table, operation, payload })
+        if (table === 'academic_records') {
+          const existing = operation === 'update'
+            ? (db[table] || []).find(row => filters.every(filter => filter(row)))
+            : operation === 'upsert'
+              ? (db[table] || []).find(row => row.student_id === payload.student_id && row.subject === payload.subject && row.term === payload.term && Number(row.year) === Number(payload.year))
+              : null
+          if (existing) Object.assign(existing, payload)
+          else { const created = { id: `created-${window.fixtureWrites.length}`, created_at: today, ...payload }; db[table].push(created); data = [created] }
+          if (existing) data = [existing]
+        } else data = [{ id: 'created', ...payload }]
+      }
       return Promise.resolve({ data: single ? data[0] || null : data, error: null, count: data.length }).then(resolve, reject)
     },
   }
@@ -181,7 +195,8 @@ const supabase = {
     if(name==='read_report_period') {
       window.fixtureReportCalls.push(payload)
       const c=db.report_period_contexts.find(row=>row.student_id===payload.p_student&&row.academic_year===payload.p_year&&row.term===payload.p_term)
-      const permitted=c&&(role==='parent'?db.parent_student.some(link=>link.student_id===c.student_id&&link.verified_at):['admin','principal','accountant'].includes(role)&&(campus==='all'&&role!=='accountant'||campus===c.campus))
+      const currentRole=window.fixtureActiveRole||role
+      const permitted=c&&(currentRole==='parent'?db.parent_student.some(link=>link.student_id===c.student_id&&link.verified_at):['admin','principal','accountant'].includes(currentRole)&&(campus==='all'&&currentRole!=='accountant'||campus===c.campus))
       const match=row=>row.student_id===payload.p_student&&Number(row.year||row.academic_year||new Date(row.created_at||Date.now()).getFullYear())===payload.p_year&&String(row.term).replace('Term ','')===String(payload.p_term)
       const result=window.fixtureReportError||!permitted?{data:null,error:{message:'Synthetic unavailable historical report'}}:{data:{context:c,academics:db.academic_records.filter(match),componentMarks:(db.junior_component_marks||[]).filter(match),developmentalRatings:(db.junior_developmental_ratings||[]).filter(match),reportComments:(db.report_card_comments||[]).filter(match),attendance:db.attendance.filter(row=>row.student_id===payload.p_student),sports:db.sports_records.filter(match),awards:db.student_awards.filter(match),fees:db.fee_balances.filter(row=>row.student_id===payload.p_student),termSettings:db.term_settings,reportFees:db.report_term_fee_settings},error:null}
       return {abortSignal(){return this},then(resolve,reject){return Promise.resolve(result).then(resolve,reject)}}
@@ -263,7 +278,7 @@ const initialRoute = params.get('route') || `${paths[role]}?${search}`
 function RouteObserver() { const route = useLocation(); useEffect(() => { window.fixtureRoute = route.pathname + route.search }, [route]); return null }
 export default function PortalFixture() {
   const [activeRole, setActiveRole] = useState(role)
-  const value = { user: { id: staffId }, session: { user: { id: staffId } }, profile: { ...profile, active_role: activeRole }, activeRole, roles: params.has('multi') ? [role, role === 'admin' ? 'teacher' : 'admin'] : [role], loading: false, supabase, signOut: async () => {}, refreshProfile: async () => profile, setActiveRole: async role => { if (params.has('roleError')) throw new Error('Fixture role switch failed'); setActiveRole(role) } }
+  const value = { user: { id: staffId }, session: { user: { id: staffId } }, profile: { ...profile, active_role: activeRole }, activeRole, roles: params.has('multi') ? [role, role === 'admin' ? 'teacher' : 'admin'] : [role], loading: false, supabase, signOut: async () => {}, refreshProfile: async () => profile, setActiveRole: async role => { if (params.has('roleError')) throw new Error('Fixture role switch failed'); window.fixtureActiveRole=role; setActiveRole(role) } }
   return <MemoryRouter initialEntries={[initialRoute]}><AuthContext.Provider value={value}><RouteObserver /><App /></AuthContext.Provider></MemoryRouter>
 }
 createRoot(document.getElementById('root')).render(<PortalFixture />)
