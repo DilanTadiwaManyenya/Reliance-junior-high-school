@@ -33,7 +33,7 @@ test('parent account support returns only each assigned campus and keeps unmatch
       create schema auth;
       create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.user_id', true), '')::uuid $$;
       create table public.profiles(id uuid primary key, full_name text, role text, active_role text, campus text);
-      create table public.students(id uuid primary key, full_name text, admission_number text, class_level text, class_stream text, campus text);
+      create table public.students(id uuid primary key, full_name text, admission_number text, date_of_birth date, class_level text, class_stream text, campus text);
       create table public.parent_accounts(user_id uuid primary key, phone_number text, child_admission_number text, verified boolean, verified_at timestamptz);
       create table public.parent_student(parent_id uuid, student_id uuid);
       alter table public.parent_accounts enable row level security;
@@ -45,6 +45,8 @@ test('parent account support returns only each assigned campus and keeps unmatch
     `)
     const migration = await readFile(new URL('../supabase/migrations/20261022180000_parent_account_support.sql', import.meta.url), 'utf8')
     await db.exec(migration)
+    const detailsMigration = await readFile(new URL('../supabase/migrations/20261022200000_parent_signin_registration_details.sql', import.meta.url), 'utf8')
+    await db.exec(detailsMigration)
     await db.exec(`
       insert into profiles values
         ('11111111-1111-4111-8111-111111111111','Main Admin','admin','admin','all'),
@@ -55,14 +57,16 @@ test('parent account support returns only each assigned campus and keeps unmatch
         ('66666666-6666-4666-8666-666666666666','Junior Parent','parent','parent','junior'),
         ('77777777-7777-4777-8777-777777777777','Unmatched Parent','parent','parent','all');
       insert into students values
-        ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Senior Learner','26f601','Form 1','Blue','senior'),
-        ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','Junior Learner','26eA01','ECD A',null,'junior');
+        ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Senior Learner','26f601','2010-06-15','Form 1','Blue','senior'),
+        ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','Junior Learner','26eA01','2020-02-03','ECD A',null,'junior'),
+        ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Second Senior Learner','26f602','2011-07-16','Form 1','Blue','senior');
       insert into parent_accounts values
         ('55555555-5555-4555-8555-555555555555','+263771111111','26F601',true,now()),
         ('66666666-6666-4666-8666-666666666666','+263772222222','26eA01',true,now()),
         ('77777777-7777-4777-8777-777777777777','+263773333333','NO-LEARNER',false,null);
       insert into parent_student values
         ('55555555-5555-4555-8555-555555555555','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+        ('55555555-5555-4555-8555-555555555555','cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
         ('66666666-6666-4666-8666-666666666666','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
     `)
     const accountsFor = async id => {
@@ -75,9 +79,12 @@ test('parent account support returns only each assigned campus and keeps unmatch
     const senior = await accountsFor('22222222-2222-4222-8222-222222222222')
     assert.equal(senior.length, 1)
     assert.equal(senior[0].learner_name, 'Senior Learner')
+    assert.equal(new Date(senior[0].learner_date_of_birth).toISOString().slice(0, 10), '2010-06-15')
+    assert.equal(senior[0].child_admission_number, '26F601')
     const junior = await accountsFor('33333333-3333-4333-8333-333333333333')
     assert.equal(junior.length, 1)
     assert.equal(junior[0].learner_name, 'Junior Learner')
+    assert.equal(new Date(junior[0].learner_date_of_birth).toISOString().slice(0, 10), '2020-02-03')
     await db.query('select set_config($1,$2,false)', ['test.user_id', '44444444-4444-4444-8444-444444444444'])
     await assert.rejects(db.query('select * from public.parent_account_support()'), /Parent account support access required/)
   } finally {

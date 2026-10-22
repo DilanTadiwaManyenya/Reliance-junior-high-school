@@ -5,6 +5,11 @@ import PortalNotice from './PortalNotice'
 import { invokeEdgeFunction } from '../../lib/edgeFunction'
 import { logActivity } from '../../lib/logActivity'
 
+const displayBirthDate = value => {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : 'Not available'
+}
+
 export default function ParentAccountSupport({ supabase, user, profile }) {
   const [accounts, setAccounts] = useState([])
   const [query, setQuery] = useState('')
@@ -59,9 +64,24 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
     {error && <PortalNotice tone="error">{error}</PortalNotice>}
     {notice && <PortalNotice>{notice}</PortalNotice>}
     {selected && <Card className="parent-account-reset-card">
+      <section aria-labelledby="parent-signin-help-title">
+        <h2 id="parent-signin-help-title">Help with parent sign-in</h2>
+        <p>Share these details privately. A parent registers with their name, phone number, a password they choose, and the learner’s admission number and date of birth.</p>
+        <dl className="parent-signin-details">
+          <div><dt>Parent name</dt><dd>{selected.parent_name || 'Not recorded'}</dd></div>
+          <div><dt>Parent login phone</dt><dd>{selected.phone_number || 'Not recorded'}</dd></div>
+          <div><dt>Learner name</dt><dd>{selected.learner_name || 'Learner record not found'}</dd></div>
+          <div><dt>Admission number</dt><dd>{selected.child_admission_number || 'Not available'}</dd></div>
+          <div><dt>Learner date of birth</dt><dd>{displayBirthDate(selected.learner_date_of_birth)}</dd></div>
+          <div><dt>Class and stream</dt><dd>{selected.class_level ? `${selected.class_level}${selected.class_stream ? ` · ${selected.class_stream}` : ''}` : 'Not available'}</dd></div>
+          <div><dt>Campus</dt><dd>{selected.campus ? `${selected.campus === 'junior' ? 'Junior' : 'Senior'} School` : 'Not available'}</dd></div>
+          <div><dt>Account status</dt><dd>{selected.verified ? 'Verified' : 'Needs verification'}</dd></div>
+        </dl>
+        <p className="muted">To sign in, use the parent phone number above and the password they set. Existing passwords cannot be viewed by school staff.</p>
+      </section>
       <form className="form" onSubmit={resetPassword}>
-        <h2>Reset parent password</h2>
-        <p>For {selected.parent_name || selected.phone_number} · {selected.learner_name || selected.child_admission_number}</p>
+        <h3>Forgotten password?</h3>
+        <p>Set a temporary password for {selected.parent_name || selected.phone_number}.</p>
         <label>Temporary password<input type="password" autoComplete="new-password" minLength={8} value={password} onChange={event => setPassword(event.target.value)} required /></label>
         <p className="muted">Use a password of at least 8 characters. Give it to the parent privately; they must replace it when they sign in.</p>
         <div className="portal-action-row"><Button type="submit" disabled={saving || password.length < 8}>{saving ? 'Resetting…' : 'Set temporary password'}</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => { setSelected(null); setPassword('') }}>Cancel</Button></div>

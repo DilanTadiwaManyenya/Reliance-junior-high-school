@@ -80,6 +80,13 @@
 .parent-account-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; align-items: center; gap: 12px; min-width: 0; padding: 14px; border: 1px solid #dce5f0; border-radius: 12px; background: #fff; }
 .parent-account-identity, .parent-account-learner { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .parent-account-identity span, .parent-account-learner span, .parent-account-learner small { color: #64748b; }
+.parent-account-reset-card { display: grid; gap: 20px; }
+.parent-account-reset-card > section { display: grid; gap: 10px; }
+.parent-account-reset-card > section > :is(h2, p) { margin: 0; }
+.parent-signin-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; margin: 0; }
+.parent-signin-details > div { min-width: 0; padding: 10px 12px; border: 1px solid #dce5f0; border-radius: 9px; background: #f8faff; }
+.parent-signin-details dt { color: #64748b; font-size: .8rem; font-weight: 700; }
+.parent-signin-details dd { margin: 3px 0 0; overflow-wrap: anywhere; font-weight: 650; }
 .parent-account-reset-card .form { max-width: 560px; }
 @media (max-width: 700px) {
   .parent-account-toolbar { align-items: stretch; }
