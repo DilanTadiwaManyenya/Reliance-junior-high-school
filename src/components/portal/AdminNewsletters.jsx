@@ -5,7 +5,7 @@ import { LEARNING_FILE_ACCEPT, validateLearningFile } from '../../lib/learningLi
 import { newsletterDates, newsletterRequest, schoolDateInput, uploadNewsletterFile } from '../../lib/schoolNewsletters'
 import './schoolNewsletters.css'
 
-const levels = campus => campus === 'junior' ? ['ECD A', 'ECD B', ...Array.from({ length: 7 }, (_, i) => `Grade ${i + 1}`)] : [...Array.from({ length: 4 }, (_, i) => `Form ${i + 1}`), 'Lower Six', 'Upper Six', 'Form 5', 'Form 6']
+const levels = campus => campus === 'junior' ? ['ECD A', 'ECD B', ...Array.from({ length: 7 }, (_, i) => `Grade ${i + 1}`)] : [...Array.from({ length: 4 }, (_, i) => `Form ${i + 1}`), 'Lower Six', 'Upper Six']
 const targetFor = campus => ({ campus, class_level: '', class_stream: '' })
 
 function NewsletterEditor({ row, onClose, onSaved }) {

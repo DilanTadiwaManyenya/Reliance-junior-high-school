@@ -1,3 +1,4 @@
+import { canonicalizeClassLevel } from '../../data/classOptions'
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {supabase as fallback} from '../../lib/supabaseClient'
 import {useSchoolClasses} from '../../hooks/useSchoolClasses'
@@ -15,9 +16,9 @@ export default function BulkLearnerExport({supabase:provided,campusScope='all'})
  const isCampusScoped=['junior','senior'].includes(campusScope)
  const effectiveCampus=isCampusScoped?campusScope:campus
  const visibleClasses=useMemo(()=>isCampusScoped?classes.filter(c=>c.campus===campusScope):classes,[classes,campusScope,isCampusScoped])
- const levels=[...new Set(visibleClasses.map(c=>c.class_level))]
+ const levels=[...new Set(visibleClasses.map(c=>canonicalizeClassLevel(c.class_level)))]
  const effectiveLevel=levels.includes(level)?level:levels[0]||''
- const streams=[...new Set(visibleClasses.filter(c=>c.class_level===effectiveLevel).map(c=>c.class_stream).filter(Boolean))]
+ const streams=[...new Map(visibleClasses.filter(c=>canonicalizeClassLevel(c.class_level)===effectiveLevel).map(c=>c.class_stream).filter(Boolean).map(stream=>[stream.trim().toLowerCase(),stream.trim()])).values()]
  const effectiveStream=streams.includes(stream)?stream:streams[0]||''
  const availableScopes=isCampusScoped?scopes.filter(s=>s.id!=='all'&&!(campusScope==='junior'&&s.id==='stream')):scopes
  const filters={scope,campus:isCampusScoped||scope==='campus'?effectiveCampus:null,level:['class','stream'].includes(scope)?effectiveLevel:null,stream:scope==='stream'?effectiveStream:null}

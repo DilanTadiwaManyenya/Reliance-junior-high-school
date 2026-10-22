@@ -17,7 +17,7 @@
     "test:portal-staff-mobile": "node tests/portal-staff-mobile.browser.mjs && node tests/portal-admin-mobile.browser.mjs",
     "test:portal-navigation": "node tests/portal-navigation.browser.mjs && node tests/portal-account-navigation.browser.mjs && node tests/portal-text-zoom.browser.mjs",
     "test:teacher-mobile": "node tests/teacher-mobile.browser.mjs && node tests/teacher-draft.browser.mjs && node tests/teacher-history-draft.browser.mjs",
-    "test:portal": "node --test tests/portal-profile.test.mjs tests/portal-redirect.test.mjs tests/portal-render.test.mjs tests/teacher-access.test.mjs",
+    "test:portal": "node --test tests/portal-profile.test.mjs tests/portal-redirect.test.mjs tests/portal-render.test.mjs tests/teacher-access.test.mjs tests/teacher-allocation-scope.test.mjs",
     "test:finance-reconciliation": "node --test tests/finance-reconciliation.test.mjs",
     "test:shop:campus": "node --test tests/shop-database.test.mjs tests/shop-catalog-database.test.mjs tests/shop-campus-admin.test.mjs tests/shop-campus-pos.test.mjs tests/shop-parent-campus.test.mjs",
     "test:shop:browser": "node tests/shop-campus-acceptance.browser.mjs",
@@ -37,7 +37,7 @@
     "test:historical-reports": "node --test tests/historical-reports.test.mjs && node tests/historical-reports.browser.mjs",
     "test:rollover-workflow": "node --test tests/year-rollover-workflow.test.mjs && node tests/year-rollover-workflow.browser.mjs",
     "test:reporting-periods": "node --test tests/reporting-periods.test.mjs && node tests/reporting-periods.browser.mjs",
-    "test:learner-export": "node --test tests/learner-register-export.test.mjs && node tests/learner-register-export.browser.mjs",
+    "test:learner-export": "node --test tests/learner-register-export.test.mjs tests/class-options.test.mjs && node tests/learner-register-export.browser.mjs",
     "test:operations-export": "node --test tests/operations-export.test.mjs && node tests/operations-export.browser.mjs && node tests/operations-export-print.browser.mjs",
     "test:academic-export": "node --test tests/academic-export.test.mjs && node tests/academic-export.browser.mjs && node tests/academic-teacher-export.browser.mjs"
   },

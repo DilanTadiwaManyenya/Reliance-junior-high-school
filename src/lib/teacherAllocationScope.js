@@ -1,6 +1,7 @@
+import { canonicalizeClassLevel } from '../data/classOptions.js'
 export function matchesTeacherSubjectAllocation(student, allocation) {
   if (!student || !allocation) return false
-  if (student.class_level !== allocation.class_level) return false
+  if (canonicalizeClassLevel(student.class_level) !== canonicalizeClassLevel(allocation.class_level)) return false
   if (allocation.campus && student.campus !== allocation.campus) return false
 
   const assignedStream = String(allocation.class_stream || '').trim()

@@ -1,3 +1,4 @@
+import { canonicalizeClassLevel } from '../../data/classOptions'
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import OperationsExports from './OperationsExports';
 import { useReceiptPrint } from '../../hooks/useReceiptPrint';
@@ -360,15 +361,15 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const learnerClassOptions = useMemo(() => {
     const classes = new Map();
     learners.forEach((learner) => {
-      const level = learner.class_level || "Unassigned";
+      const level = learner.class_level ? canonicalizeClassLevel(learner.class_level) : "Unassigned";
       const stream = learner.class_stream || "";
-      const key = `${level}::${stream}`;
+      const key = `${level}::${stream.trim().toLowerCase()}`;
       classes.set(key, { key, label: `${level} ${stream}`.trim() });
     });
     return [...classes.values()].sort((a, b) => a.label.localeCompare(b.label));
   }, [learners]);
   const visibleLearners = learnerClass
-    ? learners.filter((learner) => `${learner.class_level || "Unassigned"}::${learner.class_stream || ""}` === learnerClass)
+    ? learners.filter((learner) => `${learner.class_level ? canonicalizeClassLevel(learner.class_level) : "Unassigned"}::${(learner.class_stream || "").trim().toLowerCase()}` === learnerClass)
     : learners;
   const selectLearner = (id) => {
     setLearnerId(id);

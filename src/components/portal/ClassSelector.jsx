@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { canonicalizeClassLevel } from '../../data/classOptions'
+import { canonicalizeClassLevel, CLASS_LEVELS } from '../../data/classOptions'
 
 const SESSION_KEY = 'reliance_active_portal_class'
 
@@ -46,12 +46,20 @@ export default function ClassSelector({
   const sessionKey = `${SESSION_KEY}:${storageScope}:${role}:${campusScope}`
   const isTeacher = role === 'teacher'
   const isCampusLocked = ['junior', 'senior'].includes(campusScope)
+  const canonicalAdminKey = (key) => {
+    if (!key || key === 'ALL') return key
+    const normalizedKey = String(key).trim().replace(/\s+/g, ' ')
+    const directLevel = canonicalizeClassLevel(normalizedKey)
+    if (CLASS_LEVELS.includes(directLevel)) return directLevel
+    const { level, stream } = parseClassKey(normalizedKey)
+    const canonicalLevel = canonicalizeClassLevel(level)
+    return stream ? `${canonicalLevel}:${stream.trim().toLowerCase()}` : canonicalLevel
+  }
   const canonicalTeacherKey = (key) => {
     if (!key) return ''
     const { level, stream } = parseClassKey(key)
-    return level ? `${canonicalizeClassLevel(level)}:${stream || ''}` : ''
+    return level ? `${canonicalizeClassLevel(level)}:${(stream || '').trim().toLowerCase()}` : ''
   }
-
   // Formatted teacher class options
   const teacherOptions = useMemo(() => {
     if (!isTeacher) return []
@@ -59,7 +67,7 @@ export default function ClassSelector({
       const level = canonicalizeClassLevel(c.class_level)
       const stream = String(c.class_stream || '').trim()
       return {
-        key: `${level}:${stream}`,
+        key: `${level}:${stream.toLowerCase()}`,
         label: `${level} ${stream}`.trim(),
         level,
         stream: stream || null
@@ -90,9 +98,10 @@ export default function ClassSelector({
         level = String(c)
         stream = null
       }
-      
+      level = canonicalizeClassLevel(level)
+      stream = String(stream || '').trim() || null
       return {
-        key: stream ? `${level}:${stream}` : level,
+        key: stream ? `${level}:${stream.toLowerCase()}` : level,
         label: `${level} ${stream || ''}`.trim(),
         level,
         stream,
@@ -146,7 +155,7 @@ export default function ClassSelector({
           if (activeClassKey !== 'ALL') onClassChange('ALL')
         } else {
           // If the stored value doesn't match the current filter, switch to 'ALL'
-          const directMatch = adminOptions.find(o => o.key === stored)
+          const directMatch = adminOptions.find(o => o.key === canonicalAdminKey(stored))
           if (directMatch) {
             if (activeClassKey !== directMatch.key) onClassChange(directMatch.key)
           } else {

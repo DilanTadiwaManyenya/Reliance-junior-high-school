@@ -4,6 +4,7 @@ import DateOfBirthInput from "../ui/DateOfBirthInput";
 import Card from "../ui/Card";
 import PortalNotice from "./PortalNotice";
 import { getSubjectsByGradeStream } from "../../utils/CurriculumData";
+import { canonicalizeClassLevel } from "../../data/classOptions";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const blankClass = { class_level: "", class_stream: "", campus: "junior", capacity: "50" };
@@ -14,7 +15,20 @@ const blankLearner = {
   enrolled_year: new Date().getFullYear(),
 };
 const classLabel = (row) =>
-  `${row.class_level}${row.class_stream ? ` · ${row.class_stream}` : ""}`;
+  `${canonicalizeClassLevel(row.class_level)}${row.class_stream ? ` · ${row.class_stream}` : ""}`;
+const uniqueClassRows = (rows) => {
+  const sorted = [...rows].sort((left, right) =>
+    Number(right.class_level === canonicalizeClassLevel(right.class_level)) - Number(left.class_level === canonicalizeClassLevel(left.class_level))
+    || Number(right.active) - Number(left.active)
+    || String(left.id).localeCompare(String(right.id)),
+  )
+  const byStream = new Map()
+  sorted.forEach((row) => {
+    const key = (row.class_stream || '').trim().toLowerCase()
+    if (!byStream.has(key)) byStream.set(key, row)
+  })
+  return [...byStream.values()]
+}
 const classLevelRank = (level) => {
   const normalized = String(level || "").trim().toLowerCase();
   if (normalized === "ecd a") return 1;
@@ -53,19 +67,19 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
   const displayedClasses = showInactive ? classes : classes.filter((row) => row.active);
   const query = new URLSearchParams(location.search);
   const permittedCampuses = campusScope === "all" ? ["junior", "senior"] : [campusScope];
-  const selectedLevel = query.get("classLevel") || "";
+  const selectedLevel = canonicalizeClassLevel(query.get("classLevel") || "");
   const requestedCampus = query.get("campus") || "";
   const selectedCampus = permittedCampuses.includes(requestedCampus) ? requestedCampus : "";
   const selectedStreamId = query.get("stream") || "";
   const selectedView = query.get("view") || "register";
-  const classPageRows = displayedClasses.filter((row) => row.class_level === selectedLevel && row.campus === selectedCampus);
-  const selectedStream = classPageRows.find((row) => row.id === selectedStreamId) || null;
+  const classPageRows = uniqueClassRows(displayedClasses.filter((row) => canonicalizeClassLevel(row.class_level) === selectedLevel && row.campus === selectedCampus));
+  const selectedStream = classPageRows.find((row) => row.id === selectedStreamId) || displayedClasses.find((row) => row.id === selectedStreamId && canonicalizeClassLevel(row.class_level) === selectedLevel && row.campus === selectedCampus) || null;
   const campusTeachers = selectedStream
     ? staffProfiles.filter((teacher) => teacher.campus === selectedStream.campus)
     : staffProfiles;
   const workspaceStudents = selectedStream
     ? students.filter((row) =>
-        row.class_level === selectedStream.class_level &&
+        canonicalizeClassLevel(row.class_level) === canonicalizeClassLevel(selectedStream.class_level) &&
         row.campus === selectedStream.campus &&
         (row.class_stream || "") === (selectedStream.class_stream || ""),
       )
@@ -78,18 +92,19 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
   const classLevelGroups = campusGroups.map((group) => ({
     ...group,
     levels: Array.from(group.classes.reduce((levels, row) => {
-      const existing = levels.get(row.class_level) || { level: row.class_level, rows: [] };
+      const level = canonicalizeClassLevel(row.class_level);
+      const existing = levels.get(level) || { level, rows: [] };
       existing.rows.push(row);
-      levels.set(row.class_level, existing);
+      levels.set(level, existing);
       return levels;
-    }, new Map()).values()).sort((left, right) => compareClassLevels(left.level, right.level)),
+    }, new Map()).values()).map((item) => ({ ...item, rows: uniqueClassRows(item.rows) })).sort((left, right) => compareClassLevels(left.level, right.level)),
   }));
   const classStudents = useMemo(
     () =>
       selectedClass
         ? students.filter(
             (row) =>
-              row.class_level === selectedClass.class_level &&
+              canonicalizeClassLevel(row.class_level) === canonicalizeClassLevel(selectedClass.class_level) &&
               (row.class_stream || "") === (selectedClass.class_stream || ""),
           )
         : [],
@@ -100,7 +115,7 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
   ).length;
   const activeLearnersForClass = (classRow) => students.filter(
     (student) => student.status === "active"
-      && student.class_level === classRow.class_level
+      && canonicalizeClassLevel(student.class_level) === canonicalizeClassLevel(classRow.class_level)
       && (student.class_stream || "") === (classRow.class_stream || ""),
   ).length;
   const capacityStatus = (classRow) => {
@@ -116,7 +131,7 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
     // Grade 5 teacher therefore covers Grade 5 Blue (and any future stream).
     // Senior allocations remain specific to both level and stream.
     const matches = teacherAssignments.filter((item) =>
-      item.class_level === classRow.class_level &&
+      canonicalizeClassLevel(item.class_level) === canonicalizeClassLevel(classRow.class_level) &&
       item.campus === classRow.campus &&
       (classRow.campus === "junior" ||
         (item.class_stream || "") === (classRow.class_stream || "")),
@@ -138,7 +153,7 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
       classRow.class_stream || (classRow.campus === "junior" ? "Blue" : ""),
     );
     const assigned = subjectAssignments.filter((item) =>
-      item.class_level === classRow.class_level &&
+      canonicalizeClassLevel(item.class_level) === canonicalizeClassLevel(classRow.class_level) &&
       item.campus === classRow.campus &&
       (classRow.campus === "junior" || !item.class_stream || item.class_stream === classRow.class_stream),
     );
@@ -283,7 +298,7 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
     if (!selectedStream) return;
     const teacherId = new FormData(event.currentTarget).get("teacherId");
     if (teacherId && !campusTeachers.some((teacher) => teacher.id === teacherId)) return setError("Choose a teacher assigned to this campus.");
-    const scope = { class_level: selectedStream.class_level, class_stream: selectedStream.class_stream || "", campus: selectedStream.campus };
+    const scope = { class_level: canonicalizeClassLevel(selectedStream.class_level), class_stream: selectedStream.class_stream || "", campus: selectedStream.campus };
     const { error: removeError } = await supabase.from("teacher_class_assignments").delete().match(scope);
     if (removeError) return setError(removeError.message);
     if (teacherId) {
@@ -299,8 +314,8 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
     if (!selectedStream) return;
     const teacherId = new FormData(event.currentTarget).get("teacherId");
     if (teacherId && !campusTeachers.some((teacher) => teacher.id === teacherId)) return setError("Choose a teacher assigned to this campus.");
-    const scope = { class_level: selectedStream.class_level, class_stream: selectedStream.class_stream || "", campus: selectedStream.campus };
-    const existing = subjectAssignments.filter((item) => item.class_level === scope.class_level && item.class_stream === scope.class_stream && item.campus === scope.campus && subjectKey(item.subject) === subjectKey(subject));
+    const scope = { class_level: canonicalizeClassLevel(selectedStream.class_level), class_stream: selectedStream.class_stream || "", campus: selectedStream.campus };
+    const existing = subjectAssignments.filter((item) => canonicalizeClassLevel(item.class_level) === scope.class_level && item.class_stream === scope.class_stream && item.campus === scope.campus && subjectKey(item.subject) === subjectKey(subject));
     if (existing.length) {
       const { error: removeError } = await supabase.from("teacher_class_subject_assignments").delete().in("id", existing.map((item) => item.id));
       if (removeError) return setError(removeError.message);
@@ -623,7 +638,7 @@ export default function ClassManager({ supabase, onChanged, campusScope = "all" 
               <h2>Classes</h2>
               <p>Select a class to view learners or make changes.</p>
             </div>
-            <div className="portal-action-row"><span className="class-manager-count">{displayedClasses.length} {showInactive ? 'total' : 'active'}</span><Button type="button" variant="secondary" onClick={() => setShowInactive((value) => !value)}>{showInactive ? 'Hide inactive' : 'Show inactive'}</Button></div>
+            <div className="portal-action-row"><span className="class-manager-count">{classLevelGroups.reduce((total, group) => total + group.levels.reduce((levelTotal, level) => levelTotal + level.rows.length, 0), 0)} {showInactive ? 'total' : 'active'}</span><Button type="button" variant="secondary" onClick={() => setShowInactive((value) => !value)}>{showInactive ? 'Hide inactive' : 'Show inactive'}</Button></div>
           </div>
           <section className="class-campus-overview" aria-label="Browse classes by campus, level and stream">
             {classLevelGroups.map((group) => (

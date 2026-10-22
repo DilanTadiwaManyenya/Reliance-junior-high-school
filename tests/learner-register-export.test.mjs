@@ -23,7 +23,7 @@ test('Register export returns complete snapshots under existing administrator ca
   await db.exec(`insert into students(id,full_name,admission_number,campus,class_level,class_stream,status)
    select md5('learner-'||n)::uuid,'Learner '||n,lpad(n::text,8,'0'),case when n<=2 then 'junior' else 'senior' end,
    case when n<=2 then 'Grade 1' else 'Form 1' end,case when n%2=0 then 'Blue' else 'Green' end,case when n=1 then 'inactive' else 'active' end from generate_series(1,1007)n`)
-  const migration=await read('supabase/migrations/20261020100000_learner_register_export.sql');await db.exec(migration)
+  const migration=await read('supabase/migrations/20261022150000_canonical_class_labels_across_portal.sql');await db.exec(migration)
   const before=(await db.query('select md5(jsonb_agg(to_jsonb(s) order by id)::text) hash from students s')).rows[0].hash
   const act=async(n,aal='aal1',role='authenticated')=>{await db.exec('reset role');await db.query("select set_config('test.uid',$1,false),set_config('test.aal',$2,false)",[n?id(n):'',aal]);await db.exec('set role '+role)}
   const exportRows=(scope,campus=null,level=null,stream=null)=>db.query('select export_learner_register($1,$2,$3,$4) r',[scope,campus,level,stream])
@@ -36,9 +36,14 @@ test('Register export returns complete snapshots under existing administrator ca
   for(const n of [4,5,6,7]){await act(n);await assert.rejects(exportRows('all'),/Administrator access/)}
   await act(8);await assert.rejects(exportRows('all'),/Main Admin/)
   await act(0,'aal1','anon');await assert.rejects(exportRows('all'),/permission denied/)
-  await db.exec('reset role');assert.equal((await db.query('select md5(jsonb_agg(to_jsonb(s) order by id)::text) hash from students s')).rows[0].hash,before)
-  await db.exec('update portal_security_settings set require_admin_mfa=true');await act(1);await assert.rejects(exportRows('all'),/Administrator access/)
-  await act(1,'aal2');assert.equal((await exportRows('all')).rows[0].r.count,1007)
+    await db.exec('reset role');assert.equal((await db.query('select md5(jsonb_agg(to_jsonb(s) order by id)::text) hash from students s')).rows[0].hash,before)
+  await db.exec(`insert into students(id,full_name,admission_number,campus,class_level,class_stream,status) values
+   (md5('legacy-lower-six')::uuid,'Legacy Lower Six','LEGACY-L6','senior','Form 5','Commercials','active'),
+   (md5('canonical-lower-six')::uuid,'Canonical Lower Six','CANONICAL-L6','senior','Lower Six','Commercials','active')`)
+  await act(1,'aal2');const lowerSix=(await exportRows('stream','senior','Lower Six','Commercials')).rows[0].r
+  assert.equal(lowerSix.count,2);assert.equal(lowerSix.level,'Lower Six');assert.deepEqual(lowerSix.learners.map(row=>row.full_name).sort(),['Canonical Lower Six','Legacy Lower Six'])
+  await db.exec('reset role');await db.exec('update portal_security_settings set require_admin_mfa=true');await act(1);await assert.rejects(exportRows('all'),/Administrator access/)
+  await act(1,'aal2');assert.equal((await exportRows('all')).rows[0].r.count,1009)
   await db.exec('reset role');await db.exec(`insert into students(id,full_name,admission_number,campus,class_level,status)select md5('extra-'||n)::uuid,'Extra '||n,'EX'||n,'senior','Form 2','active' from generate_series(1,20001)n`)
   await act(1,'aal2');await assert.rejects(exportRows('all'),/exceeds 20000/);assert.equal((await exportRows('class',null,'Grade 1')).rows[0].r.count,2)
  }finally{await db.close()}

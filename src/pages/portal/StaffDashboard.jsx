@@ -82,9 +82,9 @@ function StaffSubjectAssignments({ staff }) {
 
   const assignmentsByClass = assignments.reduce((groups, assignment) => {
     const classLabel = assignment.class_stream
-      ? `${assignment.class_level} ${assignment.class_stream}`
+      ? `${canonicalizeClassLevel(assignment.class_level)} ${assignment.class_stream}`
       : assignment.class_level
-        ? `${assignment.class_level} · Whole form`
+        ? `${canonicalizeClassLevel(assignment.class_level)} · Whole form`
         : "Unassigned class";
     if (!groups.has(classLabel)) groups.set(classLabel, new Set());
     groups.get(classLabel).add(assignment.subject);
@@ -109,8 +109,9 @@ function StaffSubjectAssignments({ staff }) {
 
 function SubjectWorkspaceLanding({ assignments, students, teacherName, selectedAllocationId, onSelect, onBack, onOpenWorkspace }) {
   const options = [...assignments.reduce((groups, assignment) => {
-    const key = `${assignment.subject}::${assignment.class_level}::${assignment.class_stream || "__all_streams"}`;
-    if (!groups.has(key)) groups.set(key, { subject: assignment.subject, classLevel: assignment.class_level, assignments: [] });
+    const classLevel = canonicalizeClassLevel(assignment.class_level);
+    const key = `${assignment.subject.toLowerCase()}::${classLevel}::${(assignment.class_stream || "__all_streams").toLowerCase()}`;
+    if (!groups.has(key)) groups.set(key, { subject: assignment.subject, classLevel, assignments: [] });
     groups.get(key).assignments.push(assignment);
     return groups;
   }, new Map()).values()].sort((a, b) => `${a.subject} ${a.classLevel}`.localeCompare(`${b.subject} ${b.classLevel}`));
@@ -1105,7 +1106,7 @@ export default function StaffDashboard() {
       if (editingId) return showError("Only administrators can edit learners.");
       const isAssigned = teacherAssignments.some(
         (a) =>
-          a.class_level === student.class_level &&
+          canonicalizeClassLevel(a.class_level) === canonicalizeClassLevel(student.class_level) &&
           (!student.class_stream ||
             a.class_stream === student.class_stream ||
             !a.class_stream),
@@ -1365,10 +1366,10 @@ export default function StaffDashboard() {
       legalFullName: row.legal_full_name || "",
       workingTitle: row.working_title || inferredWorkingTitle(row.full_name),
       campus: row.campus === "senior" ? "senior" : "junior",
-      classAssignments: assignments.map((assignment) => assignment.class_level),
+      classAssignments: [...new Set(assignments.map((assignment) => canonicalizeClassLevel(assignment.class_level)))],
       classStream: assignments.find((assignment) => assignment.class_stream)?.class_stream || "",
       allocationTab: "classes",
-      subjectAssignments: row.teacher_class_subject_assignments || [],
+      subjectAssignments: [...new Map((row.teacher_class_subject_assignments || []).map((assignment) => { const normalized = { ...assignment, class_level: canonicalizeClassLevel(assignment.class_level) }; return [`${normalized.subject.toLowerCase()}::${normalized.class_level}::${normalized.class_stream || ""}`, normalized] })).values()],
       subjectName: "",
       subjectLevel: "",
       subjectStream: "",
@@ -1393,7 +1394,7 @@ export default function StaffDashboard() {
     }
     const exists = staffEditor.subjectAssignments.some((assignment) =>
       assignment.subject.toLowerCase() === subject.toLowerCase()
-      && assignment.class_level === classLevel
+      && canonicalizeClassLevel(assignment.class_level) === canonicalizeClassLevel(classLevel)
       && (assignment.class_stream || "") === classStream,
     );
     if (exists) return showError("That subject is already allocated to this teacher for the selected class scope.");
@@ -1544,22 +1545,22 @@ export default function StaffDashboard() {
       ? `${activeClassScopeLabel} · Class Work`
       : "";
   const adminClassLevels = [
-    ...new Set(schoolClasses.map((row) => row.class_level)),
+    ...new Set(schoolClasses.map((row) => canonicalizeClassLevel(row.class_level))),
   ];
   const streamsForAdminLevel = (level) => {
-    const normalizedLevel = String(level ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    const normalizedLevel = canonicalizeClassLevel(level).toLowerCase();
     const recordedStreams = schoolClasses
-      .filter((row) => String(row.class_level ?? "").trim().toLowerCase().replace(/\s+/g, " ") === normalizedLevel)
+      .filter((row) => canonicalizeClassLevel(row.class_level).toLowerCase() === normalizedLevel)
       .map((row) => row.class_stream)
       .filter(Boolean);
     const establishedStreams = /^form [1-4]$/.test(normalizedLevel)
       ? ["Blue", "Green", "White", "Red", "Purple"]
-      : ["lower six", "upper six", "lower 6", "upper 6", "form 5", "form 6", "form5", "form6"].includes(normalizedLevel)
+      : ["lower six", "upper six"].includes(normalizedLevel)
         ? ["Arts", "Commercials", "Sciences"]
         : [];
     // Class records can be added after staffing. Keep the allocation selector
     // usable for the confirmed Senior stream structure in that short gap.
-    return [...new Set([...recordedStreams, ...establishedStreams])];
+    return [...new Map([...establishedStreams, ...recordedStreams].filter(Boolean).map((stream) => [String(stream).trim().toLowerCase(), String(stream).trim()])).values()];
   };
   const subjectOptionsForLevel = (level, campus) => {
     if (!level) return [];

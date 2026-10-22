@@ -13,6 +13,9 @@ export const SENIOR_LEVELS = [
 
 export const CLASS_LEVELS = [...JUNIOR_LEVELS, ...SENIOR_LEVELS]
 
+const normalizedClassLevel = level => String(level ?? '').trim().replace(/\s+/g, ' ')
+const classLevelKey = level => normalizedClassLevel(level).toLowerCase()
+const CANONICAL_LEVELS = new Map(CLASS_LEVELS.map(level => [classLevelKey(level), level]))
 const SENIOR_LEVEL_ALIASES = new Map([
   ['lower 6', 'Lower Six'],
   ['form 5', 'Lower Six'],
@@ -23,12 +26,12 @@ const SENIOR_LEVEL_ALIASES = new Map([
 ])
 
 export const canonicalizeClassLevel = level => {
-  const normalized = String(level ?? '').trim().replace(/\s+/g, ' ')
-  return SENIOR_LEVEL_ALIASES.get(normalized.toLowerCase()) || normalized
+  const normalized = normalizedClassLevel(level)
+  const key = classLevelKey(normalized)
+  return SENIOR_LEVEL_ALIASES.get(key) || CANONICAL_LEVELS.get(key) || normalized
 }
 
-export const isJuniorLevel = level => JUNIOR_LEVELS.includes(level)
-export const isSeniorLevel = level => SENIOR_LEVELS.includes(level) || ['Form 5', 'Form 6', 'Lower 6', 'Upper 6'].includes(level)
-
+export const isJuniorLevel = level => JUNIOR_LEVELS.includes(canonicalizeClassLevel(level))
+export const isSeniorLevel = level => SENIOR_LEVELS.includes(canonicalizeClassLevel(level))
 export const getCampusForLevel = level =>
-  JUNIOR_LEVELS.includes(level) ? 'junior' : 'senior'
+  isJuniorLevel(level) ? 'junior' : 'senior'

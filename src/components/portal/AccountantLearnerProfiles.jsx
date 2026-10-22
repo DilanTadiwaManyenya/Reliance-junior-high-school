@@ -1,3 +1,4 @@
+import { canonicalizeClassLevel } from '../../data/classOptions'
 import MobileRecordTable from './MobileRecordTable'
 import { useMemo, useState } from 'react'
 import Card from '../ui/Card'
@@ -5,9 +6,9 @@ import Card from '../ui/Card'
 export default function AccountantLearnerProfiles({ students = [], campus = 'junior', onOpenProfile }) {
   const [classLevel, setClassLevel] = useState('all')
   const [query, setQuery] = useState('')
-  const levels = useMemo(() => [...new Set(students.map(student => student.class_level).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), [students])
+  const levels = useMemo(() => [...new Set(students.map(student => canonicalizeClassLevel(student.class_level)).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), [students])
   const visibleStudents = useMemo(() => students
-    .filter(student => classLevel === 'all' || student.class_level === classLevel)
+    .filter(student => classLevel === 'all' || canonicalizeClassLevel(student.class_level) === classLevel)
     .filter(student => `${student.full_name} ${student.admission_number}`.toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) => a.full_name.localeCompare(b.full_name)), [students, classLevel, query])
   const campusLabel = campus === 'junior' ? 'Junior School' : 'Senior School'

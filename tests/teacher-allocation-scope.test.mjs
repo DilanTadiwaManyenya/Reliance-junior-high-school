@@ -17,3 +17,9 @@ test('an explicitly whole-form allocation includes each stream only at its campu
   assert.equal(matchesTeacherSubjectAllocation({ campus: 'senior', class_level: 'Upper Six', class_stream: 'Arts' }, wholeForm), true)
   assert.equal(matchesTeacherSubjectAllocation({ campus: 'junior', class_level: 'Upper Six', class_stream: 'Arts' }, wholeForm), false)
 })
+
+test('canonical Senior labels preserve legacy learner allocation scope', () => {
+  const legacyLearner = { campus: 'senior', class_level: 'Form 6', class_stream: 'Commercials' }
+  assert.equal(matchesTeacherSubjectAllocation(legacyLearner, allocation), true)
+  assert.equal(matchesTeacherSubjectAllocation({ ...legacyLearner, class_stream: 'Arts' }, allocation), false)
+})

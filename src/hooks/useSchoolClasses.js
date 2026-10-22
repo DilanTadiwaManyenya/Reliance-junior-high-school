@@ -1,3 +1,4 @@
+import { canonicalizeClassLevel } from '../data/classOptions'
 import { useEffect, useMemo, useState } from 'react'
 
 // school_classes is the operational class registry. Do not add streams to
@@ -32,13 +33,14 @@ export function useSchoolClasses(supabase, { activeOnly = true } = {}) {
   }, [supabase, activeOnly])
 
   const levels = useMemo(
-    () => [...new Set(classes.map((row) => row.class_level))],
+    () => [...new Set(classes.map((row) => canonicalizeClassLevel(row.class_level)))],
     [classes],
   )
   const streamsForLevel = (level) => classes
-    .filter((row) => row.class_level === level)
+    .filter((row) => canonicalizeClassLevel(row.class_level) === canonicalizeClassLevel(level))
     .map((row) => row.class_stream || '')
     .filter(Boolean)
+    .filter((stream, index, all) => all.findIndex(item => item.toLowerCase() === stream.toLowerCase()) === index)
 
   return { classes, levels, streamsForLevel, loading, error }
 }
