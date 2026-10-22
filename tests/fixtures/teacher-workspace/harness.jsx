@@ -41,6 +41,7 @@ if (params.has('extraEcdScopes')) {
  learners.push({id:'outside-campus',full_name:'Outside Campus Learner',class_level:'Form 1',class_stream:'Blue',campus:'senior',status:'active',admission_number:'TEST-SENIOR'})
 }
 const db = {
+  grade_bands: ['primary', 'olevel', 'alevel'].map(band_group => ({ band_group, minimum_score: 0, maximum_score: 100, grade: 'Test pass', points: 1, description: 'Synthetic fixture outcome' })),
   reporting_periods: params.has('noCurrentPeriod')?[]:[{campus,is_current:true,state:'open',academic_year:Number(params.get('registryYear')||2026),term:Number(params.get('registryTerm')||3)}],
   students: learners,
   teacher_class_subject_assignments: [allocation],
@@ -61,7 +62,7 @@ const supabase = {
     const filters = []
     const query = {
       select() { return this }, abortSignal() { return this }, eq(key, value) { filters.push([key, value]); return this }, order() { return this }, in() { return this }, limit() { return this }, gte() { return this }, lte() { return this }, or() { return this }, maybeSingle() { single = true; return this }, single() { single = true; return this },
-      insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this },
+      insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this }, delete() { operation = 'delete'; return this }, match(values) { Object.entries(values).forEach(([key, value]) => filters.push([key, value])); return this },
       then(resolve, reject) {
         if (table === 'students' && operation === 'select' && window.fixtureFailStudentRefresh) {
           window.fixtureFailStudentRefresh = false
