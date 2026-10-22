@@ -39,8 +39,8 @@ try {
   await accountant.close()
   // Payment and enrolment dialogs fit both a phone and a reduced keyboard viewport.
   const fees = await openPortal(runtime.browser, runtime.base, { role: 'admin', section: 'fees' }, 320, 480)
-  for (const name of ['Collect payment', 'Add learner', 'Edit fee structure']) {
-    await fees.getByRole('button', { name, exact: true }).first().click()
+  for (const name of ['Collect payment', 'Add learner', /Edit .* fee structure/]) {
+    await fees.getByRole('button', { name, exact: typeof name === 'string' }).first().click()
     const dialog = fees.getByRole('dialog')
     await dialog.waitFor()
     const modal = dialog.locator('.fee-modal')

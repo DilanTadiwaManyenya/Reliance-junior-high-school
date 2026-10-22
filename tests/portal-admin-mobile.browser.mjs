@@ -23,6 +23,7 @@ try {
     assert.match(await table.innerText(),/Example Teacher/)
     await table.getByRole('button',{name:'Manage',exact:true}).click()
     await page.getByRole('dialog').waitFor()
+    await page.waitForFunction(() => { const dialog=document.querySelector('[role=dialog]'); return dialog?.contains(document.activeElement) })
     await page.keyboard.press('Escape')
     await page.getByRole('dialog').waitFor({state:'detached'})
    }

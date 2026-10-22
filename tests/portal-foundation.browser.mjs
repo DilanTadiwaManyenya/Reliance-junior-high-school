@@ -52,6 +52,7 @@ try {
     await page.getByRole('button',{name:'Open another panel'}).click()
     const second=page.getByRole('dialog',{name:'Another panel'})
     assert.notEqual(await second.getAttribute('aria-labelledby'),firstId)
+    await page.waitForFunction(() => { const dialog=[...document.querySelectorAll('[role=dialog]')].find(element=>element.innerText.includes('Another panel')); return dialog?.contains(document.activeElement) }, null, { timeout: 3000 })
     await page.keyboard.press('Escape')
     await second.waitFor({state:'detached'})
     await page.setViewportSize({width,height:844})
