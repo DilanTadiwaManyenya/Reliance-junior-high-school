@@ -50,6 +50,42 @@ export async function saveLearningDetails(client, { id, teacherId, scope, form }
   }))
   return request(client.from('learning_resources').select('*').eq('id', id).single())
 }
+const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))
+export async function finalizePortalContentFile(client, fileId, request = requestDefault) {
+  let failure
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await request(client.rpc('finalize_portal_content_file', { p_file_id: fileId }))
+      return
+    } catch (error) {
+      failure = error
+      if (attempt === 0) await delay(250)
+    }
+  }
+  throw failure
+}
+async function requestDefault(promise) {
+  const result = await promise
+  if (result?.error) throw new Error(result.error.message || 'The school server could not complete this change.')
+  return result?.data
+}
+export async function uploadAndFinalizePortalContentFile(client, fileId, upload, request = requestDefault, onFinalize = () => {}) {
+  let uploadFailure
+  try {
+    await request(upload)
+  } catch (error) {
+    uploadFailure = error
+    // A timed-out upload can still finish in storage. The database verifies the
+    // exact object size and MIME type before making it active.
+    await delay(500)
+  }
+  try {
+    onFinalize()
+    await finalizePortalContentFile(client, fileId, request)
+  } catch (error) {
+    throw uploadFailure || error
+  }
+}
 export async function uploadLearningFile(client, resourceId, file, onProgress = () => {}) {
   const attributes = validateLearningFile(file)
   onProgress('Preparing your file…')
@@ -58,9 +94,8 @@ export async function uploadLearningFile(client, resourceId, file, onProgress = 
   if (!reservation?.id || !reservation.object_path || reservation.bucket_id !== 'learning-library') throw new Error('The server did not prepare a valid upload. Your existing file is unchanged.')
   onProgress('Uploading your file…')
   // Never overwrite the current file, even when the network response is lost.
-  await request(client.storage.from(reservation.bucket_id).upload(reservation.object_path, file, { contentType: attributes.mime_type, upsert: false }))
-  onProgress('Checking and saving your file…')
-  await request(client.rpc('finalize_portal_content_file', { p_file_id: reservation.id }))
+  const upload = client.storage.from(reservation.bucket_id).upload(reservation.object_path, file, { contentType: attributes.mime_type, upsert: false })
+  await uploadAndFinalizePortalContentFile(client, reservation.id, upload, request, () => onProgress('Checking and saving your file…'))
   return reservation
 }
 export async function changeLearningState(client, id, state) {

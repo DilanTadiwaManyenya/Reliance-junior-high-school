@@ -113,7 +113,16 @@ try {
       await page.evaluate(() => { window.libraryFixture.failLoad = false })
       await page.getByRole('button', { name: 'Retry notes', exact: true }).click()
       await page.getByRole('heading', { name: 'Publication retry example', exact: true }).waitFor()
-      checks++
+      await page.evaluate(() => { window.libraryFixture.failUpload = true; window.libraryFixture.storedDespiteUploadError = true })
+      await page.getByLabel('Title', { exact: true }).fill('Upload response recovery')
+      await page.locator('input[type=file]').setInputFiles({ ...pdf, name: 'response-lost.pdf' })
+      await page.getByRole('button', { name: 'Publish notes', exact: true }).click()
+      await page.getByText('Notes published for the learners in this allocation.', { exact: true }).waitFor()
+      state = await fileState(page)
+      assert.equal(state.rows.find(row => row.title === 'Upload response recovery').state, 'published')
+      const recoveredNote = state.rows.find(row => row.title === 'Upload response recovery')
+      assert.equal(state.files.find(file => file.resource_id === recoveredNote.id && file.active).original_name, 'response-lost.pdf', 'Stored bytes should be finalized despite a lost upload response')
+      checks += 2
     }
     if (width === 390) await page.screenshot({ path: `tests/artifacts/library-stage3-${campus}-mobile.png`, fullPage: true })
     assert.deepEqual(errors, [], `No browser errors (${campus}, ${width}px)`)

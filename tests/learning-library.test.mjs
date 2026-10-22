@@ -5,9 +5,9 @@ import { changeLearningState, LEARNING_FILE_LIMIT, learningDownloadLink, saveLea
 const pdf = { name: 'lesson.pdf', type: 'application/pdf', size: 120 }
 const scope = { campus: 'senior', class_level: 'Form 1', class_stream: '', subject: 'Mathematics', allocation_id: 'allocation' }
 const form = { title: ' Fractions ', description: ' Revision ', academic_year: '2026', term: '3' }
-function mock({ existing = null, failUpload = false, failFinalize = false } = {}) {
+function mock({ existing = null, failUpload = false, storedDespiteUploadError = false, failFinalize = false, loseFinalizeResponse = false } = {}) {
   const calls = []
-  const state = { row: existing }
+  const state = { row: existing, stored: false, ready: false, finalizeCalls: 0 }
   const client = {
     from(table) {
       let action = 'select', payload, returning = false
@@ -34,10 +34,21 @@ function mock({ existing = null, failUpload = false, failFinalize = false } = {}
       return query
     },
     storage: { from(bucket) { return {
-      async upload(path, file, options) { calls.push({ upload: true, bucket, path, file, options }); return failUpload ? { error: { message: 'Upload disconnected' } } : { data: { path } } },
+      async upload(path, file, options) {
+        calls.push({ upload: true, bucket, path, file, options })
+        if (!failUpload || storedDespiteUploadError) state.stored = true
+        return failUpload ? { error: { message: 'Upload disconnected' } } : { data: { path } }
+      },
       async createSignedUrl(path, seconds, options) { calls.push({ bucket, path, seconds, options }); return { data: { signedUrl: 'https://example.test/private-file' } } },
     } } },
-    async rpc(name, payload) { calls.push({ rpc: name, payload }); return failFinalize ? { error: { message: 'File verification failed' } } : { data: null } },
+    async rpc(name, payload) {
+      calls.push({ rpc: name, payload }); state.finalizeCalls++
+      if (failFinalize) return { error: { message: 'File verification failed' } }
+      if (!state.stored) return { error: { message: 'Stored file is missing' } }
+      state.ready = true
+      if (loseFinalizeResponse && state.finalizeCalls === 1) return { error: { message: 'Finalization response was lost' } }
+      return { data: null }
+    },
   }
   return { client, calls, state }
 }
@@ -61,8 +72,20 @@ test('upload reserves a new private path and finalizes only after bytes succeed'
 test('failed upload never finalizes or overwrites the current file', async () => {
   const { client, calls } = mock({ failUpload: true })
   await assert.rejects(uploadLearningFile(client, 'resource', pdf), /disconnected/)
-  assert.equal(calls.filter(call => call.rpc).length, 0)
+  assert.ok(calls.filter(call => call.rpc).length >= 1, 'A failed response is reconciled against storage before reporting failure')
   assert.equal(calls.find(call => call.upload).options.upsert, false)
+})
+test('stored bytes are finalized when the upload response is lost', async () => {
+  const { client, state } = mock({ failUpload: true, storedDespiteUploadError: true })
+  const result = await uploadLearningFile(client, 'resource', pdf)
+  assert.equal(result.id, 'file')
+  assert.equal(state.ready, true)
+})
+test('finalization is retried when its response is lost after commit', async () => {
+  const { client, state } = mock({ loseFinalizeResponse: true })
+  await uploadLearningFile(client, 'resource', pdf)
+  assert.equal(state.ready, true)
+  assert.equal(state.finalizeCalls, 2)
 })
 test('finalization errors propagate instead of reporting saved file success', async () => {
   const { client } = mock({ failFinalize: true })

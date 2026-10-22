@@ -1,4 +1,4 @@
-import { validateLearningFile } from './learningLibrary.js'
+import { uploadAndFinalizePortalContentFile, validateLearningFile } from './learningLibrary.js'
 
 export async function newsletterRequest(query) {
   let timer
@@ -28,8 +28,8 @@ export async function uploadNewsletterFile(client, id, file) {
   const attributes = validateLearningFile(file)
   const reservation = await newsletterRequest(client.from('portal_content_files').insert({ announcement_id: id, ...attributes }).select('id,bucket_id,object_path').single())
   if (!reservation?.id || reservation.bucket_id !== 'school-newsletters' || !reservation.object_path) throw new Error('The server did not prepare a newsletter upload.')
-  await newsletterRequest(client.storage.from('school-newsletters').upload(reservation.object_path, file, { contentType: attributes.mime_type, upsert: false }))
-  await newsletterRequest(client.rpc('finalize_portal_content_file', { p_file_id: reservation.id }))
+  const upload = client.storage.from('school-newsletters').upload(reservation.object_path, file, { contentType: attributes.mime_type, upsert: false })
+  await uploadAndFinalizePortalContentFile(client, reservation.id, upload, newsletterRequest)
   return { ...reservation, ...attributes, active: true, ready: true }
 }
 export async function newsletterFileLink(client, file, preview = false) {

@@ -15,6 +15,27 @@ test('acknowledgement uses own-user INSERT and accepts only duplicate conflicts'
   assert.deepEqual(payload, { announcement_id: 'notice' })
   await assert.rejects(acknowledgeNewsletter(client('42501'), 'notice'), /Could not mark/)
 })
+test('newsletter upload is finalized if storage saved bytes but its response was lost', async () => {
+  let reserved
+  const client = {
+    from: () => ({ insert: payload => ({ select: () => ({ single: async () => ({ data: reserved = { ...payload, id: 'file', bucket_id: 'school-newsletters', object_path: 'notice/file.pdf' } }) }) }) }),
+    storage: { from: () => ({ upload: async () => ({ error: { message: 'Upload response was lost' } }) }) },
+    rpc: async () => reserved && { data: null },
+  }
+  const file = await uploadNewsletterFile(client, 'notice', { name: 'letter.pdf', type: 'application/pdf', size: 100 })
+  assert.equal(file.active, true)
+  assert.equal(file.ready, true)
+})
+test('newsletter upload retries an idempotent finalization after its response is lost', async () => {
+  let reserved, calls = 0
+  const client = {
+    from: () => ({ insert: payload => ({ select: () => ({ single: async () => ({ data: reserved = { ...payload, id: 'file', bucket_id: 'school-newsletters', object_path: 'notice/file.pdf' } }) }) }) }),
+    storage: { from: () => ({ upload: async () => ({ data: { path: 'notice/file.pdf' } }) }) },
+    rpc: async () => ++calls === 1 ? { error: { message: 'Response dropped after commit' } } : { data: null },
+  }
+  await uploadNewsletterFile(client, 'notice', { name: 'letter.pdf', type: 'application/pdf', size: 100 })
+  assert.equal(calls, 2)
+})
 test('newsletter links require finalized newsletter bucket and expire in 60 seconds', async () => {
   let options
   const client = { storage: { from: bucket => { assert.equal(bucket, 'school-newsletters'); return { createSignedUrl: async (...args) => { options = args; return { data: { signedUrl: 'https://example.test/private' } } } } } } }

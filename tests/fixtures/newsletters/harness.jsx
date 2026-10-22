@@ -7,7 +7,7 @@ import ParentSchoolUpdates from '../../../src/components/portal/ParentSchoolUpda
 import '../../../src/index.css'
 import '../../../src/components/portal/parentLearningLibrary.css'
 const params = new URLSearchParams(location.search)
-const state = { rows: [], files: [], reads: [], operations: [], failUpload: false, failRead: false }
+const state = { rows: [], files: [], reads: [], operations: [], failUpload: false, storedDespiteUploadError: false, loseFinalizeResponse: false, finalizedAfterLostResponse: false, failRead: false }
 window.newsletterFixture = state
 const client = {
   from(table) {
@@ -22,7 +22,7 @@ const client = {
         state.operations.push({ table, action, payload })
         if (table === 'announcement_reads') { if (state.failRead) return { error: { code: '42501' } }; state.reads.push(payload.announcement_id); return { data: null } }
         if (table === 'portal_content_files') {
-          const file = { ...payload, id: crypto.randomUUID(), bucket_id: 'school-newsletters', active: false, ready: false }
+          const file = { ...payload, id: crypto.randomUUID(), bucket_id: 'school-newsletters', active: false, ready: false, stored: false }
           file.object_path = `${payload.announcement_id}/${file.id}.${file.extension}`
           state.files.push(file); return { data: file }
         }
@@ -39,15 +39,32 @@ const client = {
     state.operations.push({ rpc: name, args })
     let data = null
     if (name === 'save_announcement_targets') state.rows.find(row => row.id === args.p_announcement_id).announcement_targets = args.p_targets
-    if (name === 'finalize_portal_content_file') { const file = state.files.find(file => file.id === args.p_file_id); state.files.filter(row => row.announcement_id === file.announcement_id).forEach(row => { row.active = false }); file.active = true; file.ready = true }
+    let error = null
+    if (name === 'finalize_portal_content_file') {
+      const file = state.files.find(row => row.id === args.p_file_id)
+      if (!file.stored) error = { message: 'Stored file is missing' }
+      else {
+        state.files.filter(row => row.announcement_id === file.announcement_id).forEach(row => { row.active = false })
+        file.active = true; file.ready = true
+        if (state.loseFinalizeResponse && !state.finalizedAfterLostResponse) {
+          state.finalizedAfterLostResponse = true
+          error = { message: 'Finalization response was lost' }
+        }
+      }
+    }
     if (name === 'parent_school_updates') {
       const items = state.rows.filter(row => row.state === 'published').map(row => ({ ...row, file: state.files.find(file => file.active && file.announcement_id === row.id), acknowledged: state.reads.includes(row.id) }))
       data = { learner_id: args.p_student_id, total_count: items.length, items }
     }
-    return { abortSignal() { return this }, then(resolve, reject) { return Promise.resolve({ data }).then(resolve, reject) } }
+    return { abortSignal() { return this }, then(resolve, reject) { return Promise.resolve({ data, error }).then(resolve, reject) } }
   },
   storage: { from(bucket) { return {
-    async upload(path, file, options) { state.operations.push({ bucket, path, options }); return state.failUpload ? { error: { message: 'Upload connection dropped' } } : { data: { path } } },
+    async upload(path, file, options) {
+      state.operations.push({ bucket, path, options })
+      const row = state.files.find(item => item.object_path === path)
+      if (!state.failUpload || state.storedDespiteUploadError) row.stored = true
+      return state.failUpload ? { error: { message: 'Upload connection dropped' } } : { data: { path } }
+    },
     async createSignedUrl(path, seconds) { state.operations.push({ sign: path, seconds, bucket }); return { data: { signedUrl: `${location.origin}/tests/fixtures/newsletters/file.png` } } },
   } } },
 }

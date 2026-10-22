@@ -46,6 +46,14 @@ try {
     const files = await page.evaluate(() => window.newsletterFixture.files)
     assert.equal(files.filter(file => file.active).length, 1)
     assert.equal(files[0].active, false); checks += 2
+    await page.evaluate(() => { window.newsletterFixture.failUpload = true; window.newsletterFixture.storedDespiteUploadError = true })
+    await page.getByLabel('Attachment', { exact: false }).setInputFiles({ name: 'response-lost.png', mimeType: 'image/png', buffer: Buffer.from('stored despite response loss') })
+    await page.getByRole('button', { name: 'Save published', exact: true }).click()
+    await page.getByText('Saved as published.', { exact: true }).waitFor()
+    const recovered = await page.evaluate(() => window.newsletterFixture.files.find(file => file.active))
+    assert.equal(recovered.original_name, 'response-lost.png', 'Stored newsletter bytes should be finalized despite a lost upload response')
+    await page.evaluate(() => { window.newsletterFixture.failUpload = false; window.newsletterFixture.storedDespiteUploadError = false })
+    checks++
     await page.getByRole('button', { name: 'Return to draft', exact: true }).click()
     await page.getByText('Saved as draft.', { exact: true }).waitFor()
     assert.equal(await page.getByLabel('Target campus', { exact: true }).first().isDisabled(), false); checks++

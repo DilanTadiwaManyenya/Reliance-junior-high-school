@@ -9,7 +9,7 @@ import '../../../src/teacherWorkspace.css'
 const junior = new URLSearchParams(location.search).get('campus') === 'junior'
 const classLevel = new URLSearchParams(location.search).get('level') || 'Grade 5'
 const teacher = 'teacher', allocation = { id: 'allocation', campus: junior ? 'junior' : 'senior', class_level: junior ? classLevel : 'Form 1', class_stream: '', subject: junior ? classLevel.startsWith('ECD') ? 'English Languages' : 'Mathematics' : 'Combined Science' }
-const state = { rows: [], files: [], operations: [], failUpload: false, failLoad: false, failPublish: false }
+const state = { rows: [], files: [], operations: [], failUpload: false, storedDespiteUploadError: false, loseFinalizeResponse: false, finalizedAfterLostResponse: false, failLoad: false, failPublish: false }
 window.libraryFixture = state
 const client = {
   from(table) {
@@ -53,14 +53,24 @@ const client = {
     return query
   },
   storage: { from(bucket) { return {
-    async upload(path, file, options) { state.operations.push({ upload: path, bucket, options, size: file.size }); return state.failUpload ? { error: { message: 'Upload connection dropped' } } : { data: { path } } },
+    async upload(path, file, options) {
+      state.operations.push({ upload: path, bucket, options, size: file.size })
+      const row = state.files.find(item => item.object_path === path)
+      if (!state.failUpload || state.storedDespiteUploadError) row.stored = true
+      return state.failUpload ? { error: { message: 'Upload connection dropped' } } : { data: { path } }
+    },
     async createSignedUrl(path, seconds) { state.operations.push({ download: path, seconds }); return { data: { signedUrl: 'https://example.test/private-download' } } },
   } } },
   async rpc(name, args) {
     state.operations.push({ rpc: name })
     const file = state.files.find(row => row.id === args.p_file_id)
+    if (!file.stored) return { error: { message: 'Stored file is missing' } }
     state.files.filter(row => row.resource_id === file.resource_id).forEach(row => { row.active = false })
     file.active = true; file.ready = true
+    if (state.loseFinalizeResponse && !state.finalizedAfterLostResponse) {
+      state.finalizedAfterLostResponse = true
+      return { error: { message: 'Finalization response was lost' } }
+    }
     return { data: null }
   },
 }
