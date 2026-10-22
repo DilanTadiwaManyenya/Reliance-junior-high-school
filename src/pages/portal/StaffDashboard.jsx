@@ -815,6 +815,7 @@ export default function StaffDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [savingLearner, setSavingLearner] = useState(false);
   const [rosterRefreshFailed, setRosterRefreshFailed] = useState(false);
+  const [savedLearnerConfirmation, setSavedLearnerConfirmation] = useState(null);
   const learnerSaveBusy = useRef(false);
   const learnerAdmissionAttempt = useRef(null);
   const rosterHeading = useRef(null);
@@ -939,8 +940,12 @@ export default function StaffDashboard() {
       .order("full_name");
     if (adminCampusScope) studentQuery.eq("campus", adminCampusScope);
     const { data, error: requestError } = await studentQuery;
-    if (requestError) showError(requestError.message);
-    else setStudents(data ?? []);
+    if (requestError) {
+      showError(requestError.message);
+      setLoading(false);
+      return { ok: false, error: requestError, students: [] };
+    }
+    setStudents(data ?? []);
     setLoading(false);
 
     const today = new Date().toISOString().slice(0, 10);
@@ -950,15 +955,16 @@ export default function StaffDashboard() {
       .select("student_id, status")
       .eq("date", today);
     if (adminCampusScope) attendanceQuery.in("student_id", learnerIds);
-    const { data: attendanceData } = learnerIds.length || !adminCampusScope
-      ? await attendanceQuery
-      : { data: [] };
-    if (attendanceData) {
-      const map = {};
-      attendanceData.forEach((r) => (map[r.student_id] = r.status));
-      setTodayAttendance(map);
-    }
-
+    if (learnerIds.length || !adminCampusScope) {
+      void attendanceQuery.then(({ data: attendanceData }) => {
+        if (attendanceData) {
+          const map = {};
+          attendanceData.forEach((r) => (map[r.student_id] = r.status));
+          setTodayAttendance(map);
+        }
+      }).catch(() => {});
+    } else setTodayAttendance({});
+    return { ok: true, students: data ?? [] };
   }, [supabase, adminCampusScope]);
 
   const loadStaff = useCallback(async () => {
@@ -1151,9 +1157,7 @@ export default function StaffDashboard() {
       targetTable: "students",
       targetId: replacementId || editingId,
     });
-    setNotice(
-      `${row.full_name} ${editingId || replacementId ? 'updated' : 'added'} successfully. The saved learner is shown in the roster.`,
-    );
+    setNotice(isTeacher ? '' : `${row.full_name} ${editingId || replacementId ? 'updated' : 'added'} successfully.`);
     setStudent(emptyStudent());
     learnerAdmissionAttempt.current = null;
     setEditingId(null);
@@ -1162,14 +1166,72 @@ export default function StaffDashboard() {
     const savedScope = replacementId ? students.find(item => item.id === replacementId) || row : row;
     setActiveClassKey(`${savedScope.class_level}:${savedScope.class_stream || ''}`);
     setActiveClassFilter({ level: savedScope.class_level, stream: savedScope.class_stream || null });
-    await confirmLearnerRequest(loadStudents());
-    requestAnimationFrame(() => { rosterHeading.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); rosterHeading.current?.focus({ preventScroll: true }); });
+    if (isTeacher) setSection('roster');
+    const savedLearnerId = replacementId || editingId || row.id;
+    const rosterRefresh = await confirmLearnerRequest(loadStudents());
+    const savedLearner = rosterRefresh?.students?.find(item => item.id === savedLearnerId);
+    if (!rosterRefresh?.ok || !savedLearner) {
+      const detail = rosterRefresh?.ok
+        ? `${row.full_name} was saved, but this account cannot see the new row in its assigned class. Ask the administrator to check the class allocation. Do not add the learner again.`
+        : `${row.full_name} was saved, but the roster did not refresh. Do not add the learner again; use Refresh learners to check the saved record.`;
+      setNotice('');
+      setSavedLearnerConfirmation({ id: savedLearnerId, name: row.full_name, message: detail, error: true });
+      setRosterRefreshFailed(true);
+    } else {
+      setSavedLearnerConfirmation({
+        id: savedLearnerId,
+        name: savedLearner.full_name,
+        message: `${savedLearner.full_name} was saved to ${savedLearner.class_level}${savedLearner.class_stream ? ` ${savedLearner.class_stream}` : ''} (${savedLearner.admission_number}) and is shown below.`,
+        error: false,
+      });
+      setRosterRefreshFailed(false);
+      setQuery(savedLearner.full_name);
+      requestAnimationFrame(() => {
+        const savedRow = document.getElementById(`learner-row-${savedLearnerId}`);
+        savedRow?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        rosterHeading.current?.focus({ preventScroll: true });
+      });
+    }
     } catch (saveError) {
       showError(saveConfirmed
-        ? `${row.full_name} was saved. The roster refresh timed out; tap Refresh learners to confirm the new row.`
+        ? `${row.full_name} was saved, but the roster refresh timed out. Do not add the learner again; refresh the roster to confirm.`
         : `Could not confirm the save: ${saveError.message}. Check the roster before adding this learner again.`);
-      if (saveConfirmed) setRosterRefreshFailed(true);
+      if (saveConfirmed) {
+        setRosterRefreshFailed(true);
+        setSavedLearnerConfirmation({ id: replacementId || editingId || row.id, name: row.full_name, message: `${row.full_name} was saved, but the roster refresh timed out. Do not add the learner again; refresh the roster to confirm.`, error: true });
+      }
     } finally { learnerSaveBusy.current = false; setSavingLearner(false); }
+  };
+
+  const refreshSavedLearner = async () => {
+    const savedId = savedLearnerConfirmation?.id;
+    const savedName = savedLearnerConfirmation?.name || 'The learner';
+    setError('');
+    setRosterRefreshFailed(false);
+    try {
+      const refresh = await confirmLearnerRequest(loadStudents());
+      const saved = refresh?.students?.find((item) => item.id === savedId);
+      if (!refresh?.ok || !saved) {
+        const message = refresh?.ok
+          ? `${savedName} is saved, but this account still cannot see that record. Ask the administrator to verify the class allocation. Do not add the learner again.`
+          : `${savedName} is saved. The roster refresh failed; please try Refresh learners again. Do not add the learner again.`;
+        setSavedLearnerConfirmation({ id: savedId, name: savedName, message, error: true });
+        setRosterRefreshFailed(true);
+        return;
+      }
+      setError('');
+      setSavedLearnerConfirmation({
+        id: savedId,
+        name: saved.full_name,
+        message: `${saved.full_name} is visible in ${saved.class_level}${saved.class_stream ? ` ${saved.class_stream}` : ''} (${saved.admission_number}).`,
+        error: false,
+      });
+      setQuery(saved.full_name);
+      requestAnimationFrame(() => document.getElementById(`learner-row-${savedId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    } catch {
+      setSavedLearnerConfirmation({ id: savedId, name: savedName, message: `${savedName} is saved, but the roster refresh timed out. Do not add the learner again; tap Refresh learners to retry.`, error: true });
+      setRosterRefreshFailed(true);
+    }
   };
 
   const editStudent = (row) => {
@@ -1739,7 +1801,7 @@ export default function StaffDashboard() {
   return (
     <div className="staff-content-area">
       {notice && <PortalNotice>{notice}</PortalNotice>}
-      {error && <PortalNotice tone="error">{error}{rosterRefreshFailed && <Button type="button" variant="secondary" onClick={() => { setError(""); setRosterRefreshFailed(false); void loadStudents(); }}>Refresh learners</Button>}</PortalNotice>}
+      {error && <PortalNotice tone="error">{error}{rosterRefreshFailed && !savedLearnerConfirmation?.error && <Button type="button" variant="secondary" onClick={() => { setError(""); setRosterRefreshFailed(false); void loadStudents(); }}>Refresh learners</Button>}</PortalNotice>}
 
       {/* Dashboard Home */}
       {section === "dashboard" && (
@@ -1810,6 +1872,12 @@ export default function StaffDashboard() {
                 </div>
               )}
               {isTeacher && showDisabledLearners && <p className="muted" role="status">Disabled learners are excluded from class totals and cannot be edited from the teacher portal.</p>}
+              {isTeacher && savedLearnerConfirmation && (
+                <PortalNotice tone={savedLearnerConfirmation.error ? 'error' : 'success'} role="status">
+                  {savedLearnerConfirmation.message}
+                  {savedLearnerConfirmation.error && <Button type="button" variant="secondary" onClick={refreshSavedLearner}>Refresh learners</Button>}
+                </PortalNotice>
+              )}
               {loading ? (
                 <p className="muted">
                   Loading
@@ -1831,7 +1899,7 @@ export default function StaffDashboard() {
                     </thead>
                     <tbody>
                       {visible.map((row) => (
-                        <tr key={row.id} className="dash-table-row">
+                        <tr key={row.id} id={`learner-row-${row.id}`} className="dash-table-row">
                           <td className="dash-td-name">
                             <span className="dash-learner-avatar">
                               {row.full_name?.[0] ?? "?"}

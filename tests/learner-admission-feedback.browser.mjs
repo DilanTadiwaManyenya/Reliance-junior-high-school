@@ -12,7 +12,7 @@ try {
   await page.getByLabel('Class level',{exact:true}).selectOption(level)
   if(campus==='senior')await page.getByLabel('Class stream',{exact:true}).selectOption(stream)
   await page.getByRole('button',{name:'Add learner',exact:true}).click()
-  await page.getByText('Unique Admission Example added successfully. The saved learner is shown in the roster.',{exact:true}).waitFor()
+  await page.getByText(/Unique Admission Example was saved to .* and is shown below\./).waitFor()
   await page.getByRole('table',{name:'Learner register'}).getByText('Unique Admission Example',{exact:true}).waitFor()
   const writes=await page.evaluate(()=>window.fixtureWrites.filter(row=>row.table==='students'))
   assert.equal(writes.length,1);assert.equal(writes[0].payload.campus,campus)

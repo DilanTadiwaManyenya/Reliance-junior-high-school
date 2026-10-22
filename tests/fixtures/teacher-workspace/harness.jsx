@@ -63,6 +63,10 @@ const supabase = {
       select() { return this }, abortSignal() { return this }, eq(key, value) { filters.push([key, value]); return this }, order() { return this }, in() { return this }, limit() { return this }, gte() { return this }, lte() { return this }, or() { return this }, maybeSingle() { single = true; return this }, single() { single = true; return this },
       insert(value) { operation = 'insert'; payload = value; return this }, upsert(value) { operation = 'upsert'; payload = value; return this },
       then(resolve, reject) {
+        if (table === 'students' && operation === 'select' && window.fixtureFailStudentRefresh) {
+          window.fixtureFailStudentRefresh = false
+          return Promise.resolve({ data: null, error: { message: 'Synthetic roster refresh failure' } }).then(resolve, reject)
+        }
         if (table === 'coursework_marks' && operation !== 'select' && window.fixtureHoldMarks) {
           window.fixtureHoldMarks = false
           return new Promise(release => { window.fixtureReleaseMarks = release }).then(() => query.then(resolve, reject))
@@ -71,6 +75,7 @@ const supabase = {
         let data = (db[table] || []).filter(row => filters.every(([key, value]) => row[key] === value))
         if (operation !== 'select') {
           window.fixtureWrites.push({ table, operation, payload })
+          if (table === 'students' && params.has('failStudentRefresh')) window.fixtureFailStudentRefresh = true
           if (table === 'coursework_assessments' || table === 'students') { const row = { id: `created-${window.fixtureWrites.length}`, admission_number: 'TEST-ADMISSION', ...payload }; db[table].unshift(row); data = [row] }
           else data = []
         }
