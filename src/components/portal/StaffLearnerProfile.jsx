@@ -439,7 +439,8 @@ export default function StaffLearnerProfile({ supabase, student, onBack, teacher
           report={report}
           reportFees={state.reportFees}
           subjectTeachers={state.subjectTeachers}
-          adminAccess={canManageReports}
+          adminAccess={!teacherView}
+          allowReportEditing={canManageReports}
           supabase={supabase}
           onReportCommentSaved={() => setAcademicRevision((value) => value + 1)}
         />

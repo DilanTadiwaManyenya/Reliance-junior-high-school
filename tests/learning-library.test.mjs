@@ -44,6 +44,7 @@ function mock({ existing = null, failUpload = false, failFinalize = false } = {}
 test('file validation enforces exact size, extension and MIME limits', () => {
   assert.equal(validateLearningFile({ ...pdf, size: LEARNING_FILE_LIMIT }).size_bytes, LEARNING_FILE_LIMIT)
   assert.equal(validateLearningFile({ ...pdf, name: 'LESSON.PDF', type: '' }).mime_type, 'application/pdf')
+  assert.equal(validateLearningFile({ ...pdf, name: 'LESSON.PDF', type: 'application/octet-stream' }).mime_type, 'application/pdf')
   for (const bad of [{ ...pdf, size: 0 }, { ...pdf, size: LEARNING_FILE_LIMIT + 1 }, { ...pdf, name: 'lesson.svg' }, { ...pdf, type: 'text/html' }]) assert.throws(() => validateLearningFile(bad))
 })
 test('upload reserves a new private path and finalizes only after bytes succeed', async () => {

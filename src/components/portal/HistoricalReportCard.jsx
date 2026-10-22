@@ -26,7 +26,7 @@ export default function HistoricalReportCard({ render: Report, initialPeriod, re
         if(!active)return
         const rows=result.data||[];setContexts(rows)
         setPeriod(previous=>rows.some(row=>row.academic_year===previous?.year&&row.term===previous?.term)?previous:rows.length?{year:rows[0].academic_year,term:rows[0].term}:null)
-        if(!rows.length){setError('No reporting class history is available for this learner. Ask the school office to review the record.');setLoading(false)}
+        if(!rows.length){setError(props.adminAccess ? 'No saved reporting period exists for this learner. Review the learner’s class and reporting period in Historical reports.' : 'No reporting class history is available for this learner. Ask the school office to review the record.');setLoading(false)}
       }catch(requestError){if(active){setError(requestError.message);setLoading(false)}}finally{clearTimeout(timer)}
     })()
     return()=>{active=false;clearTimeout(timer);controller.abort()}
@@ -41,7 +41,8 @@ export default function HistoricalReportCard({ render: Report, initialPeriod, re
           supabase.rpc('read_report_period',{p_student:student.id,p_year:period.year,p_term:period.term}).abortSignal(controller.signal),
           new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new Error('Loading this report timed out. Please retry.'))},12000)}),
         ])
-        if(result.error||!result.data?.context)throw new Error('This report is unavailable for your account. Please retry or contact the school.')
+        if(result.error)throw new Error(props.adminAccess ? `The report request failed${result.error.code ? ` (${result.error.code})` : ''}: ${result.error.message || 'Please retry.'}` : 'This report is unavailable for your account. Please retry or contact the school.')
+        if(!result.data?.context)throw new Error(props.adminAccess ? 'The selected reporting period has no saved class context. Refresh the report periods and review Historical reports.' : 'This report is unavailable for your account. Please retry or contact the school.')
         if(active)setData(result.data)
       }catch(requestError){if(active)setError(requestError.message)}finally{clearTimeout(timer);if(active)setLoading(false)}
     })()

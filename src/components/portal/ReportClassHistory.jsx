@@ -59,7 +59,7 @@ export default function ReportClassHistory({supabase,campusScope='all',canReview
   }catch(requestError){setError(requestError.message)}finally{clearTimeout(timeout);setSaving(false)}
  }
  if(view)return <section><button type="button" className="btn secondary no-print" onClick={()=>setView(null)}>Back to report history</button>
-  <AcademicReportCard key={view.id} supabase={supabase} initialPeriod={{year:view.academic_year,term:view.term}} adminAccess={canReview} allowReportEditing={false}
+  <AcademicReportCard key={view.id} supabase={supabase} initialPeriod={{year:view.academic_year,term:view.term}} adminAccess={true} allowReportEditing={false}
    student={{id:view.student_id,full_name:view.learner_name,admission_number:view.admission_number,class_level:view.class_level,class_stream:view.class_stream,campus:view.campus}} />
  </section>
  return <section className="dash-section report-class-history">

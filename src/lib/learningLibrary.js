@@ -11,7 +11,7 @@ export function validateLearningFile(file) {
   if (!file) throw new Error('Choose a file to upload.')
   const extension = String(file.name).split('.').pop().toLowerCase()
   const mime = LEARNING_FILE_TYPES[extension]
-  if (!mime || (file.type && file.type !== mime)) throw new Error('Choose a PDF, Word, PowerPoint, JPG, PNG or WebP file with a matching file type.')
+  if (!mime || (file.type && file.type !== 'application/octet-stream' && file.type !== mime)) throw new Error('Choose a PDF, Word, PowerPoint, JPG, PNG or WebP file with a matching file type.')
   if (!Number.isFinite(file.size) || file.size < 1 || file.size > LEARNING_FILE_LIMIT) throw new Error('Files must contain data and be no larger than 10 MB.')
   if (!file.name || file.name.length > 240) throw new Error('Use a file name of no more than 240 characters.')
   return { extension, mime_type: mime, size_bytes: file.size, original_name: file.name }
