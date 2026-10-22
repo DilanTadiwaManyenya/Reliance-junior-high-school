@@ -1,5 +1,17 @@
 /* Stage 3: readable registers keep all record fields and existing actions. */
 @media screen and (max-width: 767px) {
+  .staff-shell[data-role="teacher"][data-section="roster"] .portal-actions[aria-label="Learner roster status filter"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+  .staff-shell[data-role="teacher"][data-section="roster"] .portal-actions[aria-label="Learner roster status filter"] > button {
+    width: 100%;
+    min-height: 46px;
+    text-align: left;
+    white-space: normal;
+  }
   .staff-shell .portal-table-wrap:has(> .mobile-record-table)::after { content: none; }
   .staff-shell .mobile-record-table { display: block; width: 100%; min-width: 0; border: 0; }
   .staff-shell .mobile-record-table thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -21,6 +33,11 @@
   .staff-shell .mobile-record-table .selection-column input { width: 24px; height: 24px; }
   .staff-shell .mobile-record-table td > * { min-width: 0; max-width: 100%; }
   .staff-shell .mobile-record-table .roster-learner-link { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+  .staff-shell .teacher-roster-table td[data-label="Today's Attendance"],
+  .staff-shell .teacher-roster-table td:last-child { grid-template-columns: minmax(0, 1fr); }
+  .staff-shell .teacher-roster-table td[data-label="Today's Attendance"] .roster-attendance-action,
+  .staff-shell .teacher-roster-table td:last-child > :is(.btn, .ui-button) { width: 100%; min-height: 44px; white-space: normal; }
+  .staff-shell .teacher-roster-table td:last-child > small { display: block; color: #52627c; line-height: 1.45; }
   .staff-shell .mobile-record-table .staff-directory-person { align-items: start; }
   .staff-shell .mobile-record-table .staff-directory-person > div { min-width: 0; }
   .staff-shell .mobile-record-table .staff-directory-person :is(strong,small) { display: block; white-space: normal; overflow-wrap: anywhere; }

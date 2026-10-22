@@ -112,6 +112,21 @@ try {
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     assert.deepEqual(errors, [])
+    if (section === 'roster' && width <= 320) {
+      const roster = page.locator('.teacher-roster-table')
+      await roster.waitFor()
+      assert.equal(await roster.evaluate(element => getComputedStyle(element).display), 'block', 'Teacher roster should reflow into mobile cards')
+      assert.ok(await page.evaluate(() => {
+        const wrap = document.querySelector('.teacher-roster-table').parentElement
+        return wrap.scrollWidth <= wrap.clientWidth + 1
+      }), 'Teacher roster cards must fit without sideways scrolling')
+      const statusFilters = page.locator('.portal-actions[aria-label="Learner roster status filter"] > button')
+      assert.equal(await statusFilters.count(), 2, 'Teachers should be able to switch active and disabled roster views')
+      assert.ok(await statusFilters.evaluateAll(buttons => buttons.every(button => {
+        const box = button.getBoundingClientRect()
+        return box.height >= 44 && box.left >= 0 && box.right <= innerWidth + 1
+      })), 'Roster status filters must remain full-width tap targets on phones')
+    }
     if (section !== 'dashboard') {
       assert.equal(await page.locator('.teacher-workspace-return').isVisible(), true)
       assert.equal(await page.locator('.top-bar-back').isVisible(), false)

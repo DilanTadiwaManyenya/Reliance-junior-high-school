@@ -4,7 +4,18 @@ import { readFile } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { PGlite } from '@electric-sql/pglite'
 import { registerStudentHandler } from '../supabase/functions/_shared/registerStudent.js'
-import { normalizeStudentAdmission, validStudentBirthDate } from '../shared/studentRegistration.js'
+import { normalizeStudentAdmission, parseTypedBirthDate, validStudentBirthDate } from '../shared/studentRegistration.js'
+
+test('DOB keyboard entry accepts day-first, compact numeric and ISO dates while rejecting impossible/future dates', () => {
+  const today = '2026-10-22'
+  assert.equal(parseTypedBirthDate('29/02/2012', today), '2012-02-29')
+  assert.equal(parseTypedBirthDate('29022012', today), '2012-02-29')
+  assert.equal(parseTypedBirthDate('2012-2-29', today), '2012-02-29')
+  assert.equal(parseTypedBirthDate('31/02/2012', today), '')
+  assert.equal(parseTypedBirthDate('00/12/2012', today), '')
+  assert.equal(parseTypedBirthDate('23/10/2026', today), '')
+  assert.equal(parseTypedBirthDate('29/02/', today), '')
+})
 
 test('Registration HTTP and real SQL transaction acceptance', async t => {
   const db = new PGlite()

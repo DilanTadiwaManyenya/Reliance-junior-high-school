@@ -17,6 +17,7 @@ import {
   LuWallet,
 } from "react-icons/lu";
 import PortalNotice from "./PortalNotice";
+import DateOfBirthInput from "../ui/DateOfBirthInput";
 import { useModalFocus } from "../../hooks/useModalFocus";
 import ReportTermSettings from "./ReportTermSettings";
 import { getFeeAmount } from "../../lib/FeeStructure";
@@ -262,9 +263,8 @@ function EnrolmentModal({ supabase, onClose, onSaved, classLevels, streamsForLev
           </label>
           <label>
             Date of birth
-            <input
+            <DateOfBirthInput
               required
-              type="date"
               value={form.date_of_birth}
               onChange={update("date_of_birth")}
             />

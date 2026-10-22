@@ -8,6 +8,7 @@ import FinanceReconciliation from "../../components/portal/FinanceReconciliation
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { possibleLearnerDuplicates } from '../../lib/learnerDuplicates';
 import Button from "../../components/ui/Button";
+import DateOfBirthInput from "../../components/ui/DateOfBirthInput";
 import PasswordInput from "../../components/ui/PasswordInput";
 import Card from "../../components/ui/Card";
 import PortalNotice from "../../components/portal/PortalNotice";
@@ -1880,12 +1881,11 @@ export default function StaffDashboard() {
               )}
               {loading ? (
                 <p className="muted">
-                  Loading
-                  learnersÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦
+                  Loading learners…
                 </p>
               ) : (
                 <div className="portal-table-wrap">
-                  <MobileRecordTable className={`portal-table ${isTeacher ? '' : 'mobile-record-table'}`} aria-label="Learner register">
+                  <MobileRecordTable className={`portal-table mobile-record-table${isTeacher ? ' teacher-roster-table' : ''}`} aria-label="Learner register">
                     <thead>
                       <tr>
                         <th>Name</th>
@@ -2068,9 +2068,8 @@ export default function StaffDashboard() {
                   </label>
                   <label>
                     Date of birth
-                    <input
+                    <DateOfBirthInput
                       required
-                      type="date"
                       value={student.date_of_birth}
                       onChange={(e) =>
                         setStudent((v) => ({

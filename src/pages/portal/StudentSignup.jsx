@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
 import PortalNotice from '../../components/portal/PortalNotice'
 import PasswordInput from '../../components/ui/PasswordInput'
+import DateOfBirthInput from '../../components/ui/DateOfBirthInput'
 import { buildStudentPortalEmail } from '../../../shared/portalAuth'
 import PortalSiteExitLink from '../../components/portal/PortalSiteExitLink'
 import { useSchoolClasses } from '../../hooks/useSchoolClasses'
@@ -61,7 +62,7 @@ export default function StudentSignup() {
     <label>Password <span className="required-mark">*</span><PasswordInput id="student-password" label="" value={form.password} onChange={update('password')} required /></label>{errors.password && <p className="field-error">{errors.password}</p>}
     <label>Confirm password <span className="required-mark">*</span><PasswordInput id="student-confirm-password" label="" value={form.confirmPassword} onChange={update('confirmPassword')} required /></label>{errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
     <label>Admission number <span className="required-mark">*</span><input autoCapitalize="none" maxLength="6" placeholder="e.g. 26f146" value={form.admissionNumber} onChange={update('admissionNumber')} /></label>{errors.admissionNumber && <p className="field-error">{errors.admissionNumber}</p>}
-    <label>Date of birth <span className="required-mark">*</span><input type="date" value={form.dateOfBirth} onChange={update('dateOfBirth')} /></label>{errors.dateOfBirth && <p className="field-error">{errors.dateOfBirth}</p>}
+    <label>Date of birth <span className="required-mark">*</span><DateOfBirthInput required value={form.dateOfBirth} onChange={update('dateOfBirth')} /></label>{errors.dateOfBirth && <p className="field-error">{errors.dateOfBirth}</p>}
     <label>Class level <span className="required-mark">*</span><select value={form.classLevel} onChange={update('classLevel')} disabled={classesLoading}><option value="">{classesLoading ? 'Loading classes…' : 'Select class level'}</option>{levels.map(level => <option key={level} value={level}>{level}</option>)}</select></label>{errors.classLevel && <p className="field-error">{errors.classLevel}</p>}
     <label>Class stream <span className="required-mark">*</span><select value={form.classStream} onChange={update('classStream')} disabled={!form.classLevel || !streams.length}><option value="">{form.classLevel ? (streams.length ? 'Select class stream' : 'N/A (no stream)') : 'Choose a class level first'}</option>{!streams.length && form.classLevel && <option value="N/A">N/A (no stream)</option>}{streams.map(stream => <option key={stream} value={stream}>{stream}</option>)}</select></label>{errors.classStream && <p className="field-error">{errors.classStream}</p>}
     <label className="terms-check"><input type="checkbox" checked={form.acceptedTerms} onChange={update('acceptedTerms')} /> I accept the terms and conditions <span className="required-mark">*</span></label>{errors.acceptedTerms && <p className="field-error">{errors.acceptedTerms}</p>}
