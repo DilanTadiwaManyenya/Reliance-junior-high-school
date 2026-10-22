@@ -11,6 +11,6 @@ export function learnerNameDistance(left, right) {
 }
 export function possibleLearnerDuplicates(rows, learner) {
   if (!normalized(learner.full_name)) return []
-  return rows.filter(row => row.id !== learner.id && learnerNameDistance(row.full_name, learner.full_name) <= 4)
+  return rows.filter(row => row.id !== learner.id && row.status !== 'inactive' && learnerNameDistance(row.full_name, learner.full_name) <= 4)
     .sort((a, b) => learnerNameDistance(a.full_name, learner.full_name) - learnerNameDistance(b.full_name, learner.full_name))
 }

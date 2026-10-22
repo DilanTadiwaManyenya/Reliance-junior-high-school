@@ -807,6 +807,7 @@ export default function StaffDashboard() {
   const [students, setStudents] = useState([]);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
+  const [showDisabledLearners, setShowDisabledLearners] = useState(false);
   const [tab, setTab] = useState("attendance");
   const [forms, setForms] = useState(emptyForms);
   const [recent, setRecent] = useState([]);
@@ -1187,11 +1188,20 @@ export default function StaffDashboard() {
   };
 
   const deleteDisabledLearner = async (row) => {
-    if (!isMainAdmin || row.status !== 'inactive' || !window.confirm(`Permanently delete disabled learner ${row.full_name}? This cannot be undone. Linked school history may prevent deletion.`)) return;
-    const { data, error: deleteError } = await supabase.from('students').delete().eq('id', row.id).eq('status', 'inactive').select('id');
-    if (deleteError) return showError(deleteError.code === '23503' ? 'This learner has linked school history. The record remains disabled; its history has not been deleted.' : deleteError.message);
-    if (!data?.length) return showError('Deletion was not authorized or the learner status changed. Refresh the roster.');
+    if (!isMainAdmin || row.status !== 'inactive' || !window.confirm(`Permanently delete disabled learner ${row.full_name}? This removes their learner and academic records and cannot be undone. Financial transactions and year rollover history are protected.`)) return;
+    const reason = window.prompt(`Enter the reason for permanently deleting ${row.full_name}:`);
+    if (!reason || reason.trim().length < 5) return showError('Enter a deletion reason of at least five characters.');
+    const { error: deleteError } = await supabase.rpc('manage_disabled_learner', { p_student: row.id, p_action: 'delete', p_reason: reason.trim() });
+    if (deleteError) return showError(deleteError.message);
     setNotice(`${row.full_name} deleted.`);
+    await loadStudents();
+  };
+
+  const activateDisabledLearner = async (row) => {
+    if (!isAdmin || row.status !== 'inactive' || !window.confirm(`Reactivate ${row.full_name}? The learner will return to the active class roster.`)) return;
+    const { error: activateError } = await supabase.rpc('manage_disabled_learner', { p_student: row.id, p_action: 'activate', p_reason: null });
+    if (activateError) return showError(activateError.message);
+    setNotice(`${row.full_name} reactivated.`);
     await loadStudents();
   };
 
@@ -1491,7 +1501,7 @@ export default function StaffDashboard() {
   };
 
   // Filter students based on active class selection (class_level & class_stream)
-  const filteredStudents = useMemo(() => {
+  const scopedStudents = useMemo(() => {
     const { level, stream } = isTeacher && teacherWorkspace === "subjects" ? { level: null, stream: null } : activeClassFilter;
     const activeSubjectAssignments = selectedSubjectAllocationId
       ? teacherSubjectAssignments.filter((assignment) => assignment.id === selectedSubjectAllocationId)
@@ -1530,7 +1540,15 @@ export default function StaffDashboard() {
     );
   }, [students, activeClassFilter, isTeacher, teacherAssignments, teacherSubjectAssignments, teacherWorkspace, selectedSubject, selectedSubjectLevel, selectedSubjectAllocationId, selectedSubjectClassStream]);
 
-  const visible = filteredStudents.filter((row) =>
+  const filteredStudents = useMemo(() => isTeacher
+    ? scopedStudents.filter((row) => row.status !== 'inactive')
+    : scopedStudents, [scopedStudents, isTeacher]);
+
+  const rosterStudents = isTeacher && showDisabledLearners
+    ? scopedStudents.filter((row) => row.status === 'inactive')
+    : isTeacher ? filteredStudents : filteredStudents;
+
+  const visible = (section === 'roster' && isTeacher ? rosterStudents : filteredStudents).filter((row) =>
     `${row.full_name} ${row.admission_number}`
       .toLowerCase()
       .includes(query.toLowerCase()),
@@ -1781,6 +1799,17 @@ export default function StaffDashboard() {
                 {isCampusAdmin && <span className="portal-scope-label">Campus locked to {adminCampusScope === "junior" ? "Junior School" : "Senior School"}</span>}
                 {isTeacher && activeClassScopeLabel && <span className="portal-scope-label">Class Work · {activeClassScopeLabel}</span>}
               </div>
+              {isTeacher && (
+                <div className="portal-actions" aria-label="Learner roster status filter">
+                  <Button type="button" variant={showDisabledLearners ? "secondary" : "primary"} onClick={() => setShowDisabledLearners(false)}>
+                    Active learners ({filteredStudents.length})
+                  </Button>
+                  <Button type="button" variant={showDisabledLearners ? "primary" : "secondary"} onClick={() => setShowDisabledLearners(true)}>
+                    Disabled · read only ({scopedStudents.filter((row) => row.status === 'inactive').length})
+                  </Button>
+                </div>
+              )}
+              {isTeacher && showDisabledLearners && <p className="muted" role="status">Disabled learners are excluded from class totals and cannot be edited from the teacher portal.</p>}
               {loading ? (
                 <p className="muted">
                   Loading
@@ -1808,7 +1837,7 @@ export default function StaffDashboard() {
                               {row.full_name?.[0] ?? "?"}
                             </span>
                             {isTeacher ? (
-                              <button
+                              row.status === 'inactive' ? <span>{row.full_name}</span> : <button
                                 type="button"
                                 className="roster-learner-link"
                                 onClick={() => openLearnerProfile(row, { origin: "roster" })}
@@ -1887,15 +1916,17 @@ export default function StaffDashboard() {
                           )}
                           {(isAdmin || isTeacher) && (
                             <td>
-                              {isAdmin && <Button
+                              {isAdmin && row.status === 'active' && <Button
                                 variant="secondary"
                                 onClick={() => editStudent(row)}
                               >
                                 Edit
                               </Button>}
                               {row.status !== 'inactive' && <Button variant="secondary" onClick={() => disableLearner(row)}>Disable learner</Button>}
+                              {isAdmin && row.status === 'inactive' && <Button variant="secondary" onClick={() => activateDisabledLearner(row)}>Activate learner</Button>}
                               {isMainAdmin && row.status === 'inactive' && <Button variant="secondary" onClick={() => deleteDisabledLearner(row)}>Delete disabled learner</Button>}
                               {row.record_disable_reason && <small>{row.record_disable_reason}</small>}
+                              {isTeacher && row.status === 'inactive' && <small>Read only</small>}
                             </td>
                           )}
                         </tr>

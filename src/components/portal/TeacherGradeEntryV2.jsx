@@ -32,7 +32,7 @@ export default function TeacherGradeEntryV2() {
 
   useEffect(() => {
     let active = true
-    supabase.from('students').select('id, full_name, admission_number, class_level, class_stream').order('full_name').then(({ data, error: requestError }) => {
+    supabase.from('students').select('id, full_name, admission_number, class_level, class_stream').eq('status', 'active').order('full_name').then(({ data, error: requestError }) => {
       if (!active) return
       setStudents(data || [])
       setError(requestError ? 'Unable to load your learners.' : '')
