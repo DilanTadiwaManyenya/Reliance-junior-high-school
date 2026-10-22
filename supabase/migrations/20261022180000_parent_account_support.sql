@@ -63,3 +63,5 @@ $$;
 
 revoke all on function public.parent_account_support() from public, anon;
 grant execute on function public.parent_account_support() to authenticated;
+
+notify pgrst, 'reload schema';
