@@ -29,3 +29,11 @@
 ## Remaining evidence needed
 
 The original teacher login failures and Main Admin report failure have not been reproduced in an authenticated production browser. Browser-control startup failed with a local sandbox helper error during this session. No real credentials were changed to simulate a pilot. Do not call those incidents resolved solely from mocked browser or rollback SQL checks.
+
+## Release verification
+
+- Learner/account repair pushed as `ca88cc5`; report/upload repair pushed as `320a129`. Production public JavaScript was checked and contains the duplicate warning and correction RPC.
+- Admission browser checks passed in Grade 1, Grade 6, Form 1, Lower Six, Upper Six and Upper 6 at 390/1280px (12 cases).
+- ECD A/B switching passed at 320/390/1280px. Portal account navigation tests passed; six unpaid-fee report cases passed across Junior/Senior and admin/accountant/parent.
+- Thirteen file/profile/name-matching unit checks passed. Production build passed. The large existing StaffDashboard file still reports pre-existing lint errors for unused imports/functions and a synchronous state update in an effect; this is not a clean whole-repository lint claim.
+- The expense mismatch noted above was subsequently repaired: exact migration applied, installed rollback verification returned all six flags true, and eight browser cases passed. No real expense or learner was created, reversed, disabled or deleted by these tests.

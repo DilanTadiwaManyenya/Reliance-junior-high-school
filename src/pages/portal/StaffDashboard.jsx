@@ -1130,9 +1130,9 @@ export default function StaffDashboard() {
       : supabase.from("students").insert(row);
     const { error: requestError } = await request;
     if (requestError) return showError(requestError.message);
-    logActivity(supabase, user, profile, {
-      actionType: editingId ? "update" : "create",
-      description: `${editingId ? "Updated" : "Created"} learner ${student.full_name}`,
+    if (!existingAttempt.data) logActivity(supabase, user, profile, {
+      actionType: editingId || replacementId ? "update" : "create",
+      description: `${editingId || replacementId ? "Updated" : "Created"} learner ${student.full_name}`,
       targetTable: "students",
       targetId: replacementId || editingId,
     });

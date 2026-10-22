@@ -1,5 +1,7 @@
 # Stage 4D — controlled expense operations
 
+Installed on 22 October 2026 after identifying that the UI had reached production before this migration. Fresh live dry-run and installed rollback verification passed all six checks. Eight Main Admin/accountant browser cases passed, including lost responses and reload/retry. No real expense was changed during verification.
+
 Expense submission uses submit_school_expense(request UUID, expense JSON).
 The database accepts Main Admin or the accountant assigned to the selected
 campus, validates amount/date/currency and required fields, and always records
