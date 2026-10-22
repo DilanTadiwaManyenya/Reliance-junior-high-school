@@ -6,6 +6,7 @@ import InventoryPOS from "../../components/portal/InventoryPOS";
 import ExpensesCashbook from "../../components/portal/ExpensesCashbook";
 import FinanceReconciliation from "../../components/portal/FinanceReconciliation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { possibleLearnerDuplicates } from '../../lib/learnerDuplicates';
 import Button from "../../components/ui/Button";
 import DateOfBirthInput from "../../components/ui/DateOfBirthInput";
@@ -550,7 +551,7 @@ function DashboardHome({
               ? "-"
               : isTeacher
                 ? active
-                : staff.filter((member) => member.role === "teacher").length
+                : staff.filter((member) => member.portal_access_enabled !== false && member.role === "teacher").length
           }
           sub={isTeacher ? "ready for marking" : "active teaching team"}
           accent="#A67C00"
@@ -790,6 +791,8 @@ function DashboardHome({
 export default function StaffDashboard() {
   const { supabase, user, profile, activeRole, setActiveRole } = useAuth();
   const { section, setSection, activeClassFilter, setActiveClassFilter, activeAdminCampusScope, setActiveClassKey, teacherWorkspace, selectedSubjectAllocationId, selectedSubjectClassStream, selectedSubject, selectedSubjectLevel, setSubjectGroup, setSubjectAllocation, clearSubjectGroup } = useSection();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const manager = ["admin", "principal"].includes(activeRole);
   const isAdmin = activeRole === "admin";
@@ -878,23 +881,25 @@ export default function StaffDashboard() {
   const [progressQuery, setProgressQuery] = useState("");
 
   const selected = students.find((row) => row.id === selectedId);
+  const activeStaff = useMemo(() => staff.filter((row) => row.portal_access_enabled !== false), [staff]);
   const staffCategoryCounts = useMemo(() => ({
-    all: staff.length,
+    all: activeStaff.length,
     admins: staff.filter((row) => row.portal_access_enabled !== false && ["admin", "principal"].includes(row.role)).length,
     teachers: staff.filter((row) => row.portal_access_enabled !== false && row.role === "teacher").length,
     accountants: staff.filter((row) => row.portal_access_enabled !== false && row.role === "accountant").length,
     deactivated: staff.filter((row) => row.portal_access_enabled === false).length,
-  }), [staff]);
+  }), [activeStaff, staff]);
   const visibleStaff = staff.filter((row) => {
     const matchesSearch = [row.full_name, row.legal_full_name, row.phone, row.role].some((value) =>
       value?.toLowerCase().includes(staffQuery.toLowerCase()),
     );
     const matchesCampus = staffCampusFilter === "all" || row.campus === staffCampusFilter;
     const matchesCategory = staffCategory === "all"
-      || (staffCategory === "admins" && row.portal_access_enabled !== false && ["admin", "principal"].includes(row.role))
-      || (staffCategory === "teachers" && row.portal_access_enabled !== false && row.role === "teacher")
-      || (staffCategory === "accountants" && row.portal_access_enabled !== false && row.role === "accountant")
-      || (staffCategory === "deactivated" && row.portal_access_enabled === false);
+      ? row.portal_access_enabled !== false
+      : (staffCategory === "admins" && row.portal_access_enabled !== false && ["admin", "principal"].includes(row.role))
+        || (staffCategory === "teachers" && row.portal_access_enabled !== false && row.role === "teacher")
+        || (staffCategory === "accountants" && row.portal_access_enabled !== false && row.role === "accountant")
+        || (staffCategory === "deactivated" && row.portal_access_enabled === false);
     return matchesSearch && matchesCampus && matchesCategory;
   });
   const showError = (value) => {
@@ -1096,6 +1101,8 @@ export default function StaffDashboard() {
 
   const saveStudent = async (event, duplicateChoice = false, replacementId = null) => {
     event?.preventDefault();
+    const wasEditing = Boolean(editingId);
+    const returnAfterEdit = learnerReturnSearch(location.search);
     if (learnerSaveBusy.current) return;
     if (!isAdmin && activeRole !== "teacher")
       return showError(
@@ -1160,9 +1167,9 @@ export default function StaffDashboard() {
       targetId: replacementId || editingId,
     });
     setNotice(isTeacher ? '' : `${row.full_name} ${editingId || replacementId ? 'updated' : 'added'} successfully.`);
-    setStudent(emptyStudent());
+    if (!wasEditing) setStudent(emptyStudent());
     learnerAdmissionAttempt.current = null;
-    setEditingId(null);
+    if (!wasEditing) setEditingId(null);
     setDuplicateLearners(null);
     setQuery(row.full_name);
     const savedScope = replacementId ? students.find(item => item.id === replacementId) || row : row;
@@ -1187,12 +1194,19 @@ export default function StaffDashboard() {
         error: false,
       });
       setRosterRefreshFailed(false);
-      setQuery(savedLearner.full_name);
-      requestAnimationFrame(() => {
-        const savedRow = document.getElementById(`learner-row-${savedLearnerId}`);
-        savedRow?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        rosterHeading.current?.focus({ preventScroll: true });
-      });
+      if (wasEditing) {
+        setStudent(emptyStudent());
+        setEditingId(null);
+        setDuplicateLearners(null);
+        navigate({ pathname: location.pathname, search: returnAfterEdit });
+      } else {
+        setQuery(savedLearner.full_name);
+        requestAnimationFrame(() => {
+          const savedRow = document.getElementById(`learner-row-${savedLearnerId}`);
+          savedRow?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          rosterHeading.current?.focus({ preventScroll: true });
+        });
+      }
     }
     } catch (saveError) {
       showError(saveConfirmed
@@ -1236,10 +1250,42 @@ export default function StaffDashboard() {
     }
   };
 
+  const learnerReturnSearch = (search) => {
+    const returnTo = new URLSearchParams(search).get("returnTo");
+    return returnTo && new URLSearchParams(returnTo).get("section") === "roster"
+      ? returnTo
+      : "?section=roster";
+  };
+
   const editStudent = (row) => {
     setStudent({ ...row, class_stream: row.class_stream ?? "" });
     setEditingId(row.id);
+    const params = new URLSearchParams(location.search);
+    params.set("returnTo", location.search || "?section=roster");
+    params.set("section", "learner-edit");
+    params.set("learner", row.id);
+    navigate({ pathname: location.pathname, search: `?${params.toString()}` });
   };
+
+  useEffect(() => {
+    if (section !== "learner-edit") {
+      if (editingId) {
+        // Clear stale editor data when browser history leaves the URL-backed edit route.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setStudent(emptyStudent());
+        setEditingId(null);
+        setDuplicateLearners(null);
+      }
+      return;
+    }
+    const learnerId = new URLSearchParams(location.search).get("learner");
+    const learner = students.find((row) => row.id === learnerId);
+    if (learner && editingId !== learner.id) {
+      setStudent({ ...learner, class_stream: learner.class_stream ?? "" });
+      setEditingId(learner.id);
+      setDuplicateLearners(null);
+    }
+  }, [section, location.search, students, editingId]);
 
   const disableLearner = async (row) => {
     const reason = window.prompt(`Disable ${row.full_name}? Their records will be kept. Enter the reason:`);
@@ -1636,6 +1682,181 @@ export default function StaffDashboard() {
     return <SubjectWorkspaceLanding assignments={teacherSubjectAssignments} students={filteredStudents} teacherName={profile?.full_name} selectedAllocationId={selectedSubjectAllocationId} onSelect={setSubjectGroup} onBack={clearSubjectGroup} onOpenWorkspace={(nextSection, subject, level, allocationId) => setSubjectGroup(subject, level, allocationId, nextSection)} />;
 
   const shopRole = activeRole;
+  const cancelLearnerEdit = () => {
+    setStudent(emptyStudent());
+    setEditingId(null);
+    setDuplicateLearners(null);
+    if (section === "learner-edit") navigate({ pathname: location.pathname, search: learnerReturnSearch(location.search) });
+  };
+  const renderLearnerEditor = () => (
+              <Card>
+                <div className="portal-card-title portal-form-title">
+                  <div>
+                    <h2>{editingId ? "Edit learner" : "Add learner"}</h2>
+                    <p>{editingId ? "Update the learner’s recorded details." : "Enter the learner details, choose a class, then save to allocate the next admission number."}</p>
+                  </div>
+                  {isCampusAdmin && <span className="portal-scope-label">{adminCampusScope === "junior" ? "Junior School" : "Senior School"}</span>}
+                </div>
+                <form className="form portal-form" onSubmit={saveStudent}>
+                  <label>
+                    Full name
+                    <input
+                      required
+                      value={student.full_name}
+                      onChange={(e) =>
+                        setStudent((v) => ({ ...v, full_name: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    Admission number
+                    <input
+                      required
+                      readOnly
+                      value={
+                        editingId
+                          ? student.admission_number
+                          : "Assigned securely on save"
+                      }
+                      onChange={(e) =>
+                        setStudent((v) => ({
+                          ...v,
+                          admission_number: e.target.value,
+                        }))
+                      }
+                    />
+                    <small>
+                      {editingId
+                        ? "Existing admission number."
+                        : "The next class admission number is assigned securely when the learner is saved."}
+                    </small>
+                  </label>
+                  <label>
+                    Date of birth
+                    <DateOfBirthInput
+                      required
+                      value={student.date_of_birth}
+                      onChange={(e) =>
+                        setStudent((v) => ({
+                          ...v,
+                          date_of_birth: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    Class level
+                    <select
+                      aria-label="Class level"
+                      required
+                      value={student.class_level}
+                      onChange={(e) =>
+                        setStudent((v) => ({
+                          ...v,
+                          class_level: e.target.value,
+                          class_stream: "",
+                        }))
+                      }
+                    >
+                      <option value="">Choose class level</option>
+                      {(isAdmin || accountant
+                        ? adminClassLevels
+                        : [
+                            ...new Set(
+                              teacherAssignments.map((a) => a.class_level),
+                            ),
+                          ]
+                      ).map((level) => (
+                        <option key={level}>{level}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Class stream
+                    <select
+                      aria-label="Class stream"
+                      required
+                      disabled={
+                        !student.class_level ||
+                        isJuniorLevel(student.class_level)
+                      }
+                      value={student.class_stream}
+                      onChange={(e) =>
+                        setStudent((v) => ({
+                          ...v,
+                          class_stream: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">
+                        {isJuniorLevel(student.class_level)
+                          ? "N/A (Junior)"
+                          : "Choose class stream"}
+                      </option>
+                      {(isAdmin || accountant
+                        ? streamsForAdminLevel(student.class_level)
+                        : teacherAssignments
+                            .filter(
+                              (a) => a.class_level === student.class_level,
+                            )
+                            .map((a) => a.class_stream)
+                            .filter(Boolean)
+                      ).map((stream) => (
+                        <option key={stream}>{stream}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Enrolled year
+                    <input
+                      required
+                      type="number"
+                      value={student.enrolled_year}
+                      onChange={(e) =>
+                        setStudent((v) => ({
+                          ...v,
+                          enrolled_year: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <div className="portal-action-row">
+                    <Button type="submit" disabled={savingLearner}>
+                      {savingLearner ? 'Saving learner…' : editingId ? "Save changes" : "Add learner"}
+                    </Button>
+                    {editingId && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={cancelLearnerEdit}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </form>
+                {duplicateLearners && <section role="alert" className="portal-notice"><h3>Could this learner already be enrolled?</h3><p>Similar names can be different learners. Compare the date of birth and class. Replacing updates the name and birth date on the existing record and keeps its admission number, class, fees and marks.</p>{duplicateLearners.map(match => <div key={match.id}><p><strong>{match.full_name}</strong> · {match.date_of_birth} · {match.class_level} {match.class_stream} · {match.admission_number}</p><Button type="button" variant="secondary" disabled={savingLearner} onClick={() => { if (window.confirm(`Update ${match.full_name} (${match.admission_number}) with the entered name and birth date?`)) saveStudent(null, true, match.id); }}>Replace this learner's details</Button></div>)}<div className="portal-action-row"><Button type="button" disabled={savingLearner} onClick={() => saveStudent(null, true)}>Save as a different learner</Button><Button type="button" variant="secondary" disabled={savingLearner} onClick={() => setDuplicateLearners(null)}>Cancel</Button></div></section>}
+              </Card>
+  );
+
+  if (section === "learner-edit" && isAdmin) {
+    const params = new URLSearchParams(location.search);
+    const learnerId = params.get("learner");
+    const learner = students.find((row) => row.id === learnerId);
+    const returnToRoster = () => navigate({ pathname: location.pathname, search: learnerReturnSearch(location.search) });
+    return (
+      <div className="staff-content-area">
+        <div className="dash-section record-entry-page">
+          <div className="dash-page-header">
+            <Button type="button" variant="secondary" onClick={returnToRoster}>← Back to learner register</Button>
+            <h1>Edit learner</h1>
+            <p>Update this learner’s details, then return to the learner register.</p>
+          </div>
+          {editingId === learnerId && learner ? renderLearnerEditor() : loading ? <p role="status">Loading learner record…</p> : <PortalNotice tone="error">This learner could not be found in your school scope. Return to the learner register and choose a learner there.</PortalNotice>}
+        </div>
+      </div>
+    );
+  }
   if (section === "reconciliation" && (isMainAdmin || accountant))
     return (
       <div className="staff-content-area">
@@ -2019,159 +2240,7 @@ export default function StaffDashboard() {
               </SlideOver>
             )}
 
-            {(isAdmin || activeRole === "teacher" || accountant) && (
-              <Card>
-                <div className="portal-card-title portal-form-title">
-                  <div>
-                    <h2>{editingId ? "Edit learner" : "Add learner"}</h2>
-                    <p>{editingId ? "Update the learner’s recorded details." : "Enter the learner details, choose a class, then save to allocate the next admission number."}</p>
-                  </div>
-                  {isCampusAdmin && <span className="portal-scope-label">{adminCampusScope === "junior" ? "Junior School" : "Senior School"}</span>}
-                </div>
-                <form className="form portal-form" onSubmit={saveStudent}>
-                  <label>
-                    Full name
-                    <input
-                      required
-                      value={student.full_name}
-                      onChange={(e) =>
-                        setStudent((v) => ({ ...v, full_name: e.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    Admission number
-                    <input
-                      required
-                      readOnly
-                      value={
-                        editingId
-                          ? student.admission_number
-                          : "Assigned securely on save"
-                      }
-                      onChange={(e) =>
-                        setStudent((v) => ({
-                          ...v,
-                          admission_number: e.target.value,
-                        }))
-                      }
-                    />
-                    <small>
-                      {editingId
-                        ? "Existing admission number."
-                        : "The next class admission number is assigned securely when the learner is saved."}
-                    </small>
-                  </label>
-                  <label>
-                    Date of birth
-                    <DateOfBirthInput
-                      required
-                      value={student.date_of_birth}
-                      onChange={(e) =>
-                        setStudent((v) => ({
-                          ...v,
-                          date_of_birth: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    Class level
-                    <select
-                      aria-label="Class level"
-                      required
-                      value={student.class_level}
-                      onChange={(e) =>
-                        setStudent((v) => ({
-                          ...v,
-                          class_level: e.target.value,
-                          class_stream: "",
-                        }))
-                      }
-                    >
-                      <option value="">Choose class level</option>
-                      {(isAdmin || accountant
-                        ? adminClassLevels
-                        : [
-                            ...new Set(
-                              teacherAssignments.map((a) => a.class_level),
-                            ),
-                          ]
-                      ).map((level) => (
-                        <option key={level}>{level}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Class stream
-                    <select
-                      aria-label="Class stream"
-                      required
-                      disabled={
-                        !student.class_level ||
-                        isJuniorLevel(student.class_level)
-                      }
-                      value={student.class_stream}
-                      onChange={(e) =>
-                        setStudent((v) => ({
-                          ...v,
-                          class_stream: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">
-                        {isJuniorLevel(student.class_level)
-                          ? "N/A (Junior)"
-                          : "Choose class stream"}
-                      </option>
-                      {(isAdmin || accountant
-                        ? streamsForAdminLevel(student.class_level)
-                        : teacherAssignments
-                            .filter(
-                              (a) => a.class_level === student.class_level,
-                            )
-                            .map((a) => a.class_stream)
-                            .filter(Boolean)
-                      ).map((stream) => (
-                        <option key={stream}>{stream}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Enrolled year
-                    <input
-                      required
-                      type="number"
-                      value={student.enrolled_year}
-                      onChange={(e) =>
-                        setStudent((v) => ({
-                          ...v,
-                          enrolled_year: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <div className="portal-action-row">
-                    <Button type="submit" disabled={savingLearner}>
-                      {savingLearner ? 'Saving learner…' : editingId ? "Save changes" : "Add learner"}
-                    </Button>
-                    {editingId && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => {
-                          setStudent(emptyStudent());
-                          setEditingId(null);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </form>
-                {duplicateLearners && <section role="alert" className="portal-notice"><h3>Could this learner already be enrolled?</h3><p>Similar names can be different learners. Compare the date of birth and class. Replacing updates the name and birth date on the existing record and keeps its admission number, class, fees and marks.</p>{duplicateLearners.map(match => <div key={match.id}><p><strong>{match.full_name}</strong> · {match.date_of_birth} · {match.class_level} {match.class_stream} · {match.admission_number}</p><Button type="button" variant="secondary" disabled={savingLearner} onClick={() => { if (window.confirm(`Update ${match.full_name} (${match.admission_number}) with the entered name and birth date?`)) saveStudent(null, true, match.id); }}>Replace this learner's details</Button></div>)}<div className="portal-action-row"><Button type="button" disabled={savingLearner} onClick={() => saveStudent(null, true)}>Save as a different learner</Button><Button type="button" variant="secondary" disabled={savingLearner} onClick={() => setDuplicateLearners(null)}>Cancel</Button></div></section>}
-              </Card>
-            )}
+            {(isAdmin || activeRole === "teacher" || accountant) && renderLearnerEditor()}
           </div>
         </div>
       )}
@@ -2823,17 +2892,17 @@ export default function StaffDashboard() {
                 </div>
                 <div className="staff-directory-stats">
                   <div>
-                    <strong>{staff.length}</strong>
+                    <strong>{activeStaff.length}</strong>
                     <span>Total staff</span>
                   </div>
                   <div>
                     <strong>
-                      {staff.filter((row) => row.role === "teacher").length}
+                      {activeStaff.filter((row) => row.role === "teacher").length}
                     </strong>
                     <span>Teachers</span>
                   </div>
                   {isAdmin && <div>
-                    <strong>{staff.filter((row) => !row.legal_full_name || !row.signature_initials).length}</strong>
+                    <strong>{activeStaff.filter((row) => !row.legal_full_name || !row.signature_initials).length}</strong>
                     <span>Identity checks</span>
                   </div>}
                 </div>

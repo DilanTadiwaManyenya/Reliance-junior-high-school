@@ -14,8 +14,16 @@ try {
     await page.getByLabel('Search',{exact:true}).fill('Alexandra')
     assert.equal(await table.locator('tbody tr').count(),1)
     await table.getByRole('button',{name:'Edit',exact:true}).click()
+    await page.getByRole('heading',{name:'Edit learner',exact:true,level:1}).waitFor()
     assert.match(await page.getByRole('textbox',{name:'Full name',exact:true}).inputValue(),/Alexandra/)
     assert.equal(await page.getByRole('button',{name:'Save changes',exact:true}).count(),1)
+    await page.getByRole('button',{name:'Back to learner register'}).click()
+    await page.getByRole('heading',{name:'Learner Roster',exact:true}).waitFor()
+    await table.locator('tbody tr').first().getByRole('button',{name:'Edit',exact:true}).click()
+    await page.getByRole('heading',{name:'Edit learner',exact:true,level:1}).waitFor()
+    await page.getByRole('button',{name:'Save changes',exact:true}).click()
+    await page.getByRole('heading',{name:'Learner Roster',exact:true}).waitFor()
+    assert.equal(await page.evaluate(() => window.fixtureWrites.some(row => row.table === 'students' && row.operation === 'update')),true,'Saving learner edits must return to the roster after confirming the refresh')
    }
    if(section==='staff') {
     await page.getByLabel('Search staff',{exact:true}).fill('Example Teacher')
@@ -44,4 +52,19 @@ try {
  await principal.getByRole('table',{name:'Staff directory',exact:true}).waitFor()
  assert.equal(await principal.getByRole('button',{name:'Credentials',exact:true}).count(),0)
  await principal.close()
+
+const deactivatedDashboard=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'dashboard',deactivatedStaff:''},390)
+assert.equal(await deactivatedDashboard.locator('.dash-stat-card').filter({hasText:'Teaching Staff'}).locator('.dash-stat-value').innerText(),'1')
+await deactivatedDashboard.close()
+
+const deactivated=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'staff',deactivatedStaff:''},390)
+const allStaffTab=deactivated.getByRole('tab',{name:/All staff/})
+await allStaffTab.waitFor()
+assert.match(await allStaffTab.innerText(),/All staff\s+2/)
+assert.equal(await deactivated.getByText('Deactivated Example Teacher',{exact:true}).count(),0)
+await deactivated.getByRole('tab',{name:/Deactivated accounts/}).click()
+assert.match(await deactivated.getByText('Deactivated Example Teacher',{exact:true}).innerText(),/Deactivated Example Teacher/)
+assert.match(await deactivated.getByRole('tab',{name:/Deactivated accounts/}).innerText(),/Deactivated accounts\s+1/)
+await deactivated.close()
+console.log('PASS staff directory: disabled accounts are excluded from All staff and remain in Deactivated accounts')
 } finally {await runtime.close()}

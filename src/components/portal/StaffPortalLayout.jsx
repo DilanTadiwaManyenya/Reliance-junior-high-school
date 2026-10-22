@@ -69,7 +69,7 @@ function StaffPortalWorkspace() {
   const searchParams = new URLSearchParams(location.search)
   const requestedSection = searchParams.get('section')
   const sectionConfig = {
-    admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'newsletters', 'library-support', 'classes', 'year-planning', 'year-rollover', 'reporting-periods', 'historical-reports', 'activity'] },
+    admin:      { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'learner-edit', 'entry', 'settings', 'bulk-import', 'report-settings', 'grade-bands', 'progress-reports', 'fees', 'expenses', 'inventory', 'staff', 'newsletters', 'library-support', 'classes', 'year-planning', 'year-rollover', 'reporting-periods', 'historical-reports', 'activity'] },
     principal:  { defaultSection: 'dashboard', allowed: ['dashboard', 'roster', 'settings', 'fees', 'expenses', 'staff', 'historical-reports', 'activity'] },
     teacher:    { defaultSection: 'dashboard', allowed: ['dashboard', 'subject-allocations', 'roster', 'entry', 'coursework', 'library', 'settings'] },
     accountant: { defaultSection: 'fees',      allowed: ['fees', 'learner-profiles', 'expenses', 'inventory', 'progress-reports', 'historical-reports', 'library-support'] },
@@ -156,6 +156,13 @@ function StaffPortalWorkspace() {
   const changeSubjectGroup = (subject, level, allocationId = '', nextSection = section) => navigateToSection(nextSection, 'subjects', allocationId, subject, level, '')
   const clearSubjectGroup = () => navigateToSection('subject-allocations', 'subjects', '', '', '', '')
   const goBack = () => {
+    if (section === 'learner-edit') {
+      const returnTo = new URLSearchParams(location.search).get('returnTo')
+      if (returnTo && new URLSearchParams(returnTo).get('section') === 'roster') {
+        navigate({ pathname: location.pathname, search: returnTo })
+        return
+      }
+    }
     const classParent = classParentSearch(location.search)
     if (classParent !== null) {
       navigate({ pathname: location.pathname, search: classParent })

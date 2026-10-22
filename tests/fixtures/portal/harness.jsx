@@ -35,7 +35,7 @@ const assessment = { id: 'assessment', teacher_id: staffId, campus: 'senior', cl
 const db = {
   portal_security_settings: [{id:1,require_admin_mfa:!params.has('mfaDisabled')}],
   students: learners,
-  profiles: [profile, { ...profile, id: 'teacher', role: 'teacher', active_role: 'teacher', campus: 'senior', full_name: 'Ms Example Teacher', is_protected: false }],
+  profiles: [profile, { ...profile, id: 'teacher', role: 'teacher', active_role: 'teacher', campus: 'senior', full_name: 'Ms Example Teacher', is_protected: false }, ...(params.has('deactivatedStaff') ? [{ ...profile, id: 'deactivated-teacher', role: 'teacher', active_role: 'teacher', campus: 'senior', full_name: 'Deactivated Example Teacher', portal_access_enabled: false, is_protected: false }] : [])],
   parent_student: params.has('empty') ? [] : learners.map(student => ({ parent_id: staffId, student_id: student.id, verified_at: today, student })),
   teacher_class_assignments: assignments, teacher_class_subject_assignments: assignments,
   school_classes: [{ id: 'class-1', class_level: 'Form 1', class_stream: 'Blue', campus: 'senior', active: true, capacity: 50 }, { id: 'class-2', class_level: 'Grade 1', class_stream: '', campus: 'junior', active: true, capacity: 50 }],
