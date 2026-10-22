@@ -97,7 +97,7 @@ export default function StaffTopBar({ onToggleSidebar, onToggleMobile, mobileOpe
           <button
             className="top-bar-toggle mobile-toggle"
             onClick={onToggleMobile}
-            aria-label="Open navigation menu"
+            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileOpen}
             aria-controls="staff-portal-navigation"
           >
