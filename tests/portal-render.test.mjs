@@ -10,10 +10,12 @@ test('Portal rendering follows the active role and profile failures remain recov
   try {
     const { AuthContext } = await server.ssrLoadModule('/src/context/authContext.js')
     const { SectionContext } = await server.ssrLoadModule('/src/components/portal/StaffPortalLayout.jsx')
+    const { staffSectionAccess } = await server.ssrLoadModule('/src/lib/staffSectionAccess.js')
     const { default: Sidebar } = await server.ssrLoadModule('/src/components/portal/PortalSidebar.jsx')
     const { default: Dashboard } = await server.ssrLoadModule('/src/pages/portal/StaffDashboard.jsx')
     const { default: Fees } = await server.ssrLoadModule('/src/components/portal/FeesDashboard.jsx')
     const { default: TopBar } = await server.ssrLoadModule('/src/components/portal/StaffTopBar.jsx')
+    const { default: AccountantWorkspaceNav } = await server.ssrLoadModule('/src/components/portal/AccountantWorkspaceNav.jsx')
     const { default: AcademicReport } = await server.ssrLoadModule('/src/components/portal/AcademicReportCard.jsx')
     const { default: ProtectedRoute } = await server.ssrLoadModule('/src/components/portal/ProtectedRoute.jsx')
     const render = (Component, auth, props = {}, section = {}) => renderToStaticMarkup(
@@ -23,6 +25,11 @@ test('Portal rendering follows the active role and profile failures remain recov
             React.createElement(Component, props)))))
     const profile = { role: 'admin', active_role: 'teacher', campus: 'junior', teacher_class_assignments: [{ class_level: 'ECD A', class_stream: '' }] }
     const auth = { profile, activeRole: 'teacher', user: { id: 'staff' }, supabase: null, roles: ['admin', 'teacher'], loading: false }
+    assert.ok(staffSectionAccess.admin.allowed.includes('parent-accounts'))
+    assert.ok(staffSectionAccess.accountant.allowed.includes('parent-accounts'))
+    assert.ok(!staffSectionAccess.teacher.allowed.includes('parent-accounts'))
+    const accountantNav = render(AccountantWorkspaceNav, auth, { section: 'parent-accounts', onChange: () => {} })
+    assert.match(accountantNav, /Workspace: <strong>Parent accounts<\/strong>/)
     const sidebar = render(Sidebar, auth, { teacherWorkspace: 'classes' })
     assert.match(sidebar, /Markbook/)
     assert.match(sidebar, /Learning library/)

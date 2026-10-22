@@ -3,6 +3,7 @@ const tabs = [
   ['fees', 'Finance'], ['learner-profiles', 'Learner profiles'],
   ['progress-reports', 'Academic progress'], ['expenses', 'Expenses & Cashbook'],
   ['inventory', 'Point of sale'], ['library-support', 'Library oversight'], ['historical-reports', 'Historical reports'],
+  ['parent-accounts', 'Parent accounts'],
 ]
 export default function AccountantWorkspaceNav({ section, onChange }) {
   const menu = useRef(null)
