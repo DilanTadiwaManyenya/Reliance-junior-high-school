@@ -106,7 +106,7 @@ try {
       await page.close()
     }
   }
-  for (const width of [320, 768]) for (const campus of ['junior', 'senior']) for (const section of ['dashboard', 'entry', 'roster']) {
+  for (const width of [320, 390, 768]) for (const campus of ['junior', 'senior']) for (const section of ['dashboard', 'entry', 'roster']) {
     const page = await teacherPage({ viewport: { width, height: 844 } })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
@@ -116,14 +116,24 @@ try {
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     assert.deepEqual(errors, [])
-    if (section === 'roster' && width <= 320) {
+    if (section === 'roster' && width <= 600) {
       const roster = page.locator('.teacher-roster-table')
       await roster.waitFor()
-      assert.equal(await roster.evaluate(element => getComputedStyle(element).display), 'block', 'Teacher roster should reflow into mobile cards')
+      assert.equal(await roster.evaluate(element => getComputedStyle(element).display), 'block', 'Teacher roster should use the compact mobile layout')
       assert.ok(await page.evaluate(() => {
         const wrap = document.querySelector('.teacher-roster-table').parentElement
         return wrap.scrollWidth <= wrap.clientWidth + 1
-      }), 'Teacher roster cards must fit without sideways scrolling')
+      }), 'Teacher roster rows must fit without sideways scrolling')
+      assert.equal(await roster.locator('td[data-label="Admission no."]').first().isVisible(), false, 'Admission numbers add no value to the phone roster')
+      assert.equal(await roster.locator('td[data-label="Status"]').first().isVisible(), false, 'Status badges should not crowd the phone roster')
+      assert.equal(await roster.locator('.teacher-roster-actions-cell').first().isVisible(), false, 'Secondary learner actions should not crowd the phone roster')
+      const rowGeometry = await roster.locator('tbody tr').first().evaluate(row => {
+        const rect = selector => row.querySelector(selector)?.getBoundingClientRect()
+        const name = rect('.roster-learner-link'), scope = rect('.teacher-roster-class-cell'), present = rect('.roster-attendance-action')
+        return { name, scope, present }
+      })
+      assert.ok(rowGeometry.name && rowGeometry.scope && rowGeometry.present, 'Name, class and stream, and attendance action must render together')
+      assert.ok(Math.max(rowGeometry.name.top, rowGeometry.scope.top, rowGeometry.present.top) - Math.min(rowGeometry.name.top, rowGeometry.scope.top, rowGeometry.present.top) < 14, 'Name, class and stream, and attendance action must stay on one compact row')
       const statusFilters = page.locator('.portal-actions[aria-label="Learner roster status filter"] > button')
       assert.equal(await statusFilters.count(), 2, 'Teachers should be able to switch active and disabled roster views')
       assert.ok(await statusFilters.evaluateAll(buttons => buttons.every(button => {

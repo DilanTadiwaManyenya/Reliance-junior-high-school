@@ -1894,8 +1894,7 @@ export default function StaffDashboard() {
                       <tr>
                         <th>Name</th>
                         <th>Admission no.</th>
-                        <th>Class</th>
-                        <th>Stream</th>
+                        {isTeacher ? <th>Class · Stream</th> : <><th>Class</th><th>Stream</th></>}
                         <th>Status</th>
                         {isTeacher && <th>Today's Attendance</th>}
                         {(isAdmin || isTeacher) && <th>Actions</th>}
@@ -1904,7 +1903,7 @@ export default function StaffDashboard() {
                     <tbody>
                       {visible.map((row) => (
                         <tr key={row.id} id={`learner-row-${row.id}`} className="dash-table-row">
-                          <td className="dash-td-name">
+                          <td className={`dash-td-name${isTeacher ? ' teacher-roster-name-cell' : ''}`}>
                             <span className="dash-learner-avatar">
                               {row.full_name?.[0] ?? "?"}
                             </span>
@@ -1931,26 +1930,15 @@ export default function StaffDashboard() {
                             )}
                           </td>
                           <td className="mono">{row.admission_number}</td>
-                          <td>
-                            {row.role === "teacher"
-                              ? row.teacher_class_assignments
-                                  ?.map((a) => a.class_level)
-                                  .join(", ") || "-"
-                              : row.class_level}
-                          </td>
-                          <td>
-                            {row.role === "teacher"
-                              ? row.teacher_class_assignments
-                                  ?.map((a) => a.class_stream)
-                                  .filter(Boolean)
-                                  .join(", ") || "-"
-                              : row.class_stream || "-"}
-                          </td>
+                          {isTeacher ? <td className="teacher-roster-class-cell" title={`${row.class_level || ''}${row.class_stream ? ` · ${row.class_stream}` : ''}`}>{row.class_level}{row.class_stream ? ` · ${row.class_stream}` : ''}</td> : <>
+                            <td>{row.role === "teacher" ? row.teacher_class_assignments?.map((a) => a.class_level).join(", ") || "-" : row.class_level}</td>
+                            <td>{row.role === "teacher" ? row.teacher_class_assignments?.map((a) => a.class_stream).filter(Boolean).join(", ") || "-" : row.class_stream || "-"}</td>
+                          </>}
                           <td>
                             <StatusPill status={row.status} />
                           </td>
                           {isTeacher && (
-                            <td>
+                            <td className={isTeacher ? 'teacher-roster-attendance-cell' : undefined}>
                               {row.status === "active" ? (
                                 <button
                                   type="button"
@@ -1987,7 +1975,7 @@ export default function StaffDashboard() {
                             </td>
                           )}
                           {(isAdmin || isTeacher) && (
-                            <td>
+                            <td className={isTeacher ? 'teacher-roster-actions-cell' : undefined}>
                               {isAdmin && row.status === 'active' && <Button
                                 variant="secondary"
                                 onClick={() => editStudent(row)}
