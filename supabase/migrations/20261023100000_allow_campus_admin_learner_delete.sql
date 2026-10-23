@@ -55,9 +55,18 @@ begin
     raise exception 'This learner has year rollover history. Keep the learner record so the decision remains attached.';
   end if;
 
-  -- Report contexts use ON DELETE RESTRICT. Remove snapshots only after all
-  -- protected finance and rollover checks pass. Existing audit triggers retain
-  -- the deletion event.
+  -- Explicitly remove reporting rows while their learner and report-period
+  -- context still exist. Reporting-period triggers need one of those records
+  -- to resolve campus and term. Deleting contexts first makes a cascading
+  -- delete lose that scope and falsely report a closed or missing period.
+  delete from public.academic_records where student_id = learner.id;
+  delete from public.junior_component_marks where student_id = learner.id;
+  delete from public.junior_developmental_ratings where student_id = learner.id;
+  delete from public.report_card_comments where student_id = learner.id;
+  delete from public.coursework_marks where student_id = learner.id;
+
+  -- Keep report contexts until guarded report rows have been removed; their FK
+  -- uses RESTRICT. Existing audit triggers retain the learner deletion event.
   delete from public.report_period_contexts where student_id = learner.id;
   delete from public.students where id = learner.id;
   if not found then raise exception 'Learner changed while deleting; refresh the roster and retry'; end if;
