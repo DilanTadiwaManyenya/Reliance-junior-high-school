@@ -1302,8 +1302,8 @@ export default function StaffDashboard() {
     await loadStudents();
   };
 
-  const deleteDisabledLearner = async (row) => {
-    if (!isMainAdmin || row.status !== 'inactive' || !window.confirm(`Permanently delete disabled learner ${row.full_name}? This removes their learner and academic records and cannot be undone. Financial transactions and year rollover history are protected.`)) return;
+  const deleteLearner = async (row) => {
+    if (!isAdmin || !window.confirm(`Permanently delete ${row.full_name}? This removes their learner and academic records and cannot be undone. Financial transactions, orders, and year rollover history prevent deletion.`)) return;
     const reason = window.prompt(`Enter the reason for permanently deleting ${row.full_name}:`);
     if (!reason || reason.trim().length < 5) return showError('Enter a deletion reason of at least five characters.');
     const { error: deleteError } = await supabase.rpc('manage_disabled_learner', { p_student: row.id, p_action: 'delete', p_reason: reason.trim() });
@@ -2289,7 +2289,7 @@ export default function StaffDashboard() {
                               </Button>}
                               {row.status !== 'inactive' && <Button variant="secondary" onClick={() => disableLearner(row)}>Disable learner</Button>}
                               {isAdmin && row.status === 'inactive' && <Button variant="secondary" onClick={() => activateDisabledLearner(row)}>Activate learner</Button>}
-                              {isMainAdmin && row.status === 'inactive' && <Button variant="secondary" onClick={() => deleteDisabledLearner(row)}>Delete disabled learner</Button>}
+                              {isAdmin && <Button variant="secondary" onClick={() => deleteLearner(row)}>Delete learner</Button>}
                               {row.record_disable_reason && <small>{row.record_disable_reason}</small>}
                               {isTeacher && row.status === 'inactive' && <small>Read only</small>}
                             </td>

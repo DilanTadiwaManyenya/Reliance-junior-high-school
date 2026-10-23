@@ -276,6 +276,7 @@ const supabase = {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
       const learner = db.students.find(row => row.id === payload.p_student)
       if (!learner) return Promise.resolve({ data: null, error: { message: 'Synthetic learner not found' } })
+      if (name === 'manage_disabled_learner' && payload.p_action === 'delete' && (role !== 'admin' || (campus !== 'all' && learner.campus !== campus))) return Promise.resolve({ data: null, error: { message: 'Campus administrator access is required to delete this learner' } })
       if (name === 'correct_assigned_learner') {
         if (payload.p_details?.disable_reason) {
           learner.status = 'inactive'

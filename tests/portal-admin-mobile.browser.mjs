@@ -83,7 +83,7 @@ await movedLearner.getByRole('button',{name:'Disable learner',exact:true}).click
 await learnerManagement.getByText('Alexandra Example Learner With A Longer Name',{exact:true}).waitFor()
 assert.match(await movedLearner.innerText(),/Disabled for review|inactive/i)
 await learnerManagement.evaluate(()=>{window.confirm=message=>(window.fixtureDeleteConfirmation=message,true);window.prompt=message=>(window.fixtureDeleteReasonPrompt=message,'Duplicate learner record entered in error.')})
-await movedLearner.getByRole('button',{name:'Delete disabled learner',exact:true}).click()
+await movedLearner.getByRole('button',{name:'Delete learner',exact:true}).click()
 await movedLearner.waitFor({state:'detached'})
 assert.match(await learnerManagement.evaluate(()=>window.fixtureDeleteConfirmation),/cannot be undone/)
 assert.match(await learnerManagement.evaluate(()=>window.fixtureDeleteReasonPrompt),/reason for permanently deleting/)
@@ -101,6 +101,21 @@ await campusLearnerAdmin.getByRole('heading',{name:'Edit learner',exact:true,lev
 assert.equal(await campusLearnerAdmin.getByLabel('Class level',{exact:true}).locator('option').filter({hasText:'Grade 1'}).count(),0,'Senior campus admins must not be able to move a learner into a Junior class')
 await campusLearnerAdmin.close()
 console.log('PASS campus admin learner edit: class choices stay within assigned campus')
+
+for(const width of [320,390]) {
+const campusLearnerDelete=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'senior',section:'roster'},width)
+await campusLearnerDelete.getByLabel('Search',{exact:true}).fill('Alexandra')
+const campusDeleteRow=campusLearnerDelete.locator('.mobile-record-table tbody tr').filter({hasText:'Alexandra Example Learner With A Longer Name'})
+await campusDeleteRow.getByRole('button',{name:'Delete learner',exact:true}).waitFor()
+await campusLearnerDelete.evaluate(()=>{window.confirm=message=>(window.fixtureDeleteConfirmation=message,true);window.prompt=message=>(window.fixtureDeleteReasonPrompt=message,'Wrong campus assignment corrected by campus admin.')})
+await campusDeleteRow.getByRole('button',{name:'Delete learner',exact:true}).click()
+await campusDeleteRow.waitFor({state:'detached'})
+assert.match(await campusLearnerDelete.evaluate(()=>window.fixtureDeleteConfirmation),/cannot be undone/)
+assert.equal(await campusLearnerDelete.evaluate(()=>window.fixtureWrites.some(row=>row.table==='rpc:manage_disabled_learner'&&row.payload.p_action==='delete'&&row.payload.p_reason==='Wrong campus assignment corrected by campus admin.')),true,'Campus admins must be able to delete their own active-campus learners with a reason')
+assert.deepEqual(campusLearnerDelete.portalErrors,[])
+await campusLearnerDelete.close()
+console.log(`PASS campus admin deletion at ${width}px: active learner delete button is available and updates the roster`)
+}
 
 const deactivatedDashboard=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'dashboard',deactivatedStaff:''},390)
 assert.equal(await deactivatedDashboard.locator('.dash-stat-card').filter({hasText:'Teaching Staff'}).locator('.dash-stat-value').innerText(),'1')
