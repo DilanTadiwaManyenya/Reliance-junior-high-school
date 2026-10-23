@@ -53,10 +53,15 @@ try {
  assert.equal(await principal.getByRole('button',{name:'Credentials',exact:true}).count(),0)
  await principal.close()
 
-const learnerManagement=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'roster',multiClassAllocations:''},390)
+for(const width of [320,390]) {
+const learnerManagement=await openPortal(runtime.browser,runtime.base,{role:'admin',section:'roster',multiClassAllocations:''},width)
 await learnerManagement.getByLabel('Search',{exact:true}).fill('Alexandra')
 await learnerManagement.locator('.mobile-record-table tbody tr').getByRole('button',{name:'Edit',exact:true}).click()
 await learnerManagement.getByRole('heading',{name:'Edit learner',exact:true,level:1}).waitFor()
+const editMetrics=await portalLayoutMetrics(learnerManagement)
+assert.ok(editMetrics.documentWidth<=width+1,`Learner edit must not cause horizontal scrolling at ${width}px`)
+assert.deepEqual(editMetrics.clipped,[],`Learner edit controls must fit the ${width}px viewport`)
+assert.ok(await learnerManagement.locator('form.portal-form select,form.portal-form input,form.portal-form button').evaluateAll(controls=>controls.every(control=>control.getBoundingClientRect().height>=43.99)),`Learner edit controls must remain easy to tap at ${width}px`)
 await learnerManagement.getByLabel('Class level',{exact:true}).selectOption('Form 2')
 await learnerManagement.getByLabel('Class stream',{exact:true}).selectOption('Green')
 await learnerManagement.getByRole('button',{name:'Save changes',exact:true}).click()
@@ -86,7 +91,8 @@ assert.equal(await learnerManagement.evaluate(() => window.fixtureWrites.some(ro
 assert.equal(await learnerManagement.evaluate(() => window.fixtureWrites.some(row=>row.table==='rpc:manage_disabled_learner'&&row.payload.p_action==='delete'&&row.payload.p_reason==='Duplicate learner record entered in error.')),true,'Permanent deletion must require and submit a reason')
 assert.deepEqual(learnerManagement.portalErrors,[])
 await learnerManagement.close()
-console.log('PASS learner administration: class and stream move persists, disable and reasoned deletion work')
+console.log(`PASS learner administration at ${width}px: class/stream UI updates, cross-campus move, disable and reasoned deletion`)
+}
 
 const campusLearnerAdmin=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'senior',section:'roster'},390)
 await campusLearnerAdmin.getByLabel('Search',{exact:true}).fill('Alexandra')
