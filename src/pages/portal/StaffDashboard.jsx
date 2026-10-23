@@ -864,6 +864,7 @@ export default function StaffDashboard() {
     classAssignments: [],
     classAllocationLevel: "",
     classAllocationStream: "",
+    editingClassAssignmentIndex: null,
     allocationTab: "classes",
     subjectAssignments: [],
     subjectName: "",
@@ -1418,6 +1419,7 @@ export default function StaffDashboard() {
       classAssignments: normalizeStaffClassAssignments(assignments),
       classAllocationLevel: "",
       classAllocationStream: "",
+      editingClassAssignmentIndex: null,
       allocationTab: "classes",
       subjectAssignments: [...new Map((row.teacher_class_subject_assignments || []).map((assignment) => { const normalized = { ...assignment, class_level: canonicalizeClassLevel(assignment.class_level) }; return [`${normalized.subject.toLowerCase()}::${normalized.class_level}::${normalized.class_stream || ""}`, normalized] })).values()],
       subjectName: "",
@@ -1428,7 +1430,7 @@ export default function StaffDashboard() {
   };
 
   const closeStaffEditor = () =>
-    setStaffEditor({ open: false, staff: null, fullName: "", legalFullName: "", workingTitle: "Mr", campus: "junior", classAssignments: [], classAllocationLevel: "", classAllocationStream: "", allocationTab: "classes", subjectAssignments: [], subjectName: "", subjectLevel: "", subjectStream: "", saving: false });
+    setStaffEditor({ open: false, staff: null, fullName: "", legalFullName: "", workingTitle: "Mr", campus: "junior", classAssignments: [], classAllocationLevel: "", classAllocationStream: "", editingClassAssignmentIndex: null, allocationTab: "classes", subjectAssignments: [], subjectName: "", subjectLevel: "", subjectStream: "", saving: false });
 
   const addSubjectAllocation = () => {
     const subject = staffEditor.subjectName.trim();
@@ -1488,8 +1490,18 @@ export default function StaffDashboard() {
       targetId: staffEditor.staff.id,
     });
     setNotice(data?.message || "Staff account updated.");
+    const updatedName = staffEditor.legalFullName ? workingNameFor(staffEditor.legalFullName, staffEditor.workingTitle) : staffEditor.fullName;
+    setStaff((current) => current.map((row) => row.id === staffEditor.staff.id ? {
+      ...row,
+      full_name: updatedName,
+      legal_full_name: staffEditor.legalFullName,
+      working_title: staffEditor.workingTitle,
+      campus: staffEditor.campus,
+      teacher_class_assignments: staffEditor.classAssignments,
+      teacher_class_subject_assignments: staffEditor.subjectAssignments,
+    } : row));
     closeStaffEditor();
-    loadStaff();
+    void loadStaff();
   };
 
   const changeStaffAccess = async (row, action) => {
@@ -1631,11 +1643,50 @@ export default function StaffDashboard() {
     const class_stream = staffEditor.campus === "senior" && staffEditor.classAllocationStream !== "__all__" ? staffEditor.classAllocationStream : "";
     if (!class_level) return showError("Choose a class before adding the class-teacher assignment.");
     if (staffEditor.campus === "senior" && !staffEditor.classAllocationStream) return showError("Choose a stream or explicitly choose the whole form.");
-    const conflict = staffClassAssignmentConflict(staffEditor.classAssignments, { class_level, class_stream });
+    const existingAssignments = staffEditor.classAssignments.filter((_, index) => index !== staffEditor.editingClassAssignmentIndex);
+    const conflict = staffClassAssignmentConflict(existingAssignments, { class_level, class_stream });
     if (conflict) return showError(conflict);
     setError("");
-    setStaffEditor((value) => ({ ...value, classAssignments: [...value.classAssignments, { class_level, class_stream }], classAllocationLevel: "", classAllocationStream: "" }));
+    setStaffEditor((value) => ({
+      ...value,
+      classAssignments: value.editingClassAssignmentIndex === null
+        ? [...value.classAssignments, { class_level, class_stream }]
+        : value.classAssignments.map((assignment, index) => index === value.editingClassAssignmentIndex ? { class_level, class_stream } : assignment),
+      classAllocationLevel: "",
+      classAllocationStream: "",
+      editingClassAssignmentIndex: null,
+    }));
   };
+  const editStaffClassAssignment = (index) => {
+    const assignment = staffEditor.classAssignments[index];
+    if (!assignment) return;
+    setStaffEditor((value) => ({
+      ...value,
+      classAllocationLevel: assignment.class_level,
+      classAllocationStream: assignment.class_stream || "__all__",
+      editingClassAssignmentIndex: index,
+    }));
+  };
+  const cancelStaffClassAssignmentEdit = () => setStaffEditor((value) => ({
+    ...value,
+    classAllocationLevel: "",
+    classAllocationStream: "",
+    editingClassAssignmentIndex: null,
+  }));
+  const removeStaffClassAssignment = (index) => setStaffEditor((value) => {
+    const editingRemovedAssignment = value.editingClassAssignmentIndex === index;
+    return {
+      ...value,
+      classAssignments: value.classAssignments.filter((_, position) => position !== index),
+      classAllocationLevel: editingRemovedAssignment ? "" : value.classAllocationLevel,
+      classAllocationStream: editingRemovedAssignment ? "" : value.classAllocationStream,
+      editingClassAssignmentIndex: editingRemovedAssignment
+        ? null
+        : value.editingClassAssignmentIndex !== null && value.editingClassAssignmentIndex > index
+          ? value.editingClassAssignmentIndex - 1
+          : value.editingClassAssignmentIndex,
+    };
+  });
 
   // Filter students based on active class selection (class_level & class_stream)
   const scopedStudents = useMemo(() => {
@@ -2724,6 +2775,7 @@ export default function StaffDashboard() {
                           classAssignments: [],
                           classAllocationLevel: "",
                           classAllocationStream: "",
+                          editingClassAssignmentIndex: null,
                           subjectAssignments: [],
                           subjectLevel: "",
                           subjectStream: "",
@@ -2749,9 +2801,12 @@ export default function StaffDashboard() {
                         <div className="portal-form" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", alignItems: "end" }}>
                           <label>Class<select value={staffEditor.classAllocationLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, classAllocationLevel: e.target.value, classAllocationStream: "" }))}><option value="">Choose class</option>{adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
                           {staffEditor.campus === "senior" ? <label>Stream scope<select value={staffEditor.classAllocationStream} disabled={!staffEditor.classAllocationLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, classAllocationStream: e.target.value }))}><option value="">Choose a stream scope</option><option value="__all__">Whole form · all streams</option>{streamsForAdminLevel(staffEditor.classAllocationLevel).map((stream) => <option key={stream} value={stream}>{stream}</option>)}</select></label> : <p className="muted" style={{ margin: 0 }}>Junior classes do not use streams.</p>}
-                          <Button type="button" variant="secondary" onClick={addEditorClassAssignment}>Add class</Button>
+                          <div className="portal-action-row">
+                            <Button type="button" variant="secondary" onClick={addEditorClassAssignment}>{staffEditor.editingClassAssignmentIndex === null ? "Add class" : "Update allocation"}</Button>
+                            {staffEditor.editingClassAssignmentIndex !== null && <Button type="button" variant="secondary" onClick={cancelStaffClassAssignmentEdit}>Cancel edit</Button>}
+                          </div>
                         </div>
-                        {staffEditor.classAssignments.length ? <div className="allocation-chip-list">{staffEditor.classAssignments.map((assignment, index) => <span className="allocation-chip" key={`${assignment.class_level}-${assignment.class_stream}-${index}`}>{staffClassAssignmentLabel(assignment)}<button type="button" aria-label={`Remove ${staffClassAssignmentLabel(assignment)}`} onClick={() => setStaffEditor((value) => ({ ...value, classAssignments: value.classAssignments.filter((_, position) => position !== index) }))}>×</button></span>)}</div> : <p className="muted">No class-teacher allocations are assigned.</p>}
+                        {staffEditor.classAssignments.length ? <div className="allocation-chip-list">{staffEditor.classAssignments.map((assignment, index) => <span className="allocation-chip" key={`${assignment.class_level}-${assignment.class_stream}-${index}`}><span>{staffClassAssignmentLabel(assignment)}</span><button className="allocation-chip-edit" type="button" aria-label={`Edit ${staffClassAssignmentLabel(assignment)}`} onClick={() => editStaffClassAssignment(index)}>Edit</button><button className="allocation-chip-remove" type="button" aria-label={`Remove ${staffClassAssignmentLabel(assignment)}`} onClick={() => removeStaffClassAssignment(index)}>Remove</button></span>)}</div> : <p className="muted">No class-teacher allocations are assigned.</p>}
                         </> : <>
                           <p className="muted" style={{ marginTop: 0 }}>
                             Choose the whole form or one stream for every subject allocation. Class-teacher responsibility remains optional and is controlled by the Classes tab.

@@ -58,6 +58,7 @@ const db = {
   financial_events: Array.from({ length: 51 }, (_, index) => ({ id: `financial-${index}`, module: 'pos', action: index % 2 ? 'sale_recorded' : 'sale_reversed', record_id: `sale-${index}`, campus: 'senior', currency: 'USD', actor_name: 'Example Main Admin', actor_role: 'admin', created_at: today, reason: index % 2 ? null : 'Incorrect test entry', details: { stock_changes: [{ size: 'M', before: 4, after: 5 }] } })),
   school_record_changes: Array.from({ length: 51 }, (_, index) => ({ id: `change-${index}`, created_at: new Date(Date.now() - index * 60000).toISOString(), source_table: index % 3 === 0 ? 'academic_records' : index % 3 === 1 ? 'students' : 'attendance', operation: 'UPDATE', actor_name: 'Example Teacher With A Longer Display Name', actor_role: 'teacher', learner_name: index === 50 ? 'Brian Example' : 'Alexandra Example Learner With A Longer Name', campus: campus === 'all' ? 'senior' : campus, context: { subject: 'Combined Science', term: '3', year: 2026 }, old_values: { score: 60 }, new_values: { score: 75 }, changed_fields: ['score'] })),
 }
+if (params.has('multiClassAllocations')) db.school_classes.push({ id: 'class-3', class_level: 'Form 2', class_stream: 'Blue', campus: 'senior', active: true, capacity: 50 })
 if (params.has('printFixture')) {
   const base = { student_id: 'learner-0', term: '3', year: 2026, created_at: today }
   const blueprint = getJuniorReportBook(learners[0].class_level)
@@ -103,7 +104,7 @@ if(params.has('academicLarge')) db.academic_records=Array.from({length:1007},(_,
 if(params.has('academicTeacher')) db.academic_records=[{id:'own-mark',student_id:'learner-0',year:2026,term:'3',subject:'Combined Science',score:0,term_mark:0,exam_mark:null,grade:'U'}, {id:'other-subject',student_id:'learner-0',year:2026,term:'3',subject:'Mathematics',score:90},{id:'other-campus',student_id:'learner-1',year:2026,term:'3',subject:'Combined Science',score:99}];
 if(params.has('academicTeacher')) db.grade_bands=['primary','olevel','alevel'].map(band_group=>({band_group,minimum_score:0,maximum_score:100,grade:'A',points:5,description:'Fixture grade'}));
 if(params.has('legacyAcademicTerm')) { const row=db.academic_records.find(item=>item.student_id==='learner-0'&&item.subject==='Combined Science'); if(row)row.term='Term 3' }
-window.fixtureActiveRole = role; window.fixtureWrites = []
+window.fixtureActiveRole = role; window.fixtureWrites = []; window.fixtureFunctionCalls = []
 window.fixtureRegisterError=params.has('registerError')
 window.fixtureRegisterRequests=[]
 window.fixtureReportError = params.has('reportError')
@@ -267,7 +268,19 @@ const supabase = {
     return query(`rpc:${name}`)
   },
   channel() { return { on() { return this }, subscribe() { return this } } }, removeChannel() {},
-  functions: { invoke: async () => ({ data: { success: true }, error: null }) },
+  functions: { invoke: async (name, options = {}) => {
+    const body = options.body || {}
+    window.fixtureFunctionCalls.push({ name, body })
+    if (name === 'manage-staff-account' && body.action === 'update') {
+      const row = db.profiles.find(profile => profile.id === body.user_id)
+      if (row) {
+        Object.assign(row, { full_name: body.full_name, legal_full_name: body.legal_full_name, working_title: body.working_title, campus: body.campus })
+        row.teacher_class_assignments = body.class_assignments || []
+        row.teacher_class_subject_assignments = (body.class_subject_assignments || []).map((assignment, index) => ({ ...assignment, id: `fixture-subject-${index}`, teacher_id: row.id, campus: body.campus }))
+      }
+    }
+    return { data: { success: true }, error: null }
+  } },
   auth: { mfa: fixtureMfa, signOut: async () => ({ error: null }), signInWithPassword: async () => ({ data: { user: { id: staffId } }, error: null }), resetPasswordForEmail: async () => ({ error: null }), updateUser: async () => ({ error: null }) },
 }
 const paths = { admin: '/portal/staff', principal: '/portal/staff', accountant: '/portal/accountant', teacher: '/portal/teacher', parent: '/portal/dashboard' }

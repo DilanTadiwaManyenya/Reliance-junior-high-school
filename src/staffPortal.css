@@ -4491,17 +4491,25 @@
   font: 700 0.78rem var(--font-ui, inherit);
 }
 .allocation-chip button {
-  width: 19px;
-  height: 19px;
-  padding: 0;
+  width: auto;
+  min-width: 28px;
+  min-height: 36px;
+  padding: 5px 9px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 7px;
   background: #b63131;
   color: #fff;
   cursor: pointer;
-  font: 700 1rem/1 sans-serif;
+  font: 700 0.75rem/1 var(--font-ui, sans-serif);
+  white-space: nowrap;
 }
 .allocation-chip button:hover { background: #8f2020; }
+.allocation-chip .allocation-chip-edit {
+  border: 1px solid #cbd8e9;
+  background: #fff;
+  color: #1b2a56;
+}
+.allocation-chip .allocation-chip-edit:hover { background: #edf3fc; }
 
 .teacher-workspace-switch {
   display: inline-flex;
