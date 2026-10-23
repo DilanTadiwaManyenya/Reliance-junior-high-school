@@ -51,11 +51,25 @@ Deno.serve(async request => {
     const phone = normalizePhone(input.phone ?? input.phone_number)
     const password = String(input.password ?? '')
     const role = String(input.role ?? '')
-    const classLevel = String(input.classLevel ?? '').trim()
-    const classStream = String(input.classStream ?? '').trim()
+    const legacyClassLevel = String(input.classLevel ?? '').trim()
+    const rawLegacyClassStream = String(input.classStream ?? '').trim()
+    const legacyClassStream = rawLegacyClassStream === '__all__' ? '' : rawLegacyClassStream
     const campus = String(input.campus ?? '').trim()
-    const classAssigned = role === 'teacher' ? `${classLevel} ${classStream}`.trim() : null
-    const classAssignments = Array.isArray(input.classAssignments) && input.classAssignments.length ? input.classAssignments.map(String).filter(Boolean) : (classLevel ? [classLevel] : [])
+    const seenClassAssignments = new Set<string>()
+    const classAssignments = Array.isArray(input.classAssignments)
+      ? input.classAssignments.flatMap((entry: unknown) => {
+        const assignment = typeof entry === 'string' ? { class_level: entry, class_stream: legacyClassStream } : entry as Record<string, unknown>
+        const class_level = String(assignment?.class_level ?? '').trim()
+        const class_stream = String(assignment?.class_stream ?? '').trim()
+        const key = `${class_level.toLowerCase()}|${class_stream.toLowerCase()}`
+        if (!class_level || seenClassAssignments.has(key)) return []
+        seenClassAssignments.add(key)
+        return [{ class_level, class_stream }]
+      })
+      : (legacyClassLevel ? [{ class_level: legacyClassLevel, class_stream: legacyClassStream }] : [])
+    const classLevel = classAssignments[0]?.class_level ?? (Array.isArray(input.classAssignments) ? '' : legacyClassLevel)
+    const classStream = classAssignments[0]?.class_stream ?? (Array.isArray(input.classAssignments) ? '' : legacyClassStream)
+    const classAssigned = role === 'teacher' ? classAssignments.map(assignment => `${assignment.class_level}${assignment.class_stream ? ` ${assignment.class_stream}` : ''}`).join(', ') || null : null
     const subjectAssignments = Array.isArray(input.subjectAssignments) ? [...new Set(input.subjectAssignments.map(String).map(value => value.trim()).filter(Boolean))] : []
 
     if (legalFullName.split(/\s+/).filter(Boolean).length < 2) throw new Error('Enter the staff member’s full legal name.')
@@ -69,8 +83,18 @@ Deno.serve(async request => {
       throw new Error('Campus Admins can create only teachers or accountants in their own campus.')
     }
     if (campus === 'junior' && subjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')
-    if (role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) throw new Error('Each selected teacher class must belong to the selected campus.')
-    if (role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ subject, class_level, class_stream: '' }))))
+    if (role === 'teacher' && classAssignments.some((assignment) => (campus === 'junior') !== /^(ECD|Grade)/.test(assignment.class_level))) throw new Error('Each selected teacher class must belong to the selected campus.')
+    if (role === 'teacher' && campus === 'junior' && classAssignments.some((assignment) => assignment.class_stream)) throw new Error('Junior class allocations do not use streams.')
+    const assignmentsByClass = new Map<string, Set<string>>()
+    for (const assignment of classAssignments) {
+      const level = assignment.class_level.toLowerCase()
+      const stream = assignment.class_stream.toLowerCase()
+      const streams = assignmentsByClass.get(level) ?? new Set<string>()
+      if (streams.has('') || !stream && streams.size || streams.has(stream)) throw new Error(`Choose either one whole-form allocation or distinct streams for ${assignment.class_level}.`)
+      streams.add(stream)
+      assignmentsByClass.set(level, streams)
+    }
+    if (role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, subjectAssignments.flatMap(subject => classAssignments.map(assignment => ({ subject, class_level: assignment.class_level, class_stream: assignment.class_stream }))))
 
     const { data: existing, error: duplicateError } = await admin.from('profiles').select('id').eq('phone', phone).maybeSingle()
     if (duplicateError) throw duplicateError
@@ -90,13 +114,13 @@ Deno.serve(async request => {
     if (account.error) throw account.error
     if (role === 'teacher') {
       if (classAssignments.length) {
-        const assignment = await admin.from('teacher_class_assignments').insert(classAssignments.map((level: string) => ({ teacher_id: createdUserId, class_level: level, class_stream: classStream, campus })))
+        const assignment = await admin.from('teacher_class_assignments').insert(classAssignments.map((assignment) => ({ teacher_id: createdUserId, class_level: assignment.class_level, class_stream: assignment.class_stream, campus })))
         if (assignment.error) throw assignment.error
       }
       if (subjectAssignments.length) {
-        const classSubject = await admin.from('teacher_class_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(class_level => ({ teacher_id: createdUserId, class_level, class_stream: '', subject, campus }))))
+        const classSubject = await admin.from('teacher_class_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(assignment => ({ teacher_id: createdUserId, class_level: assignment.class_level, class_stream: assignment.class_stream, subject, campus }))))
         if (classSubject.error) throw classSubject.error
-        const legacySubjects = await admin.from('teacher_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(form_level => ({ teacher_id: createdUserId, subject, form_level }))))
+        const legacySubjects = await admin.from('teacher_subject_assignments').insert(subjectAssignments.flatMap(subject => classAssignments.map(assignment => ({ teacher_id: createdUserId, subject, form_level: assignment.class_level }))))
         if (legacySubjects.error) throw legacySubjects.error
       }
     }

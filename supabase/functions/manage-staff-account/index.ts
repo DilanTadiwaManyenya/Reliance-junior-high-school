@@ -90,10 +90,19 @@ Deno.serve(async (request) => {
     const workingTitle = String(input.working_title ?? '').trim()
     const fullName = legalFullName ? workingName(legalFullName, workingTitle) : String(input.full_name ?? '').trim()
     const campus = String(input.campus ?? '').trim()
+    const legacyClassStream = String(input.class_stream ?? '').trim()
+    const seenClassAssignments = new Set<string>()
     const classAssignments = Array.isArray(input.class_assignments)
-      ? [...new Set(input.class_assignments.map(String).map((value: string) => value.trim()).filter(Boolean))]
+      ? input.class_assignments.flatMap((entry: unknown) => {
+        const assignment = typeof entry === 'string' ? { class_level: entry, class_stream: legacyClassStream } : entry as Record<string, unknown>
+        const class_level = String(assignment?.class_level ?? '').trim()
+        const class_stream = String(assignment?.class_stream ?? '').trim()
+        const key = `${class_level.toLowerCase()}|${class_stream.toLowerCase()}`
+        if (!class_level || seenClassAssignments.has(key)) return []
+        seenClassAssignments.add(key)
+        return [{ class_level, class_stream }]
+      })
       : []
-    const classStream = String(input.class_stream ?? '').trim()
     const classSubjectAssignments = Array.isArray(input.class_subject_assignments)
       ? input.class_subject_assignments.map((entry: Record<string, unknown>) => ({
         subject: String(entry?.subject ?? '').trim(),
@@ -107,8 +116,20 @@ Deno.serve(async (request) => {
     if (!['junior', 'senior'].includes(campus)) throw new Error('Choose Junior or Senior campus.')
     if (!isMainAdmin && campus !== caller.campus) throw new Error('Campus Admins cannot move staff to another campus.')
     if (campus === 'junior' && classSubjectAssignments.length) throw new Error('Junior School uses class-based teaching and does not accept subject allocations.')
-    if (target.role === 'teacher' && classAssignments.some((level: string) => (campus === 'junior') !== /^(ECD|Grade)/.test(level))) {
+    if (target.role === 'teacher' && classAssignments.some((assignment) => (campus === 'junior') !== /^(ECD|Grade)/.test(assignment.class_level))) {
       throw new Error('Each selected class must belong to the selected campus.')
+    }
+    if (target.role === 'teacher' && campus === 'junior' && classAssignments.some((assignment) => assignment.class_stream)) {
+      throw new Error('Junior class allocations do not use streams.')
+    }
+    const assignmentsByClass = new Map<string, Set<string>>()
+    for (const assignment of classAssignments) {
+      const level = assignment.class_level.toLowerCase()
+      const stream = assignment.class_stream.toLowerCase()
+      const streams = assignmentsByClass.get(level) ?? new Set<string>()
+      if (streams.has('') || !stream && streams.size || streams.has(stream)) throw new Error(`Choose either one whole-form allocation or distinct streams for ${assignment.class_level}.`)
+      streams.add(stream)
+      assignmentsByClass.set(level, streams)
     }
     if (target.role === 'teacher' && classSubjectAssignments.some((assignment) =>
       !assignment.subject
@@ -125,7 +146,8 @@ Deno.serve(async (request) => {
     }
     if (target.role === 'teacher') await ensureSubjectSlotsAreAvailable(admin, campus, classSubjectAssignments, userId)
 
-    const primaryClass = classAssignments[0] ?? null
+    const primaryAssignment = classAssignments[0]
+    const primaryClass = primaryAssignment?.class_level ?? null
     const { error: profileError } = await admin
       .from('profiles')
       .update({
@@ -134,14 +156,14 @@ Deno.serve(async (request) => {
         working_title: legalFullName ? workingTitle : null,
         campus,
         class_level: target.role === 'teacher' ? primaryClass : null,
-        class_stream: target.role === 'teacher' ? (classStream || null) : null,
+        class_stream: target.role === 'teacher' ? (primaryAssignment?.class_stream || null) : null,
       })
       .eq('id', userId)
     if (profileError) throw profileError
 
     const { error: accountError } = await admin
       .from('staff_accounts')
-      .update({ name: fullName, campus, class_assigned: target.role === 'teacher' ? `${primaryClass ?? ''} ${classStream}`.trim() || null : null })
+      .update({ name: fullName, campus, class_assigned: target.role === 'teacher' ? classAssignments.map((assignment) => `${assignment.class_level}${assignment.class_stream ? ` ${assignment.class_stream}` : ''}`).join(', ') || null : null })
       .eq('user_id', userId)
     if (accountError) throw accountError
 
@@ -154,11 +176,11 @@ Deno.serve(async (request) => {
       if (classAssignments.length) {
         const { error: assignmentsError } = await admin
           .from('teacher_class_assignments')
-          .insert(classAssignments.map((class_level: string) => ({
+          .insert(classAssignments.map((assignment) => ({
             teacher_id: userId,
-            class_level,
+            class_level: assignment.class_level,
             // The assignment table's legacy column is NOT NULL; Junior uses an empty stream.
-            class_stream: classStream,
+            class_stream: assignment.class_stream,
             campus,
           })))
         if (assignmentsError) throw assignmentsError
