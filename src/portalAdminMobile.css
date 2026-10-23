@@ -1,3 +1,9 @@
+/* Keep admin learner status and row actions easy to scan at every width. */
+.staff-shell .learner-status-cell { white-space: nowrap; }
+.staff-shell .learner-status-cell .roster-status-pill { max-width: 100%; white-space: nowrap; word-break: normal; }
+.staff-shell .learner-roster-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.staff-shell .learner-roster-actions > button { flex: 0 0 auto; min-height: 44px; white-space: nowrap; }
+.staff-shell .learner-disable-reason { display: block; margin-top: 6px; color: #64748b; line-height: 1.35; overflow-wrap: anywhere; }
 /* Stage 3: readable registers keep all record fields and existing actions. */
 @media screen and (max-width: 767px) {
   .staff-shell[data-role="teacher"][data-section="roster"] .portal-actions[aria-label="Learner roster status filter"] {
@@ -33,6 +39,9 @@
   .staff-shell .mobile-record-table .selection-column input { width: 24px; height: 24px; }
   .staff-shell .mobile-record-table td > * { min-width: 0; max-width: 100%; }
   .staff-shell .mobile-record-table .roster-learner-link { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+  .staff-shell .mobile-record-table .learner-roster-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; width: 100%; }
+  .staff-shell .mobile-record-table .learner-roster-actions > button { width: 100%; white-space: normal; }
+  .staff-shell .mobile-record-table .learner-roster-actions-cell { grid-template-columns: minmax(72px, .7fr) minmax(0, 1.3fr); }
   .staff-shell .teacher-roster-table tbody { display: grid; gap: 0; }
   .staff-shell .teacher-roster-table tbody tr {
     display: grid;

@@ -2239,7 +2239,7 @@ export default function StaffDashboard() {
                             <td>{row.role === "teacher" ? row.teacher_class_assignments?.map((a) => a.class_level).join(", ") || "-" : row.class_level}</td>
                             <td>{row.role === "teacher" ? row.teacher_class_assignments?.map((a) => a.class_stream).filter(Boolean).join(", ") || "-" : row.class_stream || "-"}</td>
                           </>}
-                          <td>
+                          <td className="learner-status-cell">
                             <StatusPill status={row.status} />
                           </td>
                           {isTeacher && (
@@ -2280,17 +2280,14 @@ export default function StaffDashboard() {
                             </td>
                           )}
                           {(isAdmin || isTeacher) && (
-                            <td className={isTeacher ? 'teacher-roster-actions-cell' : undefined}>
-                              {isAdmin && <Button
-                                variant="secondary"
-                                onClick={() => editStudent(row)}
-                              >
-                                Edit
-                              </Button>}
-                              {row.status !== 'inactive' && <Button variant="secondary" onClick={() => disableLearner(row)}>Disable learner</Button>}
-                              {isAdmin && row.status === 'inactive' && <Button variant="secondary" onClick={() => activateDisabledLearner(row)}>Activate learner</Button>}
-                              {isAdmin && <Button variant="secondary" onClick={() => deleteLearner(row)}>Delete learner</Button>}
-                              {row.record_disable_reason && <small>{row.record_disable_reason}</small>}
+                            <td className={isTeacher ? 'teacher-roster-actions-cell' : 'learner-roster-actions-cell'}>
+                              {isAdmin ? <div className="learner-roster-actions">
+                                <Button variant="secondary" onClick={() => editStudent(row)}>Edit</Button>
+                                {row.status !== 'inactive' && <Button variant="secondary" onClick={() => disableLearner(row)}>Disable learner</Button>}
+                                {row.status === 'inactive' && <Button variant="secondary" onClick={() => activateDisabledLearner(row)}>Activate learner</Button>}
+                                <Button variant="secondary" onClick={() => deleteLearner(row)}>Delete learner</Button>
+                              </div> : row.status !== 'inactive' && <Button variant="secondary" onClick={() => disableLearner(row)}>Disable learner</Button>}
+                              {row.record_disable_reason && <small className="learner-disable-reason">{row.record_disable_reason}</small>}
                               {isTeacher && row.status === 'inactive' && <small>Read only</small>}
                             </td>
                           )}
