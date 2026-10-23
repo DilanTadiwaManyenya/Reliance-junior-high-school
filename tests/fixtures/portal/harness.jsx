@@ -58,7 +58,7 @@ const db = {
   financial_events: Array.from({ length: 51 }, (_, index) => ({ id: `financial-${index}`, module: 'pos', action: index % 2 ? 'sale_recorded' : 'sale_reversed', record_id: `sale-${index}`, campus: 'senior', currency: 'USD', actor_name: 'Example Main Admin', actor_role: 'admin', created_at: today, reason: index % 2 ? null : 'Incorrect test entry', details: { stock_changes: [{ size: 'M', before: 4, after: 5 }] } })),
   school_record_changes: Array.from({ length: 51 }, (_, index) => ({ id: `change-${index}`, created_at: new Date(Date.now() - index * 60000).toISOString(), source_table: index % 3 === 0 ? 'academic_records' : index % 3 === 1 ? 'students' : 'attendance', operation: 'UPDATE', actor_name: 'Example Teacher With A Longer Display Name', actor_role: 'teacher', learner_name: index === 50 ? 'Brian Example' : 'Alexandra Example Learner With A Longer Name', campus: campus === 'all' ? 'senior' : campus, context: { subject: 'Combined Science', term: '3', year: 2026 }, old_values: { score: 60 }, new_values: { score: 75 }, changed_fields: ['score'] })),
 }
-if (params.has('multiClassAllocations')) db.school_classes.push({ id: 'class-3', class_level: 'Form 2', class_stream: 'Blue', campus: 'senior', active: true, capacity: 50 })
+if (params.has('multiClassAllocations')) db.school_classes.push({ id: 'class-3', class_level: 'Form 2', class_stream: 'Blue', campus: 'senior', active: true, capacity: 50 }, { id: 'class-4', class_level: 'Form 2', class_stream: 'Green', campus: 'senior', active: true, capacity: 50 })
 if (params.has('printFixture')) {
   const base = { student_id: 'learner-0', term: '3', year: 2026, created_at: today }
   const blueprint = getJuniorReportBook(learners[0].class_level)
@@ -144,6 +144,15 @@ function query(table) {
           if (existing) Object.assign(existing, payload)
           else { const created = { id: `created-${window.fixtureWrites.length}`, created_at: today, ...payload }; db[table].push(created); data = [created] }
           if (existing) data = [existing]
+        } else if (table === 'students') {
+          const matching = (db.students || []).filter(row => filters.every(filter => filter(row)))
+          if (operation === 'delete') {
+            for (const row of matching) db.students.splice(db.students.indexOf(row), 1)
+            data = matching
+          } else if (operation === 'update') {
+            matching.forEach(row => Object.assign(row, payload))
+            data = matching
+          } else data = [{ id: 'created', ...payload }]
         } else data = [{ id: 'created', ...payload }]
       }
       return Promise.resolve({ data: single ? data[0] || null : data, error: null, count: data.length }).then(resolve, reject)
@@ -262,6 +271,23 @@ const supabase = {
     if (name === 'parent_shop_student_campus') {
       const link = db.parent_student.find(row => row.student_id === payload.requested_student_id && row.verified_at)
       return Promise.resolve({ data: link?.student?.status === 'active' ? link.student.campus : null, error: null })
+    }
+    if (name === 'correct_assigned_learner' || name === 'manage_disabled_learner') {
+      window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
+      const learner = db.students.find(row => row.id === payload.p_student)
+      if (!learner) return Promise.resolve({ data: null, error: { message: 'Synthetic learner not found' } })
+      if (name === 'correct_assigned_learner') {
+        if (payload.p_details?.disable_reason) {
+          learner.status = 'inactive'
+          learner.record_disable_reason = payload.p_details.disable_reason
+        }
+      } else if (payload.p_action === 'activate') {
+        learner.status = 'active'
+        learner.record_disable_reason = null
+      } else if (payload.p_action === 'delete') {
+        db.students.splice(db.students.indexOf(learner), 1)
+      }
+      return Promise.resolve({ data: learner, error: null })
     }
     if (name === 'coursework_learners') return Promise.resolve({ data: learners, error: null })
     if (name === 'preview_admission_number') return Promise.resolve({ data: 'TEST-2026-004', error: null })

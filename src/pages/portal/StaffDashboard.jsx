@@ -1128,7 +1128,8 @@ export default function StaffDashboard() {
 
     const row = {
       ...student,
-      ...(activeRole === 'teacher' ? { campus: profile.campus } : {}),
+      ...(isAdmin ? { campus: adminCampusScope || (isJuniorLevel(student.class_level) ? 'junior' : 'senior') } :
+        activeRole === 'teacher' ? { campus: profile.campus } : {}),
       // New admission numbers are assigned by the database trigger. It holds a
       // class-level lock, so simultaneous enrolments cannot receive the same ID.
       ...(editingId ? { admission_number: student.admission_number } : {}),
@@ -1606,12 +1607,14 @@ export default function StaffDashboard() {
       ? `${activeClassScopeLabel} · Class Work`
       : "";
   const adminClassLevels = [
-    ...new Set(schoolClasses.map((row) => canonicalizeClassLevel(row.class_level))),
+    ...new Set(schoolClasses
+      .filter((row) => !adminCampusScope || row.campus === adminCampusScope)
+      .map((row) => canonicalizeClassLevel(row.class_level))),
   ];
   const streamsForAdminLevel = (level) => {
     const normalizedLevel = canonicalizeClassLevel(level).toLowerCase();
     const recordedStreams = schoolClasses
-      .filter((row) => canonicalizeClassLevel(row.class_level).toLowerCase() === normalizedLevel)
+      .filter((row) => (!adminCampusScope || row.campus === adminCampusScope) && canonicalizeClassLevel(row.class_level).toLowerCase() === normalizedLevel)
       .map((row) => row.class_stream)
       .filter(Boolean);
     const establishedStreams = /^form [1-4]$/.test(normalizedLevel)
