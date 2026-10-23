@@ -1738,11 +1738,11 @@ export default function StaffDashboard() {
     ? scopedStudents.filter((row) => row.status !== 'inactive')
     : scopedStudents, [scopedStudents, isTeacher]);
 
-  const rosterStudents = isTeacher && showDisabledLearners
-    ? scopedStudents.filter((row) => row.status === 'inactive')
-    : isTeacher ? filteredStudents : filteredStudents;
+  const rosterStudents = (isTeacher || isAdmin)
+    ? scopedStudents.filter((row) => row.status === (showDisabledLearners ? 'inactive' : 'active'))
+    : filteredStudents;
 
-  const visible = (section === 'roster' && isTeacher ? rosterStudents : filteredStudents).filter((row) =>
+  const visible = (section === 'roster' && (isTeacher || isAdmin) ? rosterStudents : filteredStudents).filter((row) =>
     `${row.full_name} ${row.admission_number}`
       .toLowerCase()
       .includes(query.toLowerCase()),
@@ -2171,13 +2171,13 @@ export default function StaffDashboard() {
                 {isCampusAdmin && <span className="portal-scope-label">Campus locked to {adminCampusScope === "junior" ? "Junior School" : "Senior School"}</span>}
                 {isTeacher && activeClassScopeLabel && <span className="portal-scope-label">Class Work · {activeClassScopeLabel}</span>}
               </div>
-              {isTeacher && (
+              {(isTeacher || isAdmin) && (
                 <div className="portal-actions" aria-label="Learner roster status filter">
-                  <Button type="button" variant={showDisabledLearners ? "secondary" : "primary"} onClick={() => setShowDisabledLearners(false)}>
-                    Active learners ({filteredStudents.length})
+                  <Button type="button" variant={showDisabledLearners ? "secondary" : "primary"} aria-pressed={!showDisabledLearners} onClick={() => setShowDisabledLearners(false)}>
+                    Active learners ({scopedStudents.filter((row) => row.status === 'active').length})
                   </Button>
-                  <Button type="button" variant={showDisabledLearners ? "primary" : "secondary"} onClick={() => setShowDisabledLearners(true)}>
-                    Disabled · read only ({scopedStudents.filter((row) => row.status === 'inactive').length})
+                  <Button type="button" variant={showDisabledLearners ? "primary" : "secondary"} aria-pressed={showDisabledLearners} onClick={() => setShowDisabledLearners(true)}>
+                    {isAdmin ? 'Disabled learners' : 'Disabled · read only'} ({scopedStudents.filter((row) => row.status === 'inactive').length})
                   </Button>
                 </div>
               )}
@@ -2281,7 +2281,7 @@ export default function StaffDashboard() {
                           )}
                           {(isAdmin || isTeacher) && (
                             <td className={isTeacher ? 'teacher-roster-actions-cell' : undefined}>
-                              {isAdmin && row.status === 'active' && <Button
+                              {isAdmin && <Button
                                 variant="secondary"
                                 onClick={() => editStudent(row)}
                               >
