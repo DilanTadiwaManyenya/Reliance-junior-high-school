@@ -25,8 +25,18 @@ export default function PortalLogin({ staff = false }) {
     // AuthProvider loads the full profile once from the auth event. Login only
     // needs this small role query to route; starting a second full profile load
     // here made sign-in slower on mobile connections.
-    const { destination, error: profileError, profile } = await resolvePortalDestination(supabase, data.user.id)
-    if (profileError || !destination) { await supabase.auth.signOut(); setSubmitting(false); return setError(connectionError(profileError) ? 'We could not connect to the portal. Check your internet connection and try again.' : profileError ? 'We could not load your portal access. Please contact the school office.' : 'This account does not have a recognised portal role.') }
+    const { destination, error: profileError, profile, portalMismatch } = await resolvePortalDestination(supabase, data.user.id, null, staff ? 'staff' : 'parent')
+    if (profileError || !destination) {
+      await supabase.auth.signOut()
+      setSubmitting(false)
+      return setError(connectionError(profileError)
+        ? 'We could not connect to the portal. Check your internet connection and try again.'
+        : profileError
+          ? 'We could not load your portal access. Please contact the school office.'
+          : portalMismatch
+            ? `This account is not assigned to the ${staff ? 'Staff' : 'Parent'} portal. Please use the ${staff ? 'Parent' : 'Staff'} sign-in option.`
+            : 'This account does not have a recognised portal role.')
+    }
     logActivity(supabase, data.user, profile, { actionType: 'login', description: 'Signed in to the portal' })
     navigate(destination, { replace: true })
     } catch (requestError) {
