@@ -35,6 +35,7 @@ import AccountantLearnerProfiles from "../../components/portal/AccountantLearner
 import ParentAccountSupport from "../../components/portal/ParentAccountSupport";
 import { logActivity } from "../../lib/logActivity";
 import BulkLearnerExport from "../../components/portal/BulkLearnerExport";
+import BulkLearnerActions from "../../components/portal/BulkLearnerActions";
 import ReportTermSettings from "../../components/portal/ReportTermSettings";
 import GradeBands from "../../components/portal/GradeBands";
 import ProgressReports from "../../components/portal/ProgressReports";
@@ -2181,6 +2182,7 @@ export default function StaffDashboard() {
                   </Button>
                 </div>
               )}
+              {isMainAdmin && <BulkLearnerActions key={`${activeAdminCampusScope}:${activeClassFilter?.level || ""}:${activeClassFilter?.stream || ""}:${showDisabledLearners}:${query}`} learners={visible} onComplete={loadStudents} />}
               {isTeacher && showDisabledLearners && <p className="muted" role="status">Disabled learners are excluded from class totals and cannot be edited from the teacher portal.</p>}
               {isTeacher && savedLearnerConfirmation && (
                 <PortalNotice tone={savedLearnerConfirmation.error ? 'error' : 'success'} role="status">
