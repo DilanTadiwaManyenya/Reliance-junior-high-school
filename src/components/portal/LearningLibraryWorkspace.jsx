@@ -4,14 +4,16 @@ import Card from '../ui/Card'
 import PortalNotice from './PortalNotice'
 import { useCourseworkDraftGuard } from '../../hooks/useCourseworkDraftGuard'
 import { changeLearningState, LEARNING_FILE_ACCEPT, learningDownloadLink, learningFileSize, saveLearningDetails, uploadLearningFile, validateLearningFile } from '../../lib/learningLibrary'
+import { clearLearningLibraryDraft, learningLibraryDraftKey, loadLearningLibraryDraft, readLearningLibraryDraftMetadata, saveLearningLibraryDraft } from '../../lib/learningLibraryDraft'
 import './learningLibrary.css'
 
 const blank = () => ({ id: crypto.randomUUID(), title: '', description: '', academic_year: '', term: '' })
 const emptyForm = form => !form.title && !form.description && !form.academic_year && !form.term
 const PAGE_SIZE = 20
 export default function LearningLibraryWorkspace({ supabase, teacherId, scope, subjects = [], onSubjectChange, onBack }) {
-  const [form, setForm] = useState(blank)
-  const [saved, setSaved] = useState(null)
+  const draftKey = learningLibraryDraftKey(teacherId, scope)
+  const [form, setForm] = useState(() => readLearningLibraryDraftMetadata(draftKey)?.form || blank())
+  const [saved, setSaved] = useState(() => readLearningLibraryDraftMetadata(draftKey)?.saved || null)
   const [file, setFile] = useState(null)
   const [baseline, setBaseline] = useState(null)
   const [busy, setBusy] = useState('')
@@ -27,9 +29,22 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
   const formRef = useRef(null)
   const errorRef = useRef(null)
   const busyRef = useRef(false)
+  const draftTouchedRef = useRef(false)
   const effectiveForm = { ...form, academic_year: form.academic_year || period.data?.academic_year || '', term: form.term || period.data?.term || '' }
   const dirty = Boolean(file) || (baseline ? JSON.stringify(form) !== baseline : !emptyForm(form))
   useCourseworkDraftGuard(dirty, Boolean(busy), 'You have unsaved library notes. Leave this view and discard those changes?')
+  useEffect(() => {
+    let active = true
+    loadLearningLibraryDraft(draftKey).then(draft => {
+      if (!active) return
+      if (!draftTouchedRef.current && draft?.form) {
+        setForm(draft.form)
+        setSaved(draft.saved || null)
+        setFile(draft.file || null)
+      }
+    }).catch(() => {})
+    return () => { active = false }
+  }, [draftKey])
   useEffect(() => {
     if (!download) return
     const timer = setTimeout(() => setDownload(null), 55000)
@@ -69,12 +84,27 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
     return () => { active = false; clearTimeout(timer); controller.abort() }
   }, [scope.campus, supabase])
   const refresh = () => { setRevision(value => value + 1); setDownload(null) }
-  const reset = () => { setForm(blank()); setSaved(null); setBaseline(null); setFile(null); if (fileInput.current) fileInput.current.value = '' }
+  const updateForm = update => {
+    draftTouchedRef.current = true
+    const next = update(form)
+    setForm(next)
+    saveLearningLibraryDraft(draftKey, next, file, saved)
+  }
+  const updateFile = next => {
+    draftTouchedRef.current = true
+    setFile(next)
+    saveLearningLibraryDraft(draftKey, form, next, saved)
+  }
+  const reset = () => {
+    draftTouchedRef.current = true
+    clearLearningLibraryDraft(draftKey)
+    setForm(blank()); setSaved(null); setBaseline(null); setFile(null); if (fileInput.current) fileInput.current.value = ''
+  }
   const chooseFile = event => {
     setError('')
     const next = event.target.files?.[0]
     if (!next) return
-    try { validateLearningFile(next); setFile(next) } catch (failure) { setFile(null); setError(failure.message); event.target.value = '' }
+    try { validateLearningFile(next); updateFile(next) } catch (failure) { updateFile(null); setError(failure.message); event.target.value = '' }
   }
   const submit = async (event, publish = false) => {
     event.preventDefault()
@@ -90,6 +120,7 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
       setSaved(current => ({ ...row, portal_content_files: current?.portal_content_files || [] }))
       const next = { id: row.id, title: row.title, description: row.description, academic_year: String(row.academic_year), term: String(row.term) }
       setForm(next); setBaseline(JSON.stringify(next))
+      saveLearningLibraryDraft(draftKey, next, file, { ...row, portal_content_files: saved?.portal_content_files || [] })
       if (file) {
         const attachment = await uploadLearningFile(supabase, row.id, file, setBusy)
         setSaved(current => ({ ...current, portal_content_files: [{ ...attachment, ...validateLearningFile(file), active: true, ready: true }] }))
@@ -107,6 +138,8 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
     if (busy || (dirty && !window.confirm('Discard your unsaved note changes?'))) return
     const next = { id: row.id, title: row.title, description: row.description, academic_year: String(row.academic_year), term: String(row.term) }
     setForm(next); setBaseline(JSON.stringify(next)); setSaved(row); setFile(null); setError(''); setNotice('')
+    draftTouchedRef.current = true
+    saveLearningLibraryDraft(draftKey, next, null, row)
     if (fileInput.current) fileInput.current.value = ''
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     formRef.current?.querySelector('input')?.focus({ preventScroll: true })
@@ -138,14 +171,14 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
       <h2>{saved ? 'Edit notes' : 'Upload learning notes'}</h2><p className="muted">Your class and subject stay fixed. Save a draft or publish when the file is ready.</p>
       {period.error && !saved && <PortalNotice>{period.error}</PortalNotice>}
       <fieldset disabled={Boolean(busy)}><div className="library-fields">
-        <label className="library-wide">Title<input required maxLength={200} value={form.title} onChange={event => setForm(value => ({ ...value, title: event.target.value }))} /></label>
-        <label className="library-wide">Description or topic<textarea rows={3} maxLength={10000} value={form.description} onChange={event => setForm(value => ({ ...value, description: event.target.value }))} /></label>
-        <label>Academic year<input type="number" min={2000} max={2200} required disabled={Boolean(saved)} value={effectiveForm.academic_year} onChange={event => setForm(value => ({ ...value, academic_year: event.target.value }))} /></label>
-        <label>Term<select aria-label="Term" required disabled={Boolean(saved)} value={effectiveForm.term} onChange={event => setForm(value => ({ ...value, term: event.target.value }))}><option value="">Choose term</option>{[1, 2, 3].map(term => <option key={term} value={term}>Term {term}</option>)}</select></label>
+        <label className="library-wide">Title<input required maxLength={200} value={form.title} onChange={event => updateForm(value => ({ ...value, title: event.target.value }))} /></label>
+        <label className="library-wide">Description or topic<textarea rows={3} maxLength={10000} value={form.description} onChange={event => updateForm(value => ({ ...value, description: event.target.value }))} /></label>
+        <label>Academic year<input type="number" min={2000} max={2200} required disabled={Boolean(saved)} value={effectiveForm.academic_year} onChange={event => updateForm(value => ({ ...value, academic_year: event.target.value }))} /></label>
+        <label>Term<select aria-label="Term" required disabled={Boolean(saved)} value={effectiveForm.term} onChange={event => updateForm(value => ({ ...value, term: event.target.value }))}><option value="">Choose term</option>{[1, 2, 3].map(term => <option key={term} value={term}>Term {term}</option>)}</select></label>
         <label className="library-wide">{currentFile ? 'Replace attachment' : 'Learning file'}<input ref={fileInput} type="file" aria-label="Learning file" accept={LEARNING_FILE_ACCEPT} onChange={chooseFile} /><small>PDF, Word, PowerPoint, JPG, PNG or WebP · maximum 10 MB. Files download only when requested.</small></label>
       </div>
       {currentFile && <p className="library-file-summary">Current file: {currentFile.original_name} · {learningFileSize(currentFile.size_bytes)}</p>}
-      {file && <div className="library-selected-file"><span>Selected: <strong>{file.name}</strong> · {learningFileSize(file.size)}</span><Button type="button" variant="secondary" onClick={() => { setFile(null); if (fileInput.current) fileInput.current.value = '' }}>Remove selection</Button></div>}
+      {file && <div className="library-selected-file"><span>Selected: <strong>{file.name}</strong> · {learningFileSize(file.size)}<small>Saved on this device until the note is saved or cleared.</small></span><Button type="button" variant="secondary" onClick={() => { updateFile(null); if (fileInput.current) fileInput.current.value = '' }}>Remove selection</Button></div>}
       <div className="library-actions"><Button type="submit">{saved && saved.state !== 'draft' ? 'Save changes' : 'Save draft'}</Button>{saved?.state !== 'published' && saved?.state !== 'archived' && <Button type="button" onClick={event => submit(event, true)}>Publish notes</Button>}<Button type="button" variant="secondary" onClick={() => { if (!dirty || window.confirm('Discard your unsaved note changes?')) { reset(); setError('') } }}>New note / clear form</Button></div>
       </fieldset>
     </form></Card>
