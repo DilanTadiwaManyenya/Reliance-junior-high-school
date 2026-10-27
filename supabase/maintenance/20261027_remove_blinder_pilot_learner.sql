@@ -46,7 +46,13 @@ begin
   if (select count(*) from blinder_pilot_target) <> 1 then
     raise exception 'Blinder pilot learner did not match the verified disabled record. No changes made.';
   end if;
-  select * into strict target from blinder_pilot_target;
+  -- Load the complete students row in its declared column order. The target
+  -- table is only a four-column verification set, so selecting it directly
+  -- into students%rowtype would map campus ('senior') into date_of_birth.
+  select s.* into strict target
+  from public.students s
+  join blinder_pilot_target t on t.id = s.id
+  for update of s;
 
   perform 1 from public.fee_payments where student_id = target.id for update;
   select count(*) into fee_count from public.fee_payments where student_id = target.id;
