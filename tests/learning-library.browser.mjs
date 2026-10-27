@@ -26,6 +26,7 @@ try {
     await page.getByLabel('Academic year', { exact: true }).fill('2026')
     await page.getByLabel('Term', { exact: true }).selectOption('3')
     await page.getByLabel('Title', { exact: true }).fill('Revision notes for our allocated class')
+    await page.getByLabel('Description or topic', { exact: true }).fill('Mobile draft recovery description')
     if (width === 390 && campus === 'senior') {
       page.once('dialog', dialog => dialog.dismiss())
       await page.getByRole('button', { name: 'Back to allocations', exact: true }).click()
@@ -33,6 +34,24 @@ try {
       checks++
     }
     await page.locator('input[type=file]').setInputFiles(pdf)
+    if (width === 390 && campus === 'senior') {
+      await page.getByText('Selected: fractions.pdf', { exact: false }).waitFor()
+      await page.waitForFunction(() => new Promise(resolve => {
+        const open = indexedDB.open('reliance-learning-library-drafts')
+        open.onerror = () => resolve(false)
+        open.onsuccess = () => {
+          const request = open.result.transaction('drafts').objectStore('drafts').getAll()
+          request.onsuccess = () => resolve(request.result.some(record => record.file?.name === 'fractions.pdf'))
+          request.onerror = () => resolve(false)
+        }
+      }))
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await page.getByRole('heading', { name: 'Upload learning notes' }).waitFor()
+      await page.getByText('Selected: fractions.pdf', { exact: false }).waitFor()
+      assert.equal(await page.getByLabel('Title', { exact: true }).inputValue(), 'Revision notes for our allocated class')
+      assert.equal(await page.locator('.library-form textarea').inputValue(), 'Mobile draft recovery description')
+      checks += 3
+    }
     await page.getByRole('button', { name: 'Publish notes', exact: true }).click()
     await page.getByText('Notes published for the learners in this allocation.', { exact: true }).waitFor()
     let state = await fileState(page)
@@ -40,11 +59,12 @@ try {
     assert.equal(state.rows[0].state, 'published')
     assert.equal(state.rows[0].campus, campus)
     assert.equal(state.rows[0].class_level, campus === 'junior' ? 'Grade 5' : 'Form 1')
+    assert.equal(state.rows[0].description, 'Mobile draft recovery description')
     assert.equal(state.rows[0].subject, campus === 'junior' ? 'Mathematics' : 'Combined Science')
     assert.equal(state.files.filter(file => file.active).length, 1)
     assert.equal(state.ops.find(op => op.upload).options.upsert, false)
     assert.equal(state.ops.some(op => op.download), false, 'Listing must not download files automatically')
-    checks += 8
+    checks += 9
     const geometry = await page.evaluate(() => ({
       width: document.documentElement.scrollWidth,
       controls: [...document.querySelectorAll('.learning-library input,.learning-library select,.learning-library textarea')].map(el => ({ width: el.getBoundingClientRect().right, font: parseFloat(getComputedStyle(el).fontSize), height: el.getBoundingClientRect().height })),
