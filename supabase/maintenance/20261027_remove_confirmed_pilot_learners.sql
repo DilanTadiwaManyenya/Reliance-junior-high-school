@@ -12,12 +12,14 @@ set local statement_timeout = '30s';
 create temporary table pilot_cleanup_targets on commit drop as
 select s.id, s.admission_number
 from public.students s
-where s.admission_number in ('F1-2026-032', 'F1-2026-039', 'F1-2026-046')
-  and upper(trim(s.full_name)) = case s.admission_number
-    when 'F1-2026-032' then 'ANGEL MUSHANYUKI'
-    when 'F1-2026-039' then 'ANDREW DUBE'
-    when 'F1-2026-046' then 'ALBERT MVURA' end
-  and s.campus = 'senior' and s.class_level = 'Form 1'
+join (values
+  ('857f0939-6ab3-4458-9c88-f287ace0fad3'::uuid, '26f132', 'ANGEL MUSHANYUKI'),
+  ('f67b347d-8fc9-488f-87d6-3eba5178e161'::uuid, '26f139', 'ANDREW DUBE'),
+  ('2f732608-d3a8-4750-a73f-475d94b02d46'::uuid, '26f146', 'ALBERT MVURA')
+) expected(id, admission_number, full_name)
+  on s.id = expected.id and s.admission_number = expected.admission_number
+  and upper(trim(s.full_name)) = expected.full_name
+where s.campus = 'senior' and s.class_level = 'Form 1'
   and s.class_stream = 'White' and s.enrolled_year = 2026
   and s.status = 'inactive'
 for update of s;
@@ -65,4 +67,8 @@ commit;
 -- Run separately after COMMIT: must return zero remaining targeted learners.
 select count(*) as remaining_targeted_learners
 from public.students
-where admission_number in ('F1-2026-032', 'F1-2026-039', 'F1-2026-046');
+where id in (
+  '857f0939-6ab3-4458-9c88-f287ace0fad3'::uuid,
+  'f67b347d-8fc9-488f-87d6-3eba5178e161'::uuid,
+  '2f732608-d3a8-4750-a73f-475d94b02d46'::uuid
+) or admission_number in ('26f132', '26f139', '26f146');

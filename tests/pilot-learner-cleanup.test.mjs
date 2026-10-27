@@ -3,25 +3,26 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import { PGlite } from '@electric-sql/pglite'
 const sql = await readFile(new URL('../supabase/maintenance/20261027_remove_confirmed_pilot_learners.sql', import.meta.url), 'utf8')
+const ids = ['857f0939-6ab3-4458-9c88-f287ace0fad3', 'f67b347d-8fc9-488f-87d6-3eba5178e161', '2f732608-d3a8-4750-a73f-475d94b02d46', '00000000-0000-4000-8000-000000000004']
 async function fixture() {
   const db = new PGlite()
   await db.exec(`
-    create table students(id integer primary key, admission_number text unique, full_name text, campus text, class_level text, class_stream text, enrolled_year integer, status text);
+    create table students(id uuid primary key, admission_number text unique, full_name text, campus text, class_level text, class_stream text, enrolled_year integer, status text);
     insert into students values
-      (1,'F1-2026-032','ANGEL MUSHANYUKI','senior','Form 1','White',2026,'inactive'),
-      (2,'F1-2026-039','ANDREW DUBE','senior','Form 1','White',2026,'inactive'),
-      (3,'F1-2026-046','ALBERT MVURA','senior','Form 1','White',2026,'inactive'),
-      (4,'UNRELATED','Unrelated fixture','senior','Form 1','White',2026,'active');
-    create table fee_payments(student_id integer references students(id) on delete cascade, academic_year integer);
-    insert into fee_payments values (1,2026),(2,2026),(3,2026),(4,2026);
-    create table audit_events(student_id integer);
+      ('${ids[0]}','26f132','ANGEL MUSHANYUKI','senior','Form 1','White',2026,'inactive'),
+      ('${ids[1]}','26f139','ANDREW DUBE','senior','Form 1','White',2026,'inactive'),
+      ('${ids[2]}','26f146','ALBERT MVURA','senior','Form 1','White',2026,'inactive'),
+      ('${ids[3]}','UNRELATED','Unrelated fixture','senior','Form 1','White',2026,'active');
+    create table fee_payments(student_id uuid references students(id) on delete cascade, academic_year integer);
+    insert into fee_payments values ('${ids[0]}',2026),('${ids[1]}',2026),('${ids[2]}',2026),('${ids[3]}',2026);
+    create table audit_events(student_id uuid);
     create function audit_payment() returns trigger language plpgsql as $$ begin insert into audit_events values(old.student_id); return old; end $$;
     create trigger payment_audit after delete on fee_payments for each row execute function audit_payment();
   `)
   for (const table of ['pos_sales', 'parent_uniform_orders', 'year_rollover_entries', 'academic_records', 'junior_component_marks', 'junior_developmental_ratings', 'report_card_comments', 'coursework_marks', 'report_period_contexts']) {
-    await db.exec(`create table ${table}(student_id integer references students(id) on delete restrict)`)
+    await db.exec(`create table ${table}(student_id uuid references students(id) on delete restrict)`)
   }
-  await db.exec('insert into academic_records values(1); insert into report_period_contexts values(1)')
+  await db.exec(`insert into academic_records values('${ids[0]}'); insert into report_period_contexts values('${ids[0]}')`)
   return db
 }
 async function unchangedAfterFailure(db) {
@@ -31,31 +32,44 @@ async function unchangedAfterFailure(db) {
   assert.equal((await db.query('select count(*)::int as n from fee_payments')).rows[0].n, 4)
   assert.equal((await db.query('select count(*)::int as n from audit_events')).rows[0].n, 0)
 }
-test('authorized pilot cleanup deletes exactly three learners and their payments, retains unrelated rows and audit', async () => {
+test('verified live identifiers target exactly three pilot learners; unrelated rows and audit survive', async () => {
   const db = await fixture()
   try {
     await db.exec(sql)
-    assert.deepEqual((await db.query('select id from students')).rows, [{ id: 4 }])
-    assert.deepEqual((await db.query('select student_id from fee_payments')).rows, [{ student_id: 4 }])
+    assert.deepEqual((await db.query('select id from students')).rows, [{ id: ids[3] }])
+    assert.deepEqual((await db.query('select student_id from fee_payments')).rows, [{ student_id: ids[3] }])
     assert.equal((await db.query('select count(*)::int as n from audit_events')).rows[0].n, 3)
     await assert.rejects(db.exec(sql))
     await db.exec('rollback')
-    assert.deepEqual((await db.query('select id from students')).rows, [{ id: 4 }])
+    assert.deepEqual((await db.query('select id from students')).rows, [{ id: ids[3] }])
   } finally { await db.close() }
 })
-test('cleanup aborts for wrong learner scope and protected histories without partial writes', async () => {
+test('cleanup aborts for mismatched live identity, scope or protected history without partial writes', async () => {
   for (const setup of [
-    "update students set status='active' where id=1",
-    "update students set class_stream='Green' where id=1",
-    "update students set full_name='Different learner' where id=1",
-    'insert into pos_sales values(1)',
-    'insert into parent_uniform_orders values(1)',
-    'insert into year_rollover_entries values(1)',
-    'update fee_payments set academic_year=2025 where student_id=1',
+    `update students set status='active' where id='${ids[0]}'`,
+    `update students set class_stream='Green' where id='${ids[0]}'`,
+    `update students set full_name='Different learner' where id='${ids[0]}'`,
+    `update students set admission_number='F1-2026-032' where id='${ids[0]}'`,
+    `insert into pos_sales values('${ids[0]}')`,
+    `insert into parent_uniform_orders values('${ids[0]}')`,
+    `insert into year_rollover_entries values('${ids[0]}')`,
+    `update fee_payments set academic_year=2025 where student_id='${ids[0]}'`,
   ]) {
     const db = await fixture()
     try { await db.exec(setup); await unchangedAfterFailure(db) } finally { await db.close() }
   }
+})
+test('matching admission number and name on a different learner UUID cannot be deleted', async () => {
+  const db = await fixture()
+  try {
+    // Reassign the expected UUID across every fixture reference without removing rows.
+    for (const table of ['fee_payments', 'academic_records', 'report_period_contexts']) {
+      await db.exec(`delete from ${table} where student_id='${ids[0]}'`)
+    }
+    await db.exec(`delete from audit_events; update students set id='00000000-0000-4000-8000-000000000099' where id='${ids[0]}';
+      insert into fee_payments values('00000000-0000-4000-8000-000000000099',2026)`)
+    await unchangedAfterFailure(db)
+  } finally { await db.close() }
 })
 test('reporting guard failure rolls back payments and their audit events', async () => {
   const db = await fixture()
