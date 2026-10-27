@@ -13,6 +13,10 @@ async function fixture() {
       ('${ids[1]}','26f139','ANDREW DUBE','senior','Form 1','White',2026,'inactive'),
       ('${ids[2]}','26f146','ALBERT MVURA','senior','Form 1','White',2026,'inactive'),
       ('${ids[3]}','UNRELATED','Unrelated fixture','senior','Form 1','White',2026,'active');
+    create table fee_balances(id uuid primary key, student_id uuid references students(id) on delete cascade, academic_year integer);
+    insert into fee_balances select id,id,2026 from students;
+    create table fee_payment_requests(request_id uuid primary key, fee_balance_id uuid not null references fee_balances(id), payload jsonb not null);
+    insert into fee_payment_requests select id,id,jsonb_build_object('student_id',student_id,'year',2026) from fee_balances;
     create table fee_payments(student_id uuid references students(id) on delete cascade, academic_year integer);
     insert into fee_payments values ('${ids[0]}',2026),('${ids[1]}',2026),('${ids[2]}',2026),('${ids[3]}',2026);
     create table audit_events(student_id uuid);
@@ -31,6 +35,8 @@ async function unchangedAfterFailure(db) {
   assert.equal((await db.query('select count(*)::int as n from students')).rows[0].n, 4)
   assert.equal((await db.query('select count(*)::int as n from fee_payments')).rows[0].n, 4)
   assert.equal((await db.query('select count(*)::int as n from audit_events')).rows[0].n, 0)
+  assert.equal((await db.query('select count(*)::int as n from fee_payment_requests')).rows[0].n, 4)
+  assert.equal((await db.query('select count(*)::int as n from fee_balances')).rows[0].n, 4)
 }
 test('verified live identifiers target exactly three pilot learners; unrelated rows and audit survive', async () => {
   const db = await fixture()
@@ -39,6 +45,8 @@ test('verified live identifiers target exactly three pilot learners; unrelated r
     assert.deepEqual((await db.query('select id from students')).rows, [{ id: ids[3] }])
     assert.deepEqual((await db.query('select student_id from fee_payments')).rows, [{ student_id: ids[3] }])
     assert.equal((await db.query('select count(*)::int as n from audit_events')).rows[0].n, 3)
+    assert.deepEqual((await db.query('select fee_balance_id from fee_payment_requests')).rows, [{ fee_balance_id: ids[3] }])
+    assert.deepEqual((await db.query('select student_id from fee_balances')).rows, [{ student_id: ids[3] }])
     await assert.rejects(db.exec(sql))
     await db.exec('rollback')
     assert.deepEqual((await db.query('select id from students')).rows, [{ id: ids[3] }])
@@ -54,6 +62,8 @@ test('cleanup aborts for mismatched live identity, scope or protected history wi
     `insert into parent_uniform_orders values('${ids[0]}')`,
     `insert into year_rollover_entries values('${ids[0]}')`,
     `update fee_payments set academic_year=2025 where student_id='${ids[0]}'`,
+    `update fee_balances set academic_year=2025 where student_id='${ids[0]}'`,
+    `update fee_payment_requests set payload=jsonb_build_object('student_id','unrelated','year',2026) where fee_balance_id='${ids[0]}'`,
   ]) {
     const db = await fixture()
     try { await db.exec(setup); await unchangedAfterFailure(db) } finally { await db.close() }
@@ -66,8 +76,12 @@ test('matching admission number and name on a different learner UUID cannot be d
     for (const table of ['fee_payments', 'academic_records', 'report_period_contexts']) {
       await db.exec(`delete from ${table} where student_id='${ids[0]}'`)
     }
-    await db.exec(`delete from audit_events; update students set id='00000000-0000-4000-8000-000000000099' where id='${ids[0]}';
-      insert into fee_payments values('00000000-0000-4000-8000-000000000099',2026)`)
+    await db.exec(`delete from fee_payment_requests where fee_balance_id='${ids[0]}';
+      delete from fee_balances where student_id='${ids[0]}';
+      delete from audit_events; update students set id='00000000-0000-4000-8000-000000000099' where id='${ids[0]}';
+      insert into fee_payments values('00000000-0000-4000-8000-000000000099',2026);
+      insert into fee_balances values('${ids[0]}','00000000-0000-4000-8000-000000000099',2026);
+      insert into fee_payment_requests values('${ids[0]}','${ids[0]}',jsonb_build_object('student_id','00000000-0000-4000-8000-000000000099','year',2026))`)
     await unchangedAfterFailure(db)
   } finally { await db.close() }
 })

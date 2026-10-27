@@ -25,11 +25,11 @@ where s.campus = 'senior' and s.class_level = 'Form 1'
 for update of s;
 
 create temporary table pilot_cleanup_result (
-  learners_deleted integer, pilot_payments_deleted integer
+  learners_deleted integer, pilot_payments_deleted integer, pilot_requests_deleted integer
 ) on commit drop;
 
 do $cleanup$
-declare payment_count integer; learner_count integer;
+declare payment_count integer; learner_count integer; request_count integer;
 begin
   if (select count(*) from pilot_cleanup_targets) <> 3 then
     raise exception 'Expected exactly the three authorized disabled pilot learners. No cleanup performed; verify the roster and admission numbers.';
@@ -42,6 +42,28 @@ begin
   if exists(select 1 from public.fee_payments where student_id in (select id from pilot_cleanup_targets) and academic_year is distinct from 2026) then
     raise exception 'Payments outside 2026 exist. Stop and review the pilot scope.';
   end if;
+
+  -- Lock balances before removing their pilot retry metadata. The request FK
+  -- otherwise prevents the learner -> balance cascade. No constraints are changed.
+  perform 1 from public.fee_balances
+    where student_id in (select id from pilot_cleanup_targets) for update;
+  if exists(select 1 from public.fee_balances
+    where student_id in (select id from pilot_cleanup_targets)
+      and academic_year is distinct from 2026) then
+    raise exception 'Fee balances outside 2026 exist. Stop and review the pilot scope.';
+  end if;
+  if exists(select 1 from public.fee_payment_requests r
+    join public.fee_balances b on b.id = r.fee_balance_id
+    where b.student_id in (select id from pilot_cleanup_targets)
+      and (r.payload->>'student_id' is distinct from b.student_id::text
+        or r.payload->>'year' is distinct from '2026')) then
+    raise exception 'Payment request metadata does not match the pilot learner/year. Stop and review.';
+  end if;
+  delete from public.fee_payment_requests r
+    using public.fee_balances b
+    where r.fee_balance_id = b.id
+      and b.student_id in (select id from pilot_cleanup_targets);
+  get diagnostics request_count = row_count;
 
   delete from public.fee_payments where student_id in (select id from pilot_cleanup_targets);
   get diagnostics payment_count = row_count;
@@ -57,11 +79,11 @@ begin
   delete from public.students where id in (select id from pilot_cleanup_targets);
   get diagnostics learner_count = row_count;
   if learner_count <> 3 then raise exception 'Learner count changed; rolling back cleanup'; end if;
-  insert into pilot_cleanup_result values (learner_count, payment_count);
+  insert into pilot_cleanup_result values (learner_count, payment_count, request_count);
 end;
 $cleanup$;
 
-select learners_deleted, pilot_payments_deleted from pilot_cleanup_result;
+select learners_deleted, pilot_payments_deleted, pilot_requests_deleted from pilot_cleanup_result;
 commit;
 
 -- Run separately after COMMIT: must return zero remaining targeted learners.
