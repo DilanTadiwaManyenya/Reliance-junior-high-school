@@ -200,10 +200,6 @@ img, svg { max-width: 100%; }
   .grade-filterbar { gap: 10px; padding: 12px; }
   .grade-form-card-heading { align-items: flex-start; flex-direction: column; }
   .teacher-attendance-period-picker { min-height: 46px; }
-  .teacher-attendance-close { min-height: 44px; padding: 10px 14px; }
-  .teacher-attendance-tabs button { min-height: 44px; }
-  .teacher-attendance-period-picker { grid-template-columns: 44px minmax(0, 1fr) 44px; }
-  .teacher-attendance-period-picker button { width: 44px; height: 44px; }
   .teacher-attendance-date-search { grid-template-columns: 1fr; }
   .teacher-attendance-date-search input { width: 100%; min-height: 44px; }
   .teacher-attendance-summary { gap: 7px; }
