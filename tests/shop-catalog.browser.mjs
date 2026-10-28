@@ -7,6 +7,8 @@ const runtime = await startPortalBrowser()
 const products = []
 const orders = []
 const sales = []
+const stockReceipts = []
+const stockBatches = []
 const checkoutRequests = []
 const retiredRequests = new Set()
 let interruptNextCheckout = false
@@ -58,9 +60,15 @@ await context.route('**/catalog-api/**', async route => {
   if (url.pathname.includes('/rpc/split_unassigned_shop_product')) {
     const { p_product, p_campus, p_quantity, p_details }=req.postDataJSON()
     const source=products.find(product=>product.id===p_product)
-    source.quantity_on_hand-=p_quantity
-    const allocated={ ...source, ...p_details, id:crypto.randomUUID(), campus:p_campus, quantity_on_hand:p_quantity }
-    products.push(allocated)
+    let allocated
+    if(p_quantity===source.quantity_on_hand) {
+      Object.assign(source,p_details,{campus:p_campus,quantity_on_hand:p_quantity})
+      allocated=source
+    } else {
+      source.quantity_on_hand-=p_quantity
+      allocated={ ...source, ...p_details, id:crypto.randomUUID(), campus:p_campus, quantity_on_hand:p_quantity }
+      products.push(allocated)
+    }
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(allocated.id)})
   }
   if (url.pathname.includes('/images/')) {
@@ -69,7 +77,7 @@ await context.route('**/catalog-api/**', async route => {
     return route.fulfill(images.has(url.pathname) ? { status: 200, contentType: 'image/webp', body: images.get(url.pathname) } : { status: 404 })
   }
   const table = url.pathname.split('/').at(-1)
-  const tables = { inventory_products: products, parent_uniform_orders: orders, pos_sales: sales, students: [], shop_audit: [], shop_settings: [{ id: true, store_name: 'Test shop', receipt_header: 'Uniforms', low_stock_alerts_enabled: true }] }
+  const tables = { inventory_products: products, parent_uniform_orders: orders, pos_sales: sales, shop_stock_receipts: stockReceipts, shop_stock_batches: stockBatches, students: [], shop_audit: [], shop_settings: [{ id: true, store_name: 'Test shop', receipt_header: 'Uniforms', low_stock_alerts_enabled: true }] }
   let rows = (tables[table] || []).filter(row => [...url.searchParams].every(([key, value]) => !value.startsWith('eq.') || String(row[key]) === value.slice(3)))
   if (method === 'POST') {
     const payload = req.postDataJSON()
@@ -100,10 +108,12 @@ page.on('pageerror', e => errors.push(e.message))
 try {
   await page.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin`, { waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Products', exact: true }).click()
+  await page.getByRole('heading', { name: 'Receive supplier stock', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Recent stock receipts', exact: true }).waitFor()
   await page.getByRole('button', { name: 'Add product', exact: true }).click()
   await page.getByLabel('Product name', { exact: true }).fill('Catalog test shirt')
   await page.getByLabel('Selling price (USD)', { exact: true }).fill('12')
-  await page.getByLabel('Unit cost (USD)', { exact: true }).fill('6')
+  await page.getByLabel('Default correction cost (USD)', { exact: true }).fill('6')
   await page.getByRole('dialog').getByLabel('Campus',{exact:true}).selectOption('junior')
   const image = await page.evaluate(() => { const c=document.createElement('canvas'); c.width=1800;c.height=1200;const ctx=c.getContext('2d');ctx.fillStyle='#3172ad';ctx.fillRect(0,0,c.width,c.height);return c.toDataURL('image/png').split(',')[1] })
   const file = { name: 'shirt.png', mimeType: 'image/png', buffer: Buffer.from(image, 'base64') }
@@ -113,10 +123,20 @@ try {
   assert.equal(uploads.length,0,'Photo is previewed before uploading')
   await page.getByRole('button',{name:'Save product',exact:true}).click()
   await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
-  assert.equal(products.length,1);assert.equal(uploads.length,1)
+  assert.equal(products.length,1);assert.equal(products[0].quantity_on_hand,0);assert.equal(uploads.length,1)
   assert.ok(uploads[0].length < 2*1024*1024)
   const size = await page.evaluate(async url => { const b=await createImageBitmap(await (await fetch(url)).blob());const result={width:b.width,height:b.height};b.close();return result },products[0].image_url)
   assert.equal(size.width,1000);assert.ok(size.height<=1000)
+  stockReceipts.push({ id:'receipt-ledger-test', supplier_name:'Ledger Test Supplier', supplier_reference:'INV-TEST-01', notes:'Browser ledger check', receipt_kind:'supplier', created_at:new Date().toISOString() })
+  stockBatches.push({ id:'batch-ledger-test', receipt_id:'receipt-ledger-test', product_id:products[0].id, variant_id:null, campus:'junior', currency:'USD', quantity_received:10, quantity_remaining:0, unit_cost:6 })
+  await page.getByRole('button',{name:'Refresh',exact:true}).click()
+  const ledgerEntry=page.locator('.shop-stock-ledger-entry').filter({hasText:'Ledger Test Supplier'})
+  await ledgerEntry.locator('summary').click()
+  await ledgerEntry.getByText('INV-TEST-01').waitFor()
+  await ledgerEntry.getByText('Browser ledger check').waitFor()
+  await ledgerEntry.getByText('Catalog test shirt',{exact:true}).waitFor()
+  await ledgerEntry.getByText('10',{exact:true}).waitFor()
+  await ledgerEntry.getByText('6.00',{exact:false}).waitFor()
   await page.getByRole('button',{name:/Catalog test shirt/}).click()
   await page.getByLabel('New size',{exact:true}).fill('Small')
   await page.getByLabel('New size stock',{exact:true}).fill('4')
