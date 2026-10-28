@@ -57,6 +57,25 @@ await context.route('**/catalog-api/**', async route => {
     if(interruptNextCheckout){interruptNextCheckout=false;return route.abort('failed')}
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(sale)})
   }
+  if (url.pathname.includes('/rpc/receive_shop_stock')) {
+    const payload = req.postDataJSON()
+    let receipt = stockReceipts.find(row => row.request_id === payload.p_request_id)
+    if (!receipt) {
+      receipt = { id: crypto.randomUUID(), request_id: payload.p_request_id, supplier_name: payload.p_supplier_name, supplier_reference: payload.p_supplier_reference, notes: payload.p_notes, receipt_kind: 'supplier', created_at: new Date().toISOString() }
+      stockReceipts.push(receipt)
+      for (const item of payload.p_items) {
+        const product = products.find(row => row.id === item.product_id)
+        const variant = item.variant_id ? product.product_variants.find(row => row.id === item.variant_id) : null
+        const quantity = Number(item.quantity), unitCost = Number(item.unit_cost)
+        if (variant) {
+          variant.quantity_on_hand += quantity
+          product.quantity_on_hand = product.product_variants.filter(row => row.active).reduce((sum, row) => sum + row.quantity_on_hand, 0)
+        } else product.quantity_on_hand += quantity
+        stockBatches.push({ id: crypto.randomUUID(), receipt_id: receipt.id, product_id: product.id, variant_id: variant?.id || null, campus: product.campus, currency: product.currency || 'USD', quantity_received: quantity, quantity_remaining: quantity, unit_cost: unitCost })
+      }
+    }
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(receipt.id)})
+  }
   if (url.pathname.includes('/rpc/split_unassigned_shop_product')) {
     const { p_product, p_campus, p_quantity, p_details }=req.postDataJSON()
     const source=products.find(product=>product.id===p_product)
@@ -459,6 +478,37 @@ try {
   // Close a recovered sale receipt before returning to the staff catalog.
   if(await page.getByRole('dialog',{name:'Sale receipt'}).count()) await page.getByRole('dialog',{name:'Sale receipt'}).getByRole('button',{name:'Close',exact:true}).click()
   await page.getByRole('button',{name:'Products',exact:true}).click()
+  await page.getByLabel('Catalog campus',{exact:true}).selectOption('all')
+  // Receiving the same SKU at different supplier costs preserves each cost lot.
+  const receiptForm = page.locator('.shop-receive-form')
+  await page.getByRole('button',{name:'Add product',exact:true}).click()
+  await page.getByLabel('Product name',{exact:true}).fill('Supplier cost test item')
+  await page.getByLabel('Selling price (USD)',{exact:true}).fill('15')
+  await page.getByLabel('Default correction cost (USD)',{exact:true}).fill('5')
+  await page.getByRole('dialog').getByLabel('Campus',{exact:true}).selectOption('junior')
+  await page.getByRole('button',{name:'Save product',exact:true}).click()
+  await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
+  const receiptProduct = products.at(-1)
+  assert.equal(receiptProduct.quantity_on_hand,0,'New test product starts with no stock')
+  for (const [supplier, reference, unitCost] of [['First supplier','INV-FIRST-01','7.25'],['Second supplier','INV-SECOND-02','9.10']]) {
+    await receiptForm.getByLabel('Supplier',{exact:true}).fill(supplier)
+    await receiptForm.getByLabel('Supplier reference',{exact:false}).fill(reference)
+    const receiptLine = receiptForm.locator('.shop-receipt-line').first()
+    await receiptLine.locator('select').first().selectOption(receiptProduct.id)
+    await receiptLine.locator('input[type="number"]').first().fill('2')
+    await receiptLine.locator('input[type="number"]').nth(1).fill(unitCost)
+    await receiptForm.getByRole('button',{name:'Record stock receipt',exact:true}).click()
+    await page.waitForTimeout(300)
+    const feedback = (await page.locator('.shop-message').allTextContents()).map(text=>text.trim())
+    assert.match(feedback.at(-1) || '',/Stock receipt recorded/,`Receipt should save successfully: ${JSON.stringify(feedback)}`)
+    const submitted = page.locator('.shop-stock-ledger-entry').filter({hasText:supplier})
+    await submitted.locator('summary').click()
+    await submitted.getByText('Supplier cost test item',{exact:true}).waitFor()
+    await submitted.getByText(unitCost,{exact:false}).waitFor()
+  }
+  assert.equal(receiptProduct.quantity_on_hand,4,'Both supplier receipts add their received stock')
+  assert.deepEqual(stockReceipts.filter(row=>row.supplier_name.endsWith('supplier')).map(row=>row.supplier_name),['First supplier','Second supplier'])
+  assert.deepEqual(stockBatches.filter(row=>row.product_id===receiptProduct.id).map(row=>row.unit_cost.toFixed(2)),['7.25','9.10'])
   await parent.getByRole('button',{name:'Refresh catalog',exact:true}).click()
   await parent.getByRole('heading',{name:'Legacy jacket',exact:true}).waitFor()
   for(const target of [page,parent]) for(const result of await layoutProbe(target)) {
