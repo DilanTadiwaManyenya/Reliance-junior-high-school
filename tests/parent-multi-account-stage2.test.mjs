@@ -138,3 +138,16 @@ test('parent registration checks existing learner ownership before creating an A
   assert.doesNotMatch(source, /from ['"]\.\.\/\.\.\/\.\.\/shared\/parentRegistration\.js['"]/, 'Dashboard deployment must not depend on a source file outside supabase/functions')
   assert.match(source, /This learner is already linked to a parent account/)
 })
+
+test('parent portal can request another learner while campus-scoped admins verify the pending link', async () => {
+  const dashboard = await readFile(new URL('../src/pages/portal/ParentDashboard.jsx', import.meta.url), 'utf8')
+  const support = await readFile(new URL('../src/components/portal/ParentAccountSupport.jsx', import.meta.url), 'utf8')
+  const migration = await readFile(new URL('../supabase/migrations/20261028120000_parent_link_review_details.sql', import.meta.url), 'utf8')
+  assert.match(dashboard, /rpc\('request_parent_student_link'/)
+  assert.match(dashboard, /rpc\('parent_pending_student_links'/)
+  assert.match(dashboard, /school must verify this learner/)
+  assert.match(support, /\.is\('verified_at', null\)/)
+  assert.match(migration, /public\.can_read_school_campus\(student\.campus\)/)
+  assert.match(migration, /link\.student_id, link\.verified_at is not null/)
+  assert.match(migration, /link\.parent_id = auth\.uid\(\)/)
+})

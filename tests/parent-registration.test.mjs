@@ -35,7 +35,7 @@ test('parent account support returns only each assigned campus and keeps unmatch
       create table public.profiles(id uuid primary key, full_name text, role text, active_role text, campus text);
       create table public.students(id uuid primary key, full_name text, admission_number text, date_of_birth date, class_level text, class_stream text, campus text);
       create table public.parent_accounts(user_id uuid primary key, phone_number text, child_admission_number text, verified boolean, verified_at timestamptz);
-      create table public.parent_student(parent_id uuid, student_id uuid);
+      create table public.parent_student(parent_id uuid, student_id uuid, verified_at timestamptz, created_at timestamptz default now());
       alter table public.parent_accounts enable row level security;
       create function public.portal_mfa_satisfied() returns boolean language sql stable as $$ select true $$;
       create function public.has_active_role(expected text) returns boolean language sql stable security definer as $$ select exists(select 1 from profiles where id=auth.uid() and active_role=expected) $$;
@@ -47,6 +47,8 @@ test('parent account support returns only each assigned campus and keeps unmatch
     await db.exec(migration)
     const detailsMigration = await readFile(new URL('../supabase/migrations/20261022200000_parent_signin_registration_details.sql', import.meta.url), 'utf8')
     await db.exec(detailsMigration)
+    const linkReviewMigration = await readFile(new URL('../supabase/migrations/20261028120000_parent_link_review_details.sql', import.meta.url), 'utf8')
+    await db.exec(linkReviewMigration)
     await db.exec(`
       insert into profiles values
         ('11111111-1111-4111-8111-111111111111','Main Admin','admin','admin','all'),
@@ -73,18 +75,27 @@ test('parent account support returns only each assigned campus and keeps unmatch
       await db.query('select set_config($1,$2,false)', ['test.user_id', id])
       return (await db.query('select * from public.parent_account_support()')).rows
     }
-    assert.deepEqual((await accountsFor('11111111-1111-4111-8111-111111111111')).map(row => row.parent_user_id).sort(), [
+    assert.deepEqual([...new Set((await accountsFor('11111111-1111-4111-8111-111111111111')).map(row => row.parent_user_id))].sort(), [
       '55555555-5555-4555-8555-555555555555', '66666666-6666-4666-8666-666666666666', '77777777-7777-4777-8777-777777777777',
     ])
     const senior = await accountsFor('22222222-2222-4222-8222-222222222222')
-    assert.equal(senior.length, 1)
-    assert.equal(senior[0].learner_name, 'Senior Learner')
-    assert.equal(new Date(senior[0].learner_date_of_birth).toISOString().slice(0, 10), '2010-06-15')
-    assert.equal(senior[0].child_admission_number, '26F601')
+    assert.equal(senior.length, 2)
+    const seniorLearner = senior.find(row => row.learner_name === 'Senior Learner')
+    assert.equal(seniorLearner.learner_student_id, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+    assert.equal(seniorLearner.learner_link_verified, false)
+    assert.equal(new Date(seniorLearner.learner_date_of_birth).toISOString().slice(0, 10), '2010-06-15')
+    assert.equal(seniorLearner.child_admission_number, '26f601')
+    await db.query('select set_config($1,$2,false)', ['test.user_id', '55555555-5555-4555-8555-555555555555'])
+    const pendingForParent = await db.query('select * from public.parent_pending_student_links()')
+    assert.equal(pendingForParent.rows.length, 2)
+    assert.deepEqual(pendingForParent.rows.map(row => row.learner_name).sort(), ['Second Senior Learner', 'Senior Learner'])
     const junior = await accountsFor('33333333-3333-4333-8333-333333333333')
     assert.equal(junior.length, 1)
     assert.equal(junior[0].learner_name, 'Junior Learner')
     assert.equal(new Date(junior[0].learner_date_of_birth).toISOString().slice(0, 10), '2020-02-03')
+    await db.query('update public.parent_student set verified_at=now() where student_id=$1', ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'])
+    const approvedSenior = await accountsFor('22222222-2222-4222-8222-222222222222')
+    assert.equal(approvedSenior.find(row => row.learner_name === 'Senior Learner').learner_link_verified, true)
     await db.query('select set_config($1,$2,false)', ['test.user_id', '44444444-4444-4444-8444-444444444444'])
     await assert.rejects(db.query('select * from public.parent_account_support()'), /Parent account support access required/)
   } finally {

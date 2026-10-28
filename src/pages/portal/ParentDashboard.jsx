@@ -3,30 +3,81 @@ import { Link, useSearchParams } from 'react-router-dom'
 import PortalNotice from '../../components/portal/PortalNotice'
 import LearnerRecords from '../../components/portal/LearnerRecords'
 import ParentLibraryLauncher from '../../components/portal/ParentLibraryLauncher'
+import Card from '../../components/ui/Card'
+import DateOfBirthInput from '../../components/ui/DateOfBirthInput'
 import { useAuth } from '../../context/useAuth'
 import { siteContent } from '../../data/siteContent'
+import { normalizeStudentAdmission, validStudentAdmission } from '../../../shared/studentRegistration.js'
 
 export default function ParentDashboard() {
   const { supabase, user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [students, setStudents] = useState([])
+  const [pendingStudents, setPendingStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
+  const [connectionRevision, setConnectionRevision] = useState(0)
+  const [newLearner, setNewLearner] = useState({ admissionNumber: '', dateOfBirth: '' })
+  const [linkSubmitting, setLinkSubmitting] = useState(false)
+  const [linkError, setLinkError] = useState('')
+  const [linkNotice, setLinkNotice] = useState('')
   const [recordState, setRecordState] = useState({ studentId: '', records: null, fees: [], error: '' })
   const requestedId = searchParams.get('learner')
   const selectedId = students.find(student => student.id === requestedId)?.id || students[0]?.id || ''
   const setSelectedId = id => { const next = new URLSearchParams(searchParams); next.set('learner', id); setSearchParams(next, { replace: true }) }
   useEffect(() => {
     let active = true
-    supabase.from('parent_student').select('student:students(*)').eq('parent_id', user.id).not('verified_at', 'is', null).then(({ data, error: linkError }) => {
+    Promise.all([
+      supabase.from('parent_student').select('student:students(id,full_name,campus,class_level,class_stream,status)').eq('parent_id', user.id).not('verified_at', 'is', null),
+      supabase.rpc('parent_pending_student_links'),
+    ]).then(([verified, pending]) => {
       if (!active) return
-      setError(linkError?.message || '')
-      setStudents(data?.map(row => row.student).filter(Boolean) || [])
+      setError(verified.error
+        ? 'We could not load your verified learner connections. Please try again.'
+        : pending.error ? 'We could not load your pending learner requests. Please try again.' : '')
+      setStudents(verified.data?.map(row => row.student).filter(Boolean) || [])
+      setPendingStudents(pending.data || [])
       setLoading(false)
     }).catch(() => { if (active) { setError('We could not load your learner connections. Please try again.'); setLoading(false) } })
     return () => { active = false }
-  }, [supabase, user.id])
+  }, [supabase, user.id, connectionRevision])
+  const requestAnotherLearner = async event => {
+    event.preventDefault()
+    setLinkError('')
+    setLinkNotice('')
+    const admissionNumber = normalizeStudentAdmission(newLearner.admissionNumber)
+    if (!validStudentAdmission(admissionNumber)) {
+      setLinkError('Enter a valid learner admission number.')
+      return
+    }
+    if (!newLearner.dateOfBirth) {
+      setLinkError('Enter the learner’s date of birth.')
+      return
+    }
+    setLinkSubmitting(true)
+    const { data, error: requestError } = await supabase.rpc('request_parent_student_link', {
+      requested_admission_number: admissionNumber,
+      requested_date_of_birth: newLearner.dateOfBirth,
+    })
+    if (requestError) {
+      const message = requestError.message || ''
+      setLinkError(requestError.code === '23505' || message.includes('already linked')
+        ? 'This learner is already linked to a parent account. Contact the school office if this is incorrect.'
+        : 'We could not submit that learner connection. Check the details or contact the school office.')
+      setLinkSubmitting(false)
+      return
+    }
+    if (!data) {
+      setLinkError('We could not verify that admission number and date of birth. Check the details and try again.')
+      setLinkSubmitting(false)
+      return
+    }
+    setNewLearner({ admissionNumber: '', dateOfBirth: '' })
+    setLinkNotice('Request sent. The school must verify this learner before their records appear in your account.')
+    setConnectionRevision(value => value + 1)
+    setLinkSubmitting(false)
+  }
   useEffect(() => {
     if (!selectedId) return
     let active = true
@@ -48,6 +99,15 @@ export default function ParentDashboard() {
   const currentRecords = recordState.studentId === selectedId ? recordState : null
   const student = students.find(row => row.id === selectedId)
   if (loading) return <section className="section white"><div className="container">Loading learner records…</div></section>
-  if (!students.length) return <section className="section white"><div className="container portal-content"><div className="portal-empty-state"><p className="eyebrow">Parent dashboard</p><h1>No learner connection found</h1>{error && <PortalNotice tone="error">{error}</PortalNotice>}<p className="muted">We could not find a verified learner connection for this account.</p><p>Contact the school office on <a href={`tel:${siteContent.contact.phone.replaceAll(' ', '')}`}>{siteContent.contact.phone}</a>.</p></div></div></section>
-  return <section className="section white"><div className="container portal-content"><p className="eyebrow">Parent dashboard</p><h1>{student?.full_name}</h1><p className="parent-learner-context">{student?.campus === 'junior' ? 'Junior School' : 'Senior School'} · {student?.class_level} {student?.class_stream}</p>{students.length > 1 && <label className="portal-switcher">Viewing learner<select value={selectedId} onChange={e => setSelectedId(e.target.value)}>{students.map(row => <option key={row.id} value={row.id}>{row.full_name} · {row.class_level} {row.class_stream}</option>)}</select></label>}{student?.status !== 'active' && <PortalNotice tone="error"><strong>This learner is no longer enrolled at Reliance Learning Centre.</strong> You can still view their historical academic, attendance, behaviour, sport, and award records below.</PortalNotice>}{error && <PortalNotice tone="error">{error}</PortalNotice>}{currentRecords?.error ? <PortalNotice tone="error">{currentRecords.error} <button type="button" className="btn secondary" onClick={() => { setRecordState({ studentId: '', records: null, fees: [], error: '' }); setRevision(value => value + 1) }}>Retry learner records</button></PortalNotice> : currentRecords?.records ? <LearnerRecords student={student} records={currentRecords.records} fees={currentRecords.fees} /> : <p role="status">Loading this learner’s records…</p>}<ParentLibraryLauncher student={student} />{student?.status === 'active' && <Link className="parent-uniform-catalogue-link" to={`/portal/uniforms?learner=${student.id}`} aria-label={`Open uniform catalogue for ${student.full_name}`}><span className="parent-uniform-catalogue-icon" aria-hidden="true">RLC</span><span><span className="parent-record-kicker">School shop</span><strong>Buy school uniforms</strong><small>Browse the uniform catalogue, add items to your cart, and choose EcoCash, bank transfer, card, or collection payment.</small></span><span className="parent-uniform-catalogue-arrow" aria-hidden="true">→</span></Link>}</div></section>
+  if (!students.length) return <section className="section white"><div className="container portal-content"><div className="portal-empty-state"><p className="eyebrow">Parent dashboard</p><h1>No verified learner connection</h1>{error && <PortalNotice tone="error">{error}</PortalNotice>}<p className="muted">Connect a learner to this parent account. The school will verify each request before learner records become available.</p><p>For help, contact the school office on <a href={`tel:${siteContent.contact.phone.replaceAll(' ', '')}`}>{siteContent.contact.phone}</a>.</p></div><PendingLearnerRequests students={pendingStudents} /><LearnerLinkRequest value={newLearner} onChange={setNewLearner} onSubmit={requestAnotherLearner} error={linkError} notice={linkNotice} submitting={linkSubmitting} /></div></section>
+  return <section className="section white"><div className="container portal-content"><p className="eyebrow">Parent dashboard</p><h1>{student?.full_name}</h1><p className="parent-learner-context">{student?.campus === 'junior' ? 'Junior School' : 'Senior School'} · {student?.class_level} {student?.class_stream}</p>{students.length > 1 && <label className="portal-switcher">Choose learner<select value={selectedId} onChange={e => setSelectedId(e.target.value)}>{students.map(row => <option key={row.id} value={row.id}>{row.full_name} · {row.campus === 'junior' ? 'Junior' : 'Senior'} School · {row.class_level} {row.class_stream}</option>)}</select></label>}<PendingLearnerRequests students={pendingStudents} /><LearnerLinkRequest value={newLearner} onChange={setNewLearner} onSubmit={requestAnotherLearner} error={linkError} notice={linkNotice} submitting={linkSubmitting} />{student?.status !== 'active' && <PortalNotice tone="error"><strong>This learner is no longer enrolled at Reliance Learning Centre.</strong> You can still view their historical academic, attendance, behaviour, sport, and award records below.</PortalNotice>}{error && <PortalNotice tone="error">{error}</PortalNotice>}{currentRecords?.error ? <PortalNotice tone="error">{currentRecords.error} <button type="button" className="btn secondary" onClick={() => { setRecordState({ studentId: '', records: null, fees: [], error: '' }); setRevision(value => value + 1) }}>Retry learner records</button></PortalNotice> : currentRecords?.records ? <LearnerRecords student={student} records={currentRecords.records} fees={currentRecords.fees} /> : <p role="status">Loading this learner’s records…</p>}<ParentLibraryLauncher student={student} />{student?.status === 'active' && <Link className="parent-uniform-catalogue-link" to={`/portal/uniforms?learner=${student.id}`} aria-label={`Open uniform catalogue for ${student.full_name}`}><span className="parent-uniform-catalogue-icon" aria-hidden="true">RLC</span><span><span className="parent-record-kicker">School shop</span><strong>Buy school uniforms</strong><small>Browse the uniform catalogue, add items to your cart, and choose EcoCash, bank transfer, card, or collection payment.</small></span><span className="parent-uniform-catalogue-arrow" aria-hidden="true">→</span></Link>}</div></section>
+}
+
+function PendingLearnerRequests({ students }) {
+  if (!students.length) return null
+  return <Card className="parent-pending-learners"><h2>Connection requests</h2><p className="muted">These learners will appear in your learner options after the school verifies each connection.</p><ul>{students.map(row => <li key={row.id}>{row.full_name} · {row.campus === 'junior' ? 'Junior' : 'Senior'} School · {row.class_level} {row.class_stream}</li>)}</ul></Card>
+}
+
+function LearnerLinkRequest({ value, onChange, onSubmit, error, notice, submitting }) {
+  return <Card className="parent-add-learner"><h2>Add another learner</h2><p className="muted">A learner can only be linked to one parent account. Enter their admission number and date of birth to request access.</p>{error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice>{notice}</PortalNotice>}<form className="form" onSubmit={onSubmit}><label>Learner admission number<input value={value.admissionNumber} onChange={event => onChange(current => ({ ...current, admissionNumber: event.target.value }))} autoComplete="off" required /></label><label>Learner date of birth<DateOfBirthInput value={value.dateOfBirth} onChange={event => onChange(current => ({ ...current, dateOfBirth: event.target.value }))} required /></label><button className="btn primary" type="submit" disabled={submitting}>{submitting ? 'Sending request…' : 'Request learner access'}</button></form></Card>
 }
