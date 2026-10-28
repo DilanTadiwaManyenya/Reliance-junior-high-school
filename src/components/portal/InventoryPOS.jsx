@@ -179,6 +179,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const legacyKey = `reliance-shop:${user.id}`;
   const [legacyPending, setLegacyPending] = useState(() => readSession(legacyKey)?.pending || null);
   const [products, setProducts] = useState([]);
+  const [stockBatches, setStockBatches] = useState(null);
   const [sales, setSales] = useState([]);
   const [learners, setLearners] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -299,7 +300,14 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       if (prefs.error) throw prefs.error;
       if (audit.error) throw audit.error;
       if (learnerRows.error) throw learnerRows.error;
+      let batchRows = null;
+      try {
+        batchRows = await fetchAll("shop_stock_batches");
+      } catch (batchError) {
+        if (!["42P01", "PGRST205"].includes(batchError.code)) throw batchError;
+      }
       setProducts(stock);
+      setStockBatches(batchRows);
       setSales(
         history.sort((a, b) => b.created_at.localeCompare(a.created_at)),
       );
@@ -434,13 +442,13 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const period = receiptPeriod.filter(sale => sale.status !== 'reversed');
   const revenue = period.reduce((sum, s) => sum + Number(s.total), 0);
   const costKnown = period.every((s) =>
-    s.pos_sale_items.every((l) => l.unit_cost !== null),
+    s.pos_sale_items.every((l) => l.cost_total != null || l.unit_cost != null),
   );
   const cost = period.reduce(
     (sum, s) =>
       sum +
       s.pos_sale_items.reduce(
-        (n, l) => n + Number(l.unit_cost || 0) * l.quantity,
+        (n, l) => n + (l.cost_total != null ? Number(l.cost_total) : Number(l.unit_cost || 0) * l.quantity),
         0,
       ),
     0,
@@ -489,7 +497,8 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
         };
         current.units += Number(line.quantity || 0);
         current.revenue += Number(line.line_total || 0);
-        if (line.unit_cost === null) current.costKnown = false;
+        if (line.cost_total != null) current.cost += Number(line.cost_total);
+        else if (line.unit_cost == null) current.costKnown = false;
         else current.cost += Number(line.unit_cost || 0) * Number(line.quantity || 0);
         totals.set(line.product_name, current);
       });
@@ -520,10 +529,28 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     [helpCategory, helpQuery],
   );
   const currencyProducts = active.filter(product => (product.currency || "USD") === reportCurrency);
-  const inventoryCost = currencyProducts.reduce(
+  const legacyInventoryCost = currencyProducts.reduce(
     (sum, product) => sum + Number(product.cost_price || 0) * Number(product.quantity_on_hand || 0),
     0,
   );
+  let inventoryCost = legacyInventoryCost;
+  let inventoryCostKnown = true;
+  if (stockBatches !== null) {
+    inventoryCost = 0;
+    for (const product of currencyProducts) {
+      const expectedStocks = product.has_variants
+        ? (product.product_variants || []).filter(variant => variant.active).map(variant => ({ id: variant.id, quantity: Number(variant.quantity_on_hand || 0) }))
+        : [{ id: null, quantity: Number(product.quantity_on_hand || 0) }];
+      for (const expected of expectedStocks) {
+        const batches = stockBatches.filter(batch => batch.product_id === product.id && batch.variant_id === expected.id && Number(batch.quantity_remaining) > 0);
+        const remaining = batches.reduce((sum, batch) => sum + Number(batch.quantity_remaining || 0), 0);
+        if (remaining !== expected.quantity || batches.some(batch => batch.currency !== product.currency || batch.campus !== product.campus)) {
+          inventoryCostKnown = false;
+        }
+        inventoryCost += batches.reduce((sum, batch) => sum + Number(batch.quantity_remaining || 0) * Number(batch.unit_cost || 0), 0);
+      }
+    }
+  }
   const inventoryRetail = currencyProducts.reduce(
     (sum, product) => sum + Number(product.selling_price || 0) * Number(product.quantity_on_hand || 0),
     0,
@@ -766,18 +793,18 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       }
       if (![payload.selling_price, payload.cost_price, payload.reorder_level].every(value => Number.isFinite(value) && value >= 0)
           || !Number.isInteger(payload.reorder_level)
-          || (!form.id && (!Number.isInteger(Number(form.quantity_on_hand)) || Number(form.quantity_on_hand) < 0))) {
+          ) {
         throw new Error("Prices must be non-negative numbers; stock and thresholds must be whole numbers.");
       }
       const oldImage = savedProduct?.image_url;
       const allocationQuantity = Number(form.allocationQuantity ?? savedProduct?.quantity_on_hand);
-      const allocating = Boolean(form.id && needsCampus);
+      const allocating = Boolean(form.id && needsCampus && (savedProduct?.quantity_on_hand > 0 || savedProduct?.has_variants));
       if (allocating && (!Number.isInteger(allocationQuantity) || allocationQuantity < (savedProduct.quantity_on_hand > 0 ? 1 : 0) || allocationQuantity > savedProduct.quantity_on_hand)) throw new Error("Choose a whole allocation quantity within the available stock.");
       const partialAllocation = allocating && allocationQuantity < savedProduct.quantity_on_hand;
       if (partialAllocation && savedProduct.has_variants) throw new Error("Allocate sized products as a whole.");
       if (form.imageBlob) payload.image_url = await uploadProductImage(supabase, form.imageBlob, form.campus);
       else if (allocating) payload.image_url = await copyProductImageForCampus(supabase, payload.image_url, form.campus, partialAllocation);
-      const result = partialAllocation
+      const result = allocating
         ? await supabase.rpc("split_unassigned_shop_product", { p_product: form.id, p_campus: form.campus, p_quantity: allocationQuantity, p_details: payload })
         : form.id
         ? await supabase
@@ -788,18 +815,19 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             .from("inventory_products")
             .insert({
               ...payload,
-              quantity_on_hand: Number(form.quantity_on_hand),
+              quantity_on_hand: 0,
               created_by: user.id,
             }).select("id").single();
       if (result.error) throw result.error;
-      logActivity(supabase, user, profile, { actionType: form.id ? "update" : "create", description: `${form.id ? "Updated" : "Created"} product ${payload.name}`, targetTable: "inventory_products", targetId: form.id });
+      const savedProductId = typeof result.data === "string" ? result.data : form.id;
+      logActivity(supabase, user, profile, { actionType: form.id ? "update" : "create", description: `${form.id ? "Updated" : "Created"} product ${payload.name}`, targetTable: "inventory_products", targetId: savedProductId });
       let cleanupFailed = false;
       if (!partialAllocation && oldImage && oldImage !== payload.image_url) {
         try { await removeProductImage(supabase, oldImage); } catch { cleanupFailed = true; }
       }
       setForm(null);
       await load();
-      setNotice(cleanupFailed ? "Product saved. Its previous photo could not be removed from storage." : partialAllocation ? "Stock allocated. The remaining quantity stays in Unassigned." : "Product saved.");
+      setNotice(cleanupFailed ? "Product saved. Its previous photo could not be removed from storage." : allocating ? (partialAllocation ? "Stock allocated. The remaining quantity stays in Unassigned." : "All stock allocated to the selected campus.") : "Product saved.");
     });
   };
   const changeMyPassword = async () => {
@@ -925,9 +953,9 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             <article className="shop-panel">
               <h2><Activity size={18} /> Live shop pulse</h2>
               <div className="shop-value-grid">
-                <div><span>Stock at cost ({reportCurrency})</span><strong>{money(inventoryCost, reportCurrency)}</strong></div>
+                <div><span>Stock at cost ({reportCurrency})</span><strong>{inventoryCostKnown ? money(inventoryCost, reportCurrency) : "Reconcile batches"}</strong></div>
                 <div><span>Potential retail value ({reportCurrency})</span><strong>{money(inventoryRetail, reportCurrency)}</strong></div>
-                <div><span>Estimated stock margin ({reportCurrency})</span><strong>{money(inventoryRetail - inventoryCost, reportCurrency)}</strong></div>
+                <div><span>Estimated stock margin ({reportCurrency})</span><strong>{inventoryCostKnown ? money(inventoryRetail - inventoryCost, reportCurrency) : "Unavailable"}</strong></div>
               </div>
               <div className="shop-health"><span>Inventory health</span><div><i style={{ width: `${active.length ? Math.round((active.filter((p) => p.quantity_on_hand > p.reorder_level).length / active.length) * 100) : 0}%` }} /></div><strong>{active.length ? `${active.filter((p) => p.quantity_on_hand > p.reorder_level).length}/${active.length} products above their reorder level` : "No active products"}</strong></div>
             </article>
@@ -1564,7 +1592,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
           <div className="shop-profit-layout">
             <div className="shop-panel shop-table">
               <h2>Product profitability</h2>
-              <p>Gross profit is revenue less the recorded item cost. It excludes rent, salaries and other operating expenses.</p>
+              <p>Cost of goods follows the supplier batches used at checkout. Opening stock uses its recorded product cost; historical supplier costs are unavailable. Gross profit excludes operating expenses.</p>
               <table>
                 <thead><tr><th>Product</th><th>Units</th><th>Revenue</th><th>Cost</th><th>Gross profit</th><th>Margin</th></tr></thead>
                 <tbody>{productProfitability.map((product) => <tr key={product.name}><td><strong>{product.name}</strong></td><td>{product.units}</td><td>{money(product.revenue)}</td><td>{product.costKnown ? money(product.cost) : "Unknown"}</td><td className="shop-profit-value">{product.profit === null ? "Unknown" : money(product.profit)}</td><td>{product.profit !== null && product.revenue ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : "Unknown"}</td></tr>)}</tbody>
@@ -1573,7 +1601,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             </div>
             <aside className="shop-panel shop-insight-panel">
               <h2>Report health</h2>
-              <div className="shop-insight"><span>Cost snapshots</span><strong className={costKnown ? "shop-good" : "shop-warning"}>{costKnown ? "Complete" : "Needs review"}</strong><p>{costKnown ? "Every sale has a recorded item cost." : "Some older sale lines have no cost snapshot, so their profit remains unknown."}</p></div>
+              <div className="shop-insight"><span>Cost snapshots</span><strong className={costKnown ? "shop-good" : "shop-warning"}>{costKnown ? "Complete" : "Needs review"}</strong><p>{costKnown ? "Sales use the costs of the batches issued. Opening stock uses the cost recorded at cutover." : "Some older sale lines have no cost snapshot, so their profit remains unknown."}</p></div>
               <div className="shop-insight"><span>Collection methods</span><strong>{paymentSummary.length}</strong><p>{paymentSummary.map((method) => method.label).join(", ") || "No payments recorded"}</p></div>
               <div className="shop-insight"><span>Scope</span><strong>{month || "All time"}</strong><p>{unitsSold} item{unitsSold === 1 ? "" : "s"} sold across {period.length} completed sale{period.length === 1 ? "" : "s"}.</p></div>
             </aside>
@@ -1716,16 +1744,13 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
             )}
             <fieldset className="shop-product-fields" disabled={busy || imageBusy || variantBusy}>
             <div className="shop-form-grid">
-              <label>Currency<select required value={form.currency || "USD"} onChange={event => setForm({ ...form, currency: event.target.value })}>{FINANCE_CURRENCIES.map(code => <option key={code}>{code}</option>)}</select><small>Changing this affects future sales only; old receipts keep their saved currency.</small></label>
+              <label>Currency<select required disabled={Boolean(form.id && !products.find(product => product.id === form.id)?.campus)} value={form.currency || "USD"} onChange={event => setForm({ ...form, currency: event.target.value })}>{FINANCE_CURRENCIES.map(code => <option key={code}>{code}</option>)}</select><small>Changing this affects future sales only; old receipts keep their saved currency.</small></label>
               {[
                 ["name", "Product name", "text"],
                 ["sku", "SKU (optional)", "text"],
                 ["category", "Category", "text"],
                 ["selling_price", `Selling price (${form.currency || "USD"})`, "number"],
-                ["cost_price", `Unit cost (${form.currency || "USD"})`, "number"],
-                ...(!form.id
-                  ? [["quantity_on_hand", "Opening stock", "number"]]
-                  : []),
+                ["cost_price", `Default correction cost (${form.currency || "USD"})`, "number"],
                 ["reorder_level", "Low stock threshold", "number"],
               ].map(([key, label, type]) => (
                 <label key={key}>
@@ -1780,6 +1805,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 </label>
               )}
             </div>
+            {!form.id && <p className="shop-form-note">New products start with zero stock. Add stock under Receive supplier stock so each delivery’s cost is recorded.</p>}
             {form.imageEditorSource ? <ProductPhotoEditor source={form.imageEditorSource} onApply={applyProductImage} onCancel={() => setForm(current => ({ ...current, imageEditorSource: null }))} /> : <>
             <label className="shop-image-field">
               Product photo (JPG, PNG or WebP, up to 5 MB)
