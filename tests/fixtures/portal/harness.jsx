@@ -115,6 +115,9 @@ window.fixtureReviewCalls = []
 window.fixtureHistoryError = params.has('historyError')
 window.fixtureRolloverError = params.has('rolloverError')
 window.fixtureRolloverCalls = []
+window.fixtureParentConnectionsError = params.has('parentConnectionsError')
+window.fixtureParentPendingError = params.has('parentPendingError')
+window.fixtureParentRequestThrows = params.has('parentRequestThrows')
 function query(table) {
   let operation = 'select', payload, single = false, start = 0, end = Infinity, projection = ''
   const filters = []
@@ -128,6 +131,7 @@ function query(table) {
       let data = (db[table] || []).map(row => projection.includes('students!inner') ? {...row,students:db.students.find(s => s.id===row.student_id)} : row).filter(row => filters.every(filter => filter(row)))
       if(params.has('operationsError') && window.fixtureOperationsError !== false && ['school_expenses','fee_payments'].includes(table)) return Promise.resolve({data:null,error:{message:'Synthetic export connection failure'}}).then(resolve,reject)
       if(table==='portal_security_settings'&&params.has('mfaSettingsError'))return Promise.resolve({data:null,error:{message:'Synthetic requirements unavailable'}}).then(resolve,reject)
+      if(table==='parent_student'&&role==='parent'&&window.fixtureParentConnectionsError)return Promise.resolve({data:null,error:{message:'Synthetic learner connections unavailable'}}).then(resolve,reject)
       if(table==='report_period_contexts') { const currentRole=window.fixtureActiveRole||role; data=data.filter(row=>currentRole==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(currentRole)&&(campus==='all'&&currentRole!=='accountant'||row.campus===campus)) }
       if(table==='school_expenses'&&params.has('expenseControls')&&role==='accountant')data=data.filter(row=>row.campus===campus)
       data=data.slice(start,end+1)
@@ -273,6 +277,14 @@ const supabase = {
     if (name === 'parent_shop_student_campus') {
       const link = db.parent_student.find(row => row.student_id === payload.requested_student_id && row.verified_at)
       return Promise.resolve({ data: link?.student?.status === 'active' ? link.student.campus : null, error: null })
+    }
+    if (name === 'parent_pending_student_links') {
+      if (window.fixtureParentPendingError) return Promise.resolve({ data: null, error: { message: 'Synthetic pending requests unavailable' } })
+      return Promise.resolve({ data: [], error: null })
+    }
+    if (name === 'request_parent_student_link') {
+      if (window.fixtureParentRequestThrows) return Promise.reject(new Error('Synthetic network failure'))
+      return Promise.resolve({ data: true, error: null })
     }
     if (name === 'correct_assigned_learner' || name === 'manage_disabled_learner') {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
