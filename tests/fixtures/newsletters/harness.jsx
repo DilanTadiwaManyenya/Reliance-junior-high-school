@@ -7,7 +7,7 @@ import ParentSchoolUpdates from '../../../src/components/portal/ParentSchoolUpda
 import '../../../src/index.css'
 import '../../../src/components/portal/parentLearningLibrary.css'
 const params = new URLSearchParams(location.search)
-const state = { rows: [], files: [], reads: [], operations: [], failUpload: false, storedDespiteUploadError: false, loseFinalizeResponse: false, finalizedAfterLostResponse: false, failRead: false }
+const state = { rows: [], files: [], reads: [], operations: [], failUpload: false, storedDespiteUploadError: false, loseFinalizeResponse: false, finalizedAfterLostResponse: false, failRead: false, failUpdates: false }
 window.newsletterFixture = state
 const client = {
   from(table) {
@@ -55,6 +55,7 @@ const client = {
     if (name === 'parent_school_updates') {
       const items = state.rows.filter(row => row.state === 'published').map(row => ({ ...row, file: state.files.find(file => file.active && file.announcement_id === row.id), acknowledged: state.reads.includes(row.id) }))
       data = { learner_id: args.p_student_id, total_count: items.length, items }
+      if (state.failUpdates) error = { message: 'Synthetic database detail that must not be shown to parents' }
     }
     return { abortSignal() { return this }, then(resolve, reject) { return Promise.resolve({ data, error }).then(resolve, reject) } }
   },

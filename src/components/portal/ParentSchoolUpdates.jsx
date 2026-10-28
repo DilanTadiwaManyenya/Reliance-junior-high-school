@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { acknowledgeNewsletter, newsletterFileLink, newsletterRequest } from '../../lib/schoolNewsletters'
 import { canPreviewLearningFile, learningPublicationDate } from '../../lib/parentLearningLibrary'
 import ParentLibraryFilePanel from './ParentLibraryFilePanel'
+import PortalNotice from './PortalNotice'
 import './schoolNewsletters.css'
 
 export default function ParentSchoolUpdates({ supabase, student }) {
@@ -21,7 +22,7 @@ export default function ParentSchoolUpdates({ supabase, student }) {
       .then(data => {
         if (data?.learner_id !== student.id || !Array.isArray(data.items) || !Number.isInteger(data.total_count)) throw new Error('The newsletter response was incomplete. Please retry.')
         if (active) setResult({ key, items: data.items, total: data.total_count, error: '' })
-      }).catch(error => { if (active) setResult({ key, items: [], total: 0, error: error.message }) })
+      }).catch(() => { if (active) setResult({ key, items: [], total: 0, error: 'We could not load school updates. Check your connection and try again.' }) })
     return () => { active = false; controller.abort(); generation.current += 1 }
   }, [supabase, student.id, page, key])
   useEffect(() => {
@@ -43,10 +44,10 @@ export default function ParentSchoolUpdates({ supabase, student }) {
     catch (error) { if (generation.current === current) setError(error.message) }
     finally { setReadBusy('') }
   }
-  return <div className="school-newsletters"><p>School updates for {student.full_name} · {student.class_level}. Marking as read records your acknowledgement; it does not claim that the learner read the document.</p>
+  return <div className="school-newsletters parent-school-updates"><p>School updates for {student.full_name} · {student.class_level}. Marking as read records your acknowledgement; it does not claim that the learner read the document.</p>
     <button type="button" className="btn secondary" disabled={fileBusy || Boolean(readBusy)} onClick={() => { setView(null); setRevision(value => value + 1) }}>Refresh school updates</button>
     {error && <p role="alert">{error}</p>}{fileBusy && <p role="status">Preparing a private file link…</p>}
-    {result.key !== key ? <p role="status">Loading school updates…</p> : result.error ? <p role="alert">{result.error}</p> : <>
+    {result.key !== key ? <p role="status">Loading school updates…</p> : result.error ? <PortalNotice tone="error">{result.error} <button type="button" className="btn secondary" onClick={() => setRevision(value => value + 1)}>Retry school updates</button></PortalNotice> : <>
       {!result.items.length && <p>No published updates for this learner yet.</p>}
       {result.items.map(row => <article className="newsletter-card" key={row.id}><h2>{row.title}</h2><p>{row.pinned ? 'Pinned · ' : ''}{row.category} · {learningPublicationDate(row.published_at)} · {row.acknowledged ? 'Acknowledged' : 'Unread'}</p><p className="newsletter-body">{row.body}</p>
         {row.file && <><p>Attachment: {row.file.original_name}</p>{canPreviewLearningFile(row.file) && <button type="button" className="btn secondary" disabled={fileBusy} onClick={() => openFile(row, true)}>Preview attachment</button>}<button type="button" className="btn secondary" disabled={fileBusy} onClick={() => openFile(row, false)}>Prepare download</button></>}
