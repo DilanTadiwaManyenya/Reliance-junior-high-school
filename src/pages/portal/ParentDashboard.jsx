@@ -109,7 +109,9 @@ export default function ParentDashboard() {
         return
       }
       setNewLearner({ admissionNumber: '', dateOfBirth: '' })
-      setLinkNotice('Request sent. The school must verify this learner before their records appear in your account.')
+      setLinkNotice(data === 'linked'
+        ? 'Learner connected. Their records are now available in your account.'
+        : 'Request sent for school review. This learner will appear in your account after an administrator verifies the connection.')
       setPendingLoading(true)
       setPendingRevision(value => value + 1)
     } catch {
@@ -178,5 +180,5 @@ function PendingLearnerRequests({ students, loading, error, onRetry }) {
 }
 
 function LearnerLinkRequest({ value, onChange, onSubmit, error, notice, submitting, firstLearner = false }) {
-  return <Card className="parent-add-learner"><div className="parent-panel-heading"><div><span className="parent-panel-kicker">Family access</span><h2>{firstLearner ? 'Connect your first learner' : 'Add another learner'}</h2></div><span className="parent-add-learner-icon" aria-hidden="true">+</span></div><p className="muted">A learner can only be linked to one parent account. Enter their admission number and date of birth to request access.</p>{error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice role="status" aria-live="polite">{notice}</PortalNotice>}<form className="form" onSubmit={onSubmit}><label>Learner admission number<input value={value.admissionNumber} onChange={event => onChange(current => ({ ...current, admissionNumber: event.target.value }))} autoComplete="off" required /></label><label>Learner date of birth<DateOfBirthInput value={value.dateOfBirth} onChange={event => onChange(current => ({ ...current, dateOfBirth: event.target.value }))} required /></label><button className="btn primary parent-request-button" type="submit" disabled={submitting}>{submitting ? 'Sending request…' : 'Request learner access'}</button></form></Card>
+  return <Card className="parent-add-learner"><div className="parent-panel-heading"><div><span className="parent-panel-kicker">Family access</span><h2>{firstLearner ? 'Connect your first learner' : 'Add another learner'}</h2></div><span className="parent-add-learner-icon" aria-hidden="true">+</span></div><p className="muted">Connect up to three learners immediately. The school will review additional learners. Each learner can only be linked to one parent account.</p>{error && <PortalNotice tone="error">{error}</PortalNotice>}{notice && <PortalNotice role="status" aria-live="polite">{notice}</PortalNotice>}<form className="form" onSubmit={onSubmit}><label>Learner admission number<input value={value.admissionNumber} onChange={event => onChange(current => ({ ...current, admissionNumber: event.target.value }))} autoComplete="off" required /></label><label>Learner date of birth<DateOfBirthInput value={value.dateOfBirth} onChange={event => onChange(current => ({ ...current, dateOfBirth: event.target.value }))} required /></label><button className="btn primary parent-request-button" type="submit" disabled={submitting}>{submitting ? 'Connecting learner…' : 'Add learner'}</button></form></Card>
 }

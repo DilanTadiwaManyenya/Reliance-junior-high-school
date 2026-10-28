@@ -69,8 +69,11 @@ test('parent learner links enforce one parent per learner and allow several lear
       $$;
     `)
 
-    const migration = await readFile(new URL('../supabase/migrations/20261028100000_parent_multi_learner_controls.sql', import.meta.url), 'utf8')
-    await db.exec(migration)
+    const migrations = await Promise.all([
+      readFile(new URL('../supabase/migrations/20261028100000_parent_multi_learner_controls.sql', import.meta.url), 'utf8'),
+      readFile(new URL('../supabase/migrations/20261028130000_parent_three_learner_self_service.sql', import.meta.url), 'utf8'),
+    ])
+    for (const migration of migrations) await db.exec(migration)
 
     await db.exec(`
       insert into auth.users(id) values ('${id(1)}'),('${id(2)}'),('${id(3)}');
@@ -83,16 +86,21 @@ test('parent learner links enforce one parent per learner and allow several lear
       insert into public.students values
         ('${id(101)}','26f101','2010-01-01'),
         ('${id(102)}','26f102','2011-02-02'),
-        ('${id(103)}','26f103','2012-03-03');
+        ('${id(103)}','26f103','2012-03-03'),
+        ('${id(104)}','26f104','2013-04-04'),
+        ('${id(105)}','26f105','2014-05-05');
     `)
 
     await db.query('select set_config($1,$2,false)', ['test.user_id', id(2)])
-    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as linked', ['26f101', '2010-01-01'])).rows[0].linked, true)
-    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as linked', ['26f102', '2011-02-02'])).rows[0].linked, true)
-    assert.equal((await db.query('select count(*)::int as total from public.parent_student where parent_id=$1', [id(2)])).rows[0].total, 2)
+    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as result', ['26f101', '2010-01-01'])).rows[0].result, 'linked')
+    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as result', ['26f102', '2011-02-02'])).rows[0].result, 'linked')
+    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as result', ['26f103', '2012-03-03'])).rows[0].result, 'linked')
+    assert.equal((await db.query('select count(*)::int as total from public.parent_student where parent_id=$1 and verified_at is not null', [id(2)])).rows[0].total, 3)
+    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as result', ['26f104', '2013-04-04'])).rows[0].result, 'pending')
+    assert.equal((await db.query('select count(*)::int as total from public.parent_student where parent_id=$1 and verified_at is null', [id(2)])).rows[0].total, 1)
 
     await db.query('update public.parent_student set verified_at=now() where parent_id=$1 and student_id=$2', [id(2), id(101)])
-    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as linked', ['26f101', '2010-01-01'])).rows[0].linked, true)
+    assert.equal((await db.query('select public.request_parent_student_link($1,$2) as result', ['26f101', '2010-01-01'])).rows[0].result, 'linked')
     assert.ok((await db.query('select verified_at from public.parent_student where parent_id=$1 and student_id=$2', [id(2), id(101)])).rows[0].verified_at)
 
     await db.query('select set_config($1,$2,false)', ['test.user_id', id(3)])
@@ -124,7 +132,7 @@ test('parent learner links enforce one parent per learner and allow several lear
     assert.equal((await db.query('select count(*)::int as total from public.audit_logs where actor_id=$1', [id(2)])).rows[0].total, 0)
     assert.equal((await db.query('select count(*)::int as total from public.parent_accounts where user_id=$1', [id(2)])).rows[0].total, 0)
     assert.equal((await db.query('select count(*)::int as total from public.parent_student where parent_id=$1', [id(2)])).rows[0].total, 0)
-    assert.equal((await db.query('select count(*)::int as total from public.students')).rows[0].total, 3)
+    assert.equal((await db.query('select count(*)::int as total from public.students')).rows[0].total, 5)
   } finally {
     await db.close()
   }
@@ -145,7 +153,9 @@ test('parent portal can request another learner while campus-scoped admins verif
   const migration = await readFile(new URL('../supabase/migrations/20261028120000_parent_link_review_details.sql', import.meta.url), 'utf8')
   assert.match(dashboard, /rpc\('request_parent_student_link'/)
   assert.match(dashboard, /rpc\('parent_pending_student_links'/)
-  assert.match(dashboard, /school must verify this learner/)
+  assert.match(dashboard, /The school will review additional learners/)
+  assert.match(dashboard, /data === 'linked'/)
+  assert.match(dashboard, /Request sent for school review/)
   assert.match(support, /\.is\('verified_at', null\)/)
   assert.match(migration, /public\.can_read_school_campus\(student\.campus\)/)
   assert.match(migration, /link\.student_id, link\.verified_at is not null/)

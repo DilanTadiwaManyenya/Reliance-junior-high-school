@@ -290,7 +290,7 @@ const supabase = {
     }
     if (name === 'request_parent_student_link') {
       if (window.fixtureParentRequestThrows) return Promise.reject(new Error('Synthetic network failure'))
-      return Promise.resolve({ data: true, error: null })
+      return Promise.resolve({ data: 'pending', error: null })
     }
     if (name === 'correct_assigned_learner' || name === 'manage_disabled_learner') {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })
