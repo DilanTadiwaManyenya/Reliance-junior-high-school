@@ -33,6 +33,22 @@ test('Staff accounts are rejected from the parent sign-in page', async () => {
   assert.equal(client.selections[0], 'role, active_role, must_change_password, user_roles(role)')
 })
 
+test('A staff identity with a stale parent active role cannot use the parent sign-in page', async () => {
+  const result = await resolvePortalDestination(clientFor({ data: {
+    role: 'admin', active_role: 'parent', user_roles: [{ role: 'parent' }, { role: 'admin' }],
+  } }), 'user-1', null, 'parent')
+  assert.equal(result.destination, null)
+  assert.equal(result.portalMismatch, true)
+})
+
+test('A mixed-role staff identity selects its staff workspace from the staff sign-in page', async () => {
+  const result = await resolvePortalDestination(clientFor({ data: {
+    role: 'teacher', active_role: 'parent', user_roles: [{ role: 'parent' }, { role: 'teacher' }],
+  } }), 'user-1', null, 'staff')
+  assert.equal(result.destination, '/portal/teacher')
+  assert.equal(result.portalMismatch, false)
+})
+
 test('Parent accounts are rejected from the staff sign-in page', async () => {
   const result = await resolvePortalDestination(clientFor({ data: { role: 'parent', active_role: 'parent', user_roles: [{ role: 'parent' }] } }), 'user-1', null, 'staff')
   assert.equal(result.destination, null)

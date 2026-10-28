@@ -28,11 +28,22 @@ export const resolvePortalDestination = async (supabase, userId, loadedProfile =
   }
 
   const activeRole = String(profile?.active_role || profile?.role || '').trim().toLowerCase()
+  const profileRole = String(profile?.role || '').trim().toLowerCase()
   const assignedRoles = Array.isArray(profile?.user_roles) ? profile.user_roles.map(({ role }) => String(role || '').trim().toLowerCase()) : null
-  const assignedActiveRole = !assignedRoles || assignedRoles.includes(activeRole)
+  const staffRole = isStaffPortalRole(profileRole)
+    ? profileRole
+    : assignedRoles?.find(isStaffPortalRole) || null
+  // Some legacy staff profiles also retain a parent assignment. Never let the
+  // selected parent role turn a staff identity into a parent sign-in. If the
+  // staff role is assigned, prefer the profile's primary staff role (or its
+  // assigned staff role) when the staff sign-in option was selected.
+  const resolvedRole = requestedPortal === 'staff' && staffRole && !isStaffPortalRole(activeRole)
+    ? staffRole
+    : activeRole
+  const assignedActiveRole = !assignedRoles || assignedRoles.includes(resolvedRole)
   const portalRoleMatches = requestedPortal === 'any'
-    || (requestedPortal === 'parent' && activeRole === 'parent')
-    || (requestedPortal === 'staff' && isStaffPortalRole(activeRole))
+    || (requestedPortal === 'parent' && activeRole === 'parent' && !staffRole)
+    || (requestedPortal === 'staff' && Boolean(staffRole) && isStaffPortalRole(resolvedRole))
   if (profile && (!assignedActiveRole || !portalRoleMatches)) {
     return { destination: null, error, profile, portalMismatch: true }
   }
@@ -41,5 +52,5 @@ export const resolvePortalDestination = async (supabase, userId, loadedProfile =
     return { destination: '/portal/set-password', error, profile, portalMismatch: false }
   }
 
-  return { destination: portalDestinationForRole(activeRole), error, profile, portalMismatch: false }
+  return { destination: portalDestinationForRole(resolvedRole), error, profile, portalMismatch: false }
 }
