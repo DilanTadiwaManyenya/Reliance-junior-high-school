@@ -15,6 +15,7 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
   const [form, setForm] = useState(() => readLearningLibraryDraftMetadata(draftKey)?.form || blank())
   const [saved, setSaved] = useState(() => readLearningLibraryDraftMetadata(draftKey)?.saved || null)
   const [file, setFile] = useState(null)
+  const [draftReady, setDraftReady] = useState(false)
   const [baseline, setBaseline] = useState(null)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
@@ -42,7 +43,7 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
         setSaved(draft.saved || null)
         setFile(draft.file || null)
       }
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => { if (active) setDraftReady(true) })
     return () => { active = false }
   }, [draftKey])
   useEffect(() => {
@@ -103,12 +104,13 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
   const chooseFile = event => {
     setError('')
     const next = event.target.files?.[0]
-    if (!next) return
+    if (!next) { setError('No file was returned from the picker. Choose the file from My Files and wait for its name to appear here.'); return }
     try { validateLearningFile(next); updateFile(next) } catch (failure) { updateFile(null); setError(failure.message); event.target.value = '' }
   }
   const submit = async (event, publish = false) => {
     event.preventDefault()
     if (busyRef.current) return
+    if (!draftReady) { setError('Restoring your note and attachment. Please wait a moment, then save again.'); return }
     if (!formRef.current.reportValidity()) return
     if (publish && !file && !saved?.portal_content_files?.some(item => item.active && item.ready)) return setError('Choose a file before publishing these notes.')
     busyRef.current = true; setBusy('Saving note details…'); setError(''); setNotice('')
@@ -167,10 +169,11 @@ export default function LearningLibraryWorkspace({ supabase, teacherId, scope, s
     <div className="library-scope"><strong>{scope.class_level}{scope.class_stream ? ` · ${scope.class_stream}` : scope.campus === 'senior' ? ' · all allocated streams' : ''}</strong><span>{scope.campus === 'junior' ? 'Junior School' : 'Senior School'}</span>{subjects.length ? <label>Subject<select aria-label="Subject" data-draft-navigation value={scope.subject} onChange={event => onSubjectChange(event.target.value)}>{subjects.map(subject => <option key={subject}>{subject}</option>)}</select></label> : <strong>{scope.subject}</strong>}</div>
     {error && <div ref={errorRef} tabIndex={-1} className="library-error-focus"><PortalNotice tone="error">{error}</PortalNotice></div>}{notice && <PortalNotice>{notice}</PortalNotice>}
     {busy && <p className="library-progress" role="status" aria-live="polite">{busy}</p>}
+    {!draftReady && <p role="status" aria-live="polite">Restoring your note and selected file…</p>}
     <Card><form ref={formRef} className="library-form" aria-label={saved ? 'Edit learning notes' : 'Add learning notes'} onSubmit={submit}>
       <h2>{saved ? 'Edit notes' : 'Upload learning notes'}</h2><p className="muted">Your class and subject stay fixed. Save a draft or publish when the file is ready.</p>
       {period.error && !saved && <PortalNotice>{period.error}</PortalNotice>}
-      <fieldset disabled={Boolean(busy)}><div className="library-fields">
+      <fieldset disabled={Boolean(busy) || !draftReady}><div className="library-fields">
         <label className="library-wide">Title<input required maxLength={200} value={form.title} onChange={event => updateForm(value => ({ ...value, title: event.target.value }))} /></label>
         <label className="library-wide">Description or topic<textarea rows={3} maxLength={10000} value={form.description} onChange={event => updateForm(value => ({ ...value, description: event.target.value }))} /></label>
         <label>Academic year<input type="number" min={2000} max={2200} required disabled={Boolean(saved)} value={effectiveForm.academic_year} onChange={event => updateForm(value => ({ ...value, academic_year: event.target.value }))} /></label>

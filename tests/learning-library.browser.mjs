@@ -33,6 +33,11 @@ try {
       assert.equal((await fileState(page)).ops.some(op => op.navigate), false, 'Cancelled navigation must preserve the draft')
       checks++
     }
+    if (width === 320 && campus === 'junior') {
+      await page.locator('input[type=file]').setInputFiles([])
+      await page.getByText(/No file was returned from the picker/).waitFor()
+      checks++
+    }
     await page.locator('input[type=file]').setInputFiles(pdf)
     if (width === 390 && campus === 'senior') {
       await page.getByText('Selected: fractions.pdf', { exact: false }).waitFor()
