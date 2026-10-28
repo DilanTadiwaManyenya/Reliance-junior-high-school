@@ -15,7 +15,7 @@ const parseTypedBirthDate = (value: unknown, today = new Date().toISOString().sl
   const text = String(value ?? '').trim()
   if (!text) return ''
   let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
-  let day, month, year
+  let day = 0, month = 0, year = 0
   if (match) [, year, month, day] = match.map(Number)
   else {
     match = text.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/)
