@@ -180,6 +180,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
   const [legacyPending, setLegacyPending] = useState(() => readSession(legacyKey)?.pending || null);
   const [products, setProducts] = useState([]);
   const [stockBatches, setStockBatches] = useState(null);
+  const [stockReceipts, setStockReceipts] = useState(null);
   const [sales, setSales] = useState([]);
   const [learners, setLearners] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -306,8 +307,19 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       } catch (batchError) {
         if (!["42P01", "PGRST205"].includes(batchError.code)) throw batchError;
       }
+      let receiptRows = null;
+      if (admin) {
+        const receiptResult = await supabase.from("shop_stock_receipts")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (receiptResult.error) {
+          if (!["42P01", "PGRST205"].includes(receiptResult.error.code)) throw receiptResult.error;
+        } else receiptRows = receiptResult.data || [];
+      }
       setProducts(stock);
       setStockBatches(batchRows);
+      setStockReceipts(receiptRows);
       setSales(
         history.sort((a, b) => b.created_at.localeCompare(a.created_at)),
       );
@@ -1209,9 +1221,46 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                     Notes <span className="shop-optional">Optional</span>
                     <textarea maxLength={1000} rows={2} value={receiptDraft.notes} onChange={(event) => setReceiptDraft({ ...receiptDraft, notes: event.target.value })} placeholder="Delivery details or internal notes" />
                   </label>
-                  <p className="shop-form-note">Each product’s stock is updated in its assigned campus and currency. POS batch costing will be connected in the next stage.</p>
+                  <p className="shop-form-note">Each product’s stock is updated in its assigned campus and currency. POS uses the oldest available cost batches first.</p>
                   <button className="primary" disabled={busy || !ready || !receiptDraft.items.length}>{busy ? "Recording receipt…" : "Record stock receipt"}</button>
                 </form>}
+                {admin && <section className="shop-panel shop-stock-ledger">
+                  <h2>Recent stock receipts</h2>
+                  <p>Delivery costs stay attached to their own stock batches, even when the same product is later received at a different price.</p>
+                  {stockReceipts === null
+                    ? <p className="shop-empty">Stock receipt history is available after the stock receipt migrations are applied.</p>
+                    : stockReceipts.length === 0
+                      ? <p className="shop-empty">No stock receipts have been recorded yet.</p>
+                      : <div className="shop-stock-ledger-list">{stockReceipts.map((stockReceipt) => {
+                        const batches = (stockBatches || []).filter((batch) => batch.receipt_id === stockReceipt.id);
+                        const kindLabels = { supplier: "Supplier delivery", opening: "Opening stock", adjustment: "Stock correction", allocation: "Campus allocation", return: "Sale return" };
+                        return <details className="shop-stock-ledger-entry" key={stockReceipt.id}>
+                          <summary>
+                            <span><strong>{stockReceipt.supplier_name}</strong><small>{stockReceipt.supplier_reference || kindLabels[stockReceipt.receipt_kind] || "Stock receipt"}</small></span>
+                            <span className="shop-stock-ledger-meta"><b>{kindLabels[stockReceipt.receipt_kind] || "Supplier delivery"}</b><small>{new Date(stockReceipt.created_at).toLocaleString("en-ZW")}</small></span>
+                          </summary>
+                          {stockReceipt.notes && <p className="shop-stock-ledger-notes">{stockReceipt.notes}</p>}
+                          {batches.length
+                            ? <div className="shop-table shop-stock-ledger-table"><table>
+                              <thead><tr><th>Product / size</th><th>Campus</th><th>Received</th><th>Remaining</th><th>Unit cost</th><th>Receipt cost</th></tr></thead>
+                              <tbody>{batches.map((batch) => {
+                                const product = products.find((row) => row.id === batch.product_id);
+                                const variant = product?.product_variants?.find((row) => row.id === batch.variant_id);
+                                return <tr key={batch.id}>
+                                  <td><strong>{product?.name || "Product"}</strong>{variant && <small>{variant.size}</small>}</td>
+                                  <td>{batch.campus === "junior" ? "Junior" : "Senior"}</td>
+                                  <td>{batch.quantity_received}</td>
+                                  <td>{batch.quantity_remaining}</td>
+                                  <td>{money(batch.unit_cost, batch.currency)}</td>
+                                  <td>{money(Number(batch.unit_cost) * Number(batch.quantity_received), batch.currency)}</td>
+                                </tr>;
+                              })}</tbody>
+                            </table></div>
+                            : <p className="shop-empty">This record has no remaining batch detail available.</p>}
+                        </details>;
+                      })}</div>}
+                  <p className="shop-form-note">Showing the 50 most recent receipt records.</p>
+                </section>}
                 <form
                   className="shop-panel"
                   onSubmit={(e) => {
