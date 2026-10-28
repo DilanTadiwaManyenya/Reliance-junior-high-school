@@ -60,6 +60,14 @@ Deno.serve(async (request) => {
     if (studentError) throw studentError
     if (!student) throw new Error('We could not verify that admission number and date of birth. Please check them and try again.')
 
+    const { data: existingLink, error: existingLinkError } = await serviceClient
+      .from('parent_student')
+      .select('student_id')
+      .eq('student_id', student.id)
+      .maybeSingle()
+    if (existingLinkError) throw existingLinkError
+    if (existingLink) throw new Error('This learner is already linked to a parent account. Please contact the school office.')
+
     // createUser never sends an email. The email is only an internal identifier for phone-based login.
     const { data: created, error: createError } = await serviceClient.auth.admin.createUser({
       email: buildPortalEmail(phone),
@@ -80,6 +88,9 @@ Deno.serve(async (request) => {
     const { error: linkError } = await serviceClient
       .from('parent_student')
       .upsert({ parent_id: createdUserId, student_id: student.id, verified_at: now }, { onConflict: 'parent_id,student_id' })
+    if (linkError?.code === '23505') {
+      throw new Error('This learner is already linked to a parent account. Please contact the school office.')
+    }
     if (linkError) throw linkError
 
     return Response.json({ created: true, matchedStudent: true }, { headers: corsHeaders })

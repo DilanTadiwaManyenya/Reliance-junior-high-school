@@ -17,8 +17,11 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [selected, setSelected] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const canDeleteParentAccounts = profile?.active_role === 'admin' && profile?.campus === 'all'
 
   const loadAccounts = useCallback(async () => {
     setLoading(true)
@@ -57,12 +60,39 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
     setSaving(false)
   }
 
+  const deleteParentAccount = async () => {
+    if (!confirmDelete || !canDeleteParentAccounts) return
+    setDeleting(true)
+    setError('')
+    setNotice('')
+    const { data, error: deleteError } = await supabase.rpc('delete_parent_account', { target_parent_user_id: confirmDelete.parent_user_id })
+    if (deleteError) {
+      setError(deleteError.message || 'Unable to delete this parent account.')
+      setDeleting(false)
+      return
+    }
+    setConfirmDelete(null)
+    setNotice(`Parent account deleted. ${Number(data) || 0} audit entries were retained with the actor reference anonymized.`)
+    await loadAccounts()
+    setDeleting(false)
+  }
+
   return <div className="dash-section parent-account-support">
     <div className="dash-page-header">
       <div><p className="eyebrow">Account support</p><h1>Parent accounts</h1><p className="dash-page-sub">Find a linked parent account and help restore access. Temporary passwords are never shown after reset.</p></div>
     </div>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}
     {notice && <PortalNotice>{notice}</PortalNotice>}
+    {confirmDelete && <Card className="parent-account-reset-card">
+      <section role="alertdialog" aria-modal="true" aria-labelledby="parent-delete-title" aria-describedby="parent-delete-description">
+        <h2 id="parent-delete-title">Delete parent account?</h2>
+        <p id="parent-delete-description">This permanently removes {confirmDelete.parent_name || confirmDelete.phone_number || 'this parent'}’s portal login and access to all linked learners. Existing audit entries remain, with the actor reference anonymized. This cannot be undone.</p>
+        <div className="portal-action-row">
+          <Button type="button" disabled={deleting} onClick={deleteParentAccount}>{deleting ? 'Deleting…' : 'Permanently delete account'}</Button>
+          <Button type="button" variant="secondary" disabled={deleting} onClick={() => setConfirmDelete(null)}>Cancel</Button>
+        </div>
+      </section>
+    </Card>}
     {selected && <Card className="parent-account-reset-card">
       <section aria-labelledby="parent-signin-help-title">
         <h2 id="parent-signin-help-title">Help with parent sign-in</h2>
@@ -99,6 +129,7 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
           <div className="parent-account-learner"><span>Learner</span><strong>{account.learner_name || 'Learner record not found'}</strong><small>{account.class_level ? `${account.class_level}${account.class_stream ? ` · ${account.class_stream}` : ''}` : account.child_admission_number}{account.campus ? ` · ${account.campus === 'junior' ? 'Junior' : 'Senior'} School` : ''}</small></div>
           <span className={`class-status ${account.verified ? 'is-active' : 'is-inactive'}`}>{account.verified ? 'Verified' : 'Needs verification'}</span>
           <Button type="button" variant="secondary" onClick={() => { setSelected(account); setPassword(''); setError(''); setNotice('') }}>Help with sign-in</Button>
+          {canDeleteParentAccounts && <Button type="button" variant="secondary" disabled={deleting} onClick={() => { setConfirmDelete(account); setSelected(null); setError(''); setNotice('') }}>Delete parent account</Button>}
         </article>)}
       </div> : <p className="portal-notice">{accounts.length ? 'No parent accounts match this search.' : 'No parent accounts are available in your campus scope yet.'}</p>}
     </Card>
