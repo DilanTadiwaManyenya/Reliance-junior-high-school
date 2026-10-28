@@ -118,6 +118,7 @@ window.fixtureRolloverCalls = []
 window.fixtureParentConnectionsError = params.has('parentConnectionsError')
 window.fixtureParentPendingError = params.has('parentPendingError')
 window.fixtureParentRequestThrows = params.has('parentRequestThrows')
+window.fixtureParentRecordThrows = params.has('parentRecordThrows')
 function query(table) {
   let operation = 'select', payload, single = false, start = 0, end = Infinity, projection = ''
   const filters = []
@@ -138,6 +139,7 @@ function query(table) {
       if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if(table==='financial_events' && window.fixtureFinancialError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if (table === 'academic_records' && window.fixtureParentError) return Promise.resolve({ data: null, error: { message: 'Synthetic learner records unavailable' } }).then(resolve, reject)
+      if (table === 'academic_records' && role === 'parent' && window.fixtureParentRecordThrows) return Promise.reject(new Error('Synthetic learner record network failure')).then(resolve, reject)
       if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
       if (operation !== 'select') {
         window.fixtureWrites.push({ table, operation, payload })
