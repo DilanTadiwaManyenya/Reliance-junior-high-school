@@ -41,7 +41,7 @@ try {
  assert.match(await invalid.locator('h1').innerText(),/Alexandra/)
  await invalid.close()
  const direct=await openPortal(r.browser,r.base,{role:'parent',route:'/portal/learner/learner-1/coursework'},320)
- await direct.locator('.portal-history-back').click()
+ await direct.getByRole('navigation',{name:'Parent learning navigation'}).getByRole('link',{name:'Dashboard',exact:true}).click()
  await direct.getByRole('combobox',{name:'Viewing learner'}).waitFor()
  assert.equal(await direct.getByRole('combobox',{name:'Viewing learner'}).inputValue(),'learner-1')
  await direct.close()
