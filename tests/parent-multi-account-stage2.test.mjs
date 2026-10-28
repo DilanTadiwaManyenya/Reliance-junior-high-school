@@ -135,5 +135,6 @@ test('parent registration checks existing learner ownership before creating an A
   const ownershipCheck = source.indexOf(".from('parent_student')")
   const createUser = source.indexOf('serviceClient.auth.admin.createUser')
   assert.ok(ownershipCheck >= 0 && ownershipCheck < createUser)
+  assert.doesNotMatch(source, /from ['"]\.\.\/\.\.\/\.\.\/shared\/parentRegistration\.js['"]/, 'Dashboard deployment must not depend on a source file outside supabase/functions')
   assert.match(source, /This learner is already linked to a parent account/)
 })
