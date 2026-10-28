@@ -49,9 +49,14 @@
 }
 
 @media screen { .parent-portal-shell .parent-learner-context { margin-block: 8px 16px; color: #475569; font-weight: 600; overflow-wrap: anywhere; } .parent-portal-shell .parent-page-back { display: inline-flex; align-items: center; min-height: 44px; } }
+.parent-order-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.parent-order-history-heading h3 { margin: 0; }
+.parent-order-history-heading .btn { min-height: 44px; }
 @media screen and (max-width: 600px) {
   .parent-portal-shell .parent-record-card.ui-card { min-height: 0; padding: 16px; }
   .parent-portal-shell .parent-record-card .parent-record-kicker { display: none; }
   .parent-portal-shell .parent-record-card h2 { margin: 0 0 6px; font-family: inherit; font-size: 1.15rem; line-height: 1.3; }
   .parent-portal-shell .parent-record-card .parent-record-action { padding-top: 4px; }
+  .parent-order-history-heading { align-items: stretch; flex-direction: column; }
+  .parent-order-history-heading .btn { width: 100%; }
 }

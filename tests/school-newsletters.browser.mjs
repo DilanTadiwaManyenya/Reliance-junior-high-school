@@ -29,6 +29,14 @@ try {
     assert.equal(initial.operations.find(op => op.options)?.options.upsert, false); checks += 3
     await page.getByRole('button', { name: 'Refresh school updates', exact: true }).click()
     await page.getByRole('button', { name: 'Preview attachment', exact: true }).waitFor()
+    await page.evaluate(() => { window.newsletterFixture.failUpdates = true })
+    await page.getByRole('button', { name: 'Refresh school updates', exact: true }).click()
+    await page.getByRole('button', { name: 'Retry school updates', exact: true }).waitFor()
+    assert.equal(await page.getByRole('article').count(), 0, 'A failed update read must not leave stale newsletter cards visible')
+    assert.equal(await page.getByText(/Synthetic database detail/).count(), 0, 'Database errors must not be exposed to parents')
+    await page.evaluate(() => { window.newsletterFixture.failUpdates = false })
+    await page.getByRole('button', { name: 'Retry school updates', exact: true }).click()
+    await page.getByRole('heading', { name: 'Term newsletter', exact: true }).waitFor()
     assert.equal((await page.evaluate(() => window.newsletterFixture.operations.filter(op => op.sign))).length, 0); checks++
     await page.getByRole('button', { name: 'Preview attachment', exact: true }).click()
     await page.getByRole('heading', { name: 'File preview: Term newsletter', exact: true }).waitFor(); checks++

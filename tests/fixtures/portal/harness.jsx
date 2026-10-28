@@ -53,7 +53,7 @@ const db = {
   term_settings: [{ academic_year: 2026, term: 3, next_term_begins_on: '2027-01-12', junior_next_term_begins_on: '2027-01-12', senior_next_term_begins_on: '2027-01-12' }],
   report_term_fee_settings: [{ academic_year: 2026, term: 3, class_level: 'Form 1', amount: 160 }],
   inventory_products: [{ id: 'product', name: 'School uniform shirt with a longer product description', sku: 'TEST-SHIRT', category: 'Uniforms', campus: 'senior', selling_price: 15, cost_price: 8, quantity_on_hand: 20, reorder_level: 5, active: true, created_at: today }],
-  pos_sales: [{ id: 'sale', campus: 'senior', receipt_number: 'TEST-RECEIPT-001', created_at: today, payment_method: 'cash', customer_name: learners[0].full_name, total: 15, amount_paid: 20, pos_sale_items: [{ id: 'sale-line', product_id: 'product', product_name: 'School uniform shirt with a longer description', quantity: 1, unit_price: 15, unit_cost: 8, line_total: 15 }] }], shop_settings: [{ id: true, store_name: 'Reliance Learning Centre', receipt_header: 'School shop', low_stock_alerts_enabled: true }],
+  pos_sales: [{ id: 'sale', campus: 'senior', receipt_number: 'TEST-RECEIPT-001', created_at: today, payment_method: 'cash', customer_name: learners[0].full_name, total: 15, amount_paid: 20, pos_sale_items: [{ id: 'sale-line', product_id: 'product', product_name: 'School uniform shirt with a longer description', quantity: 1, unit_price: 15, unit_cost: 8, line_total: 15 }] }], parent_uniform_orders: [], shop_settings: [{ id: true, store_name: 'Reliance Learning Centre', receipt_header: 'School shop', low_stock_alerts_enabled: true }],
   school_expenses: [{ id: 'expense', expense_date: today, category: 'Stationery', description: 'Classroom books and materials for the new school term', supplier: 'Example supplier', amount: 40, status: 'pending', campus: 'senior', created_at: today }],
   announcements: [{ id: 'announcement', title: 'Term update for parents and staff', body: 'A longer school announcement to check wrapping and reading on mobile screens.', content: 'School term update.', audience: 'all', created_at: today }],
   audit_logs: [{ id: 'audit', actor_role: 'admin', description: 'Updated an example learner record', action_type: 'update', created_at: today }],
@@ -115,6 +115,10 @@ window.fixtureReviewCalls = []
 window.fixtureHistoryError = params.has('historyError')
 window.fixtureRolloverError = params.has('rolloverError')
 window.fixtureRolloverCalls = []
+window.fixtureParentConnectionsError = params.has('parentConnectionsError')
+window.fixtureParentPendingError = params.has('parentPendingError')
+window.fixtureParentRequestThrows = params.has('parentRequestThrows')
+window.fixtureParentRecordThrows = params.has('parentRecordThrows')
 function query(table) {
   let operation = 'select', payload, single = false, start = 0, end = Infinity, projection = ''
   const filters = []
@@ -128,15 +132,21 @@ function query(table) {
       let data = (db[table] || []).map(row => projection.includes('students!inner') ? {...row,students:db.students.find(s => s.id===row.student_id)} : row).filter(row => filters.every(filter => filter(row)))
       if(params.has('operationsError') && window.fixtureOperationsError !== false && ['school_expenses','fee_payments'].includes(table)) return Promise.resolve({data:null,error:{message:'Synthetic export connection failure'}}).then(resolve,reject)
       if(table==='portal_security_settings'&&params.has('mfaSettingsError'))return Promise.resolve({data:null,error:{message:'Synthetic requirements unavailable'}}).then(resolve,reject)
+      if(table==='parent_student'&&role==='parent'&&window.fixtureParentConnectionsError)return Promise.resolve({data:null,error:{message:'Synthetic learner connections unavailable'}}).then(resolve,reject)
       if(table==='report_period_contexts') { const currentRole=window.fixtureActiveRole||role; data=data.filter(row=>currentRole==='parent'?db.parent_student.some(link=>link.parent_id===staffId&&link.student_id===row.student_id&&link.verified_at):['admin','principal','accountant'].includes(currentRole)&&(campus==='all'&&currentRole!=='accountant'||row.campus===campus)) }
       if(table==='school_expenses'&&params.has('expenseControls')&&role==='accountant')data=data.filter(row=>row.campus===campus)
       data=data.slice(start,end+1)
       if(table==='school_record_changes' && window.fixtureHistoryError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if(table==='financial_events' && window.fixtureFinancialError) return Promise.resolve({data:null,error:{message:'Synthetic connection failure'}}).then(resolve,reject)
       if (table === 'academic_records' && window.fixtureParentError) return Promise.resolve({ data: null, error: { message: 'Synthetic learner records unavailable' } }).then(resolve, reject)
+      if (table === 'academic_records' && role === 'parent' && window.fixtureParentRecordThrows) return Promise.reject(new Error('Synthetic learner record network failure')).then(resolve, reject)
       if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
       if (operation !== 'select') {
         window.fixtureWrites.push({ table, operation, payload })
+        if (table === 'parent_uniform_orders' && operation === 'insert' && params.has('uniformOrderLostResponse')) {
+          db.parent_uniform_orders.push({ id: 'order-response-lost', created_at: today, ...payload })
+          return Promise.reject(new Error('Synthetic order response lost after save')).then(resolve, reject)
+        }
         if (table === 'academic_records') {
           const existing = operation === 'update'
             ? (db[table] || []).find(row => filters.every(filter => filter(row)))
@@ -273,6 +283,14 @@ const supabase = {
     if (name === 'parent_shop_student_campus') {
       const link = db.parent_student.find(row => row.student_id === payload.requested_student_id && row.verified_at)
       return Promise.resolve({ data: link?.student?.status === 'active' ? link.student.campus : null, error: null })
+    }
+    if (name === 'parent_pending_student_links') {
+      if (window.fixtureParentPendingError) return Promise.resolve({ data: null, error: { message: 'Synthetic pending requests unavailable' } })
+      return Promise.resolve({ data: [], error: null })
+    }
+    if (name === 'request_parent_student_link') {
+      if (window.fixtureParentRequestThrows) return Promise.reject(new Error('Synthetic network failure'))
+      return Promise.resolve({ data: 'pending', error: null })
     }
     if (name === 'correct_assigned_learner' || name === 'manage_disabled_learner') {
       window.fixtureWrites.push({ table: `rpc:${name}`, operation: 'rpc', payload })

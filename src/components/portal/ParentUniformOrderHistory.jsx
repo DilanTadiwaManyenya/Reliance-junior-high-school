@@ -11,6 +11,8 @@ export default function ParentUniformOrderHistory(props) {
 function LearnerOrderHistory({ supabase, parentId, studentId, refreshKey }) {
   const [orders, setOrders] = useState([])
   const [error, setError] = useState('')
+  const [ordersLoaded, setOrdersLoaded] = useState(false)
+  const [historyRevision, setHistoryRevision] = useState(0)
   const [receipts, setReceipts] = useState([])
   const [receiptError, setReceiptError] = useState('')
   const [receiptsLoaded, setReceiptsLoaded] = useState(false)
@@ -35,13 +37,14 @@ function LearnerOrderHistory({ supabase, parentId, studentId, refreshKey }) {
       .eq('parent_id', parentId).eq('student_id', studentId)
       .order('created_at', { ascending: false }).limit(20)
       .then(({ data, error }) => {
-        if (!disposed) { setOrders(data || []); setError(error?.message || '') }
-      }).catch(error => { if (!disposed) setError(error.message) })
+        if (!disposed) { setOrders(error ? [] : data || []); setError(error ? 'Order history could not be loaded. Please retry.' : ''); setOrdersLoaded(true) }
+      }).catch(() => { if (!disposed) { setOrders([]); setError('Order history could not be loaded. Please retry.'); setOrdersLoaded(true) } })
     return () => { disposed = true }
-  }, [supabase, parentId, studentId, refreshKey])
-  return <Card className="parent-uniform-history"><h3>Recent uniform orders</h3>
-    {error && <p role="alert">Order history is temporarily unavailable: {error}</p>}
-    {!orders.length && !error && <p className="muted">No uniform orders yet.</p>}
+  }, [supabase, parentId, studentId, refreshKey, historyRevision])
+  return <Card className="parent-uniform-history"><div className="parent-order-history-heading"><h3>Recent uniform orders</h3><button type="button" className="btn secondary" onClick={() => { setOrdersLoaded(false); setError(''); setReceiptsLoaded(false); setReceiptError(''); setHistoryRevision(value => value + 1) }}>Refresh order history</button></div>
+    {error && <p role="alert">{error}</p>}
+    {!ordersLoaded && !error && <p role="status">Loading recent orders…</p>}
+    {ordersLoaded && !orders.length && !error && <p className="muted">No uniform orders yet.</p>}
     {orders.map(order => <article key={order.id}>
       <p><strong>{new Date(order.created_at).toLocaleDateString()}</strong> · {order.payment_status} · {money(order.total, order.currency || 'USD')}</p>
       <ul>{(order.items || []).map((line, index) => <li key={index}>{line.quantity} × {line.name}{line.size_label ? ` · ${line.size_label}` : ''} — {money(line.unit_price, order.currency || 'USD')} each</li>)}</ul>
