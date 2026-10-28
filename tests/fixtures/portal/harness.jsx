@@ -53,7 +53,7 @@ const db = {
   term_settings: [{ academic_year: 2026, term: 3, next_term_begins_on: '2027-01-12', junior_next_term_begins_on: '2027-01-12', senior_next_term_begins_on: '2027-01-12' }],
   report_term_fee_settings: [{ academic_year: 2026, term: 3, class_level: 'Form 1', amount: 160 }],
   inventory_products: [{ id: 'product', name: 'School uniform shirt with a longer product description', sku: 'TEST-SHIRT', category: 'Uniforms', campus: 'senior', selling_price: 15, cost_price: 8, quantity_on_hand: 20, reorder_level: 5, active: true, created_at: today }],
-  pos_sales: [{ id: 'sale', campus: 'senior', receipt_number: 'TEST-RECEIPT-001', created_at: today, payment_method: 'cash', customer_name: learners[0].full_name, total: 15, amount_paid: 20, pos_sale_items: [{ id: 'sale-line', product_id: 'product', product_name: 'School uniform shirt with a longer description', quantity: 1, unit_price: 15, unit_cost: 8, line_total: 15 }] }], shop_settings: [{ id: true, store_name: 'Reliance Learning Centre', receipt_header: 'School shop', low_stock_alerts_enabled: true }],
+  pos_sales: [{ id: 'sale', campus: 'senior', receipt_number: 'TEST-RECEIPT-001', created_at: today, payment_method: 'cash', customer_name: learners[0].full_name, total: 15, amount_paid: 20, pos_sale_items: [{ id: 'sale-line', product_id: 'product', product_name: 'School uniform shirt with a longer description', quantity: 1, unit_price: 15, unit_cost: 8, line_total: 15 }] }], parent_uniform_orders: [], shop_settings: [{ id: true, store_name: 'Reliance Learning Centre', receipt_header: 'School shop', low_stock_alerts_enabled: true }],
   school_expenses: [{ id: 'expense', expense_date: today, category: 'Stationery', description: 'Classroom books and materials for the new school term', supplier: 'Example supplier', amount: 40, status: 'pending', campus: 'senior', created_at: today }],
   announcements: [{ id: 'announcement', title: 'Term update for parents and staff', body: 'A longer school announcement to check wrapping and reading on mobile screens.', content: 'School term update.', audience: 'all', created_at: today }],
   audit_logs: [{ id: 'audit', actor_role: 'admin', description: 'Updated an example learner record', action_type: 'update', created_at: today }],
@@ -143,6 +143,10 @@ function query(table) {
       if (table === 'academic_records' && params.has('delayParent') && data.some(row => row.student_id === 'learner-0')) return new Promise(done => { window.fixtureResolveParent = () => done({ data, error: null }) }).then(resolve, reject)
       if (operation !== 'select') {
         window.fixtureWrites.push({ table, operation, payload })
+        if (table === 'parent_uniform_orders' && operation === 'insert' && params.has('uniformOrderLostResponse')) {
+          db.parent_uniform_orders.push({ id: 'order-response-lost', created_at: today, ...payload })
+          return Promise.reject(new Error('Synthetic order response lost after save')).then(resolve, reject)
+        }
         if (table === 'academic_records') {
           const existing = operation === 'update'
             ? (db[table] || []).find(row => filters.every(filter => filter(row)))
