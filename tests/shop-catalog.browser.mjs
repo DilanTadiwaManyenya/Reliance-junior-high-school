@@ -509,6 +509,20 @@ try {
   assert.equal(receiptProduct.quantity_on_hand,4,'Both supplier receipts add their received stock')
   assert.deepEqual(stockReceipts.filter(row=>row.supplier_name.endsWith('supplier')).map(row=>row.supplier_name),['First supplier','Second supplier'])
   assert.deepEqual(stockBatches.filter(row=>row.product_id===receiptProduct.id).map(row=>row.unit_cost.toFixed(2)),['7.25','9.10'])
+  sales.splice(0,sales.length)
+  sales.push({
+    id:'batch-cost-report-test',receipt_number:'RLC-COST-TEST',created_at:new Date().toISOString(),campus:'junior',currency:'USD',
+    status:'completed',customer_name:'Cost report check',payment_method:'cash',total:50,amount_paid:50,
+    pos_sale_items:[{id:'batch-cost-report-line',product_id:receiptProduct.id,product_name:receiptProduct.name,quantity:2,unit_price:25,unit_cost:8.175,cost_total:16.35,line_total:50}],
+  })
+  await page.getByRole('button',{name:'Refresh',exact:true}).click()
+  await page.getByRole('button',{name:'Profit & loss',exact:true}).click()
+  const profitRow=page.locator('.shop-profit-layout tbody tr').filter({hasText:'Supplier cost test item'})
+  const profitText=(await profitRow.textContent()).replace(/\s+/g,' ')
+  assert.match(profitText,/16\.35/,'P&L uses the cost snapshot from received batches')
+  assert.match(profitText,/33\.65/,'P&L computes gross profit from the batch cost snapshot')
+  assert.match(profitText,/67\.3%/,'P&L computes gross margin from the batch cost snapshot')
+  await page.getByRole('button',{name:'Products',exact:true}).click()
   await parent.getByRole('button',{name:'Refresh catalog',exact:true}).click()
   await parent.getByRole('heading',{name:'Legacy jacket',exact:true}).waitFor()
   for(const target of [page,parent]) for(const result of await layoutProbe(target)) {
