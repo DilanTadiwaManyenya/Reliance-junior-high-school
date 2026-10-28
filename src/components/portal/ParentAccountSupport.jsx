@@ -17,8 +17,14 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [selected, setSelected] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [approvingStudentId, setApprovingStudentId] = useState('')
+  const canDeleteParentAccounts = profile?.active_role === 'admin' && profile?.campus === 'all'
+  const canApproveLearnerLink = account => profile?.active_role === 'admin'
+    && (profile?.campus === 'all' || profile?.campus === account.campus)
 
   const loadAccounts = useCallback(async () => {
     setLoading(true)
@@ -57,12 +63,62 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
     setSaving(false)
   }
 
+  const deleteParentAccount = async () => {
+    if (!confirmDelete || !canDeleteParentAccounts) return
+    setDeleting(true)
+    setError('')
+    setNotice('')
+    const { data, error: deleteError } = await supabase.rpc('delete_parent_account', { target_parent_user_id: confirmDelete.parent_user_id })
+    if (deleteError) {
+      setError(deleteError.message || 'Unable to delete this parent account.')
+      setDeleting(false)
+      return
+    }
+    setConfirmDelete(null)
+    setNotice(`Parent account deleted. ${Number(data) || 0} audit entries were retained with the actor reference anonymized.`)
+    await loadAccounts()
+    setDeleting(false)
+  }
+
+  const approveLearnerLink = async account => {
+    if (!canApproveLearnerLink(account) || !account.learner_student_id || account.learner_link_verified) return
+    setApprovingStudentId(account.learner_student_id)
+    setError('')
+    setNotice('')
+    const { data, error: approvalError } = await supabase
+      .from('parent_student')
+      .update({ verified_at: new Date().toISOString() })
+      .eq('parent_id', account.parent_user_id)
+      .eq('student_id', account.learner_student_id)
+      .is('verified_at', null)
+      .select('student_id')
+      .maybeSingle()
+    if (approvalError || !data) {
+      setError(approvalError?.message || 'This request could not be verified. Refresh the list and try again.')
+      setApprovingStudentId('')
+      return
+    }
+    setNotice('Learner connection verified. The learner is now available in the parent account.')
+    await loadAccounts()
+    setApprovingStudentId('')
+  }
+
   return <div className="dash-section parent-account-support">
     <div className="dash-page-header">
-      <div><p className="eyebrow">Account support</p><h1>Parent accounts</h1><p className="dash-page-sub">Find a linked parent account and help restore access. Temporary passwords are never shown after reset.</p></div>
+      <div><p className="eyebrow">Account support</p><h1>Parent accounts</h1><p className="dash-page-sub">Review learner connection requests and help restore parent access. Temporary passwords are never shown after reset.</p></div>
     </div>
     {error && <PortalNotice tone="error">{error}</PortalNotice>}
     {notice && <PortalNotice>{notice}</PortalNotice>}
+    {confirmDelete && <Card className="parent-account-reset-card">
+      <section role="alertdialog" aria-modal="true" aria-labelledby="parent-delete-title" aria-describedby="parent-delete-description">
+        <h2 id="parent-delete-title">Delete parent account?</h2>
+        <p id="parent-delete-description">This permanently removes {confirmDelete.parent_name || confirmDelete.phone_number || 'this parent'}’s portal login and access to all linked learners. Existing audit entries remain, with the actor reference anonymized. This cannot be undone.</p>
+        <div className="portal-action-row">
+          <Button type="button" disabled={deleting} onClick={deleteParentAccount}>{deleting ? 'Deleting…' : 'Permanently delete account'}</Button>
+          <Button type="button" variant="secondary" disabled={deleting} onClick={() => setConfirmDelete(null)}>Cancel</Button>
+        </div>
+      </section>
+    </Card>}
     {selected && <Card className="parent-account-reset-card">
       <section aria-labelledby="parent-signin-help-title">
         <h2 id="parent-signin-help-title">Help with parent sign-in</h2>
@@ -75,7 +131,7 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
           <div><dt>Learner date of birth</dt><dd>{displayBirthDate(selected.learner_date_of_birth)}</dd></div>
           <div><dt>Class and stream</dt><dd>{selected.class_level ? `${selected.class_level}${selected.class_stream ? ` · ${selected.class_stream}` : ''}` : 'Not available'}</dd></div>
           <div><dt>Campus</dt><dd>{selected.campus ? `${selected.campus === 'junior' ? 'Junior' : 'Senior'} School` : 'Not available'}</dd></div>
-          <div><dt>Account status</dt><dd>{selected.verified ? 'Verified' : 'Needs verification'}</dd></div>
+          <div><dt>Learner connection status</dt><dd>{selected.learner_link_verified ? 'Verified' : 'Needs verification'}</dd></div>
         </dl>
         <p className="muted">To sign in, use the parent phone number above and the password they set. Existing passwords cannot be viewed by school staff.</p>
       </section>
@@ -97,8 +153,10 @@ export default function ParentAccountSupport({ supabase, user, profile }) {
         {visibleAccounts.map((account, index) => <article className="parent-account-card" key={`${account.parent_user_id}:${account.child_admission_number}:${index}`}>
           <div className="parent-account-identity"><strong>{account.parent_name || 'Parent account'}</strong><span>{account.phone_number}</span></div>
           <div className="parent-account-learner"><span>Learner</span><strong>{account.learner_name || 'Learner record not found'}</strong><small>{account.class_level ? `${account.class_level}${account.class_stream ? ` · ${account.class_stream}` : ''}` : account.child_admission_number}{account.campus ? ` · ${account.campus === 'junior' ? 'Junior' : 'Senior'} School` : ''}</small></div>
-          <span className={`class-status ${account.verified ? 'is-active' : 'is-inactive'}`}>{account.verified ? 'Verified' : 'Needs verification'}</span>
+          <span className={`class-status ${account.learner_link_verified ? 'is-active' : 'is-inactive'}`}>{account.learner_link_verified ? 'Verified' : 'Needs verification'}</span>
+          {canApproveLearnerLink(account) && account.learner_student_id && !account.learner_link_verified && <Button type="button" disabled={Boolean(approvingStudentId)} onClick={() => approveLearnerLink(account)}>{approvingStudentId === account.learner_student_id ? 'Verifying…' : 'Verify learner link'}</Button>}
           <Button type="button" variant="secondary" onClick={() => { setSelected(account); setPassword(''); setError(''); setNotice('') }}>Help with sign-in</Button>
+          {canDeleteParentAccounts && <Button type="button" variant="secondary" disabled={deleting} onClick={() => { setConfirmDelete(account); setSelected(null); setError(''); setNotice('') }}>Delete parent account</Button>}
         </article>)}
       </div> : <p className="portal-notice">{accounts.length ? 'No parent accounts match this search.' : 'No parent accounts are available in your campus scope yet.'}</p>}
     </Card>
