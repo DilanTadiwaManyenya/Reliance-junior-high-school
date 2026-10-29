@@ -560,6 +560,10 @@
   }
 }
 @media (max-width: 1050px) {
+  .shop-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
   .shop-checkout-layout {
     grid-template-columns: 1fr;
   }

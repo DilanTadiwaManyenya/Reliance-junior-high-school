@@ -126,6 +126,16 @@ page.setDefaultTimeout(10000)
 page.on('pageerror', e => errors.push(e.message))
 try {
   await page.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin`, { waitUntil: 'domcontentloaded' })
+  if (viewportWidth <= 1050) {
+    const tabLayout = await page.locator('.shop-tabs').evaluate(element => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+      tabs: [...element.querySelectorAll('button')].map(button => ({ left: button.getBoundingClientRect().left, right: button.getBoundingClientRect().right })),
+      right: element.getBoundingClientRect().right,
+    }))
+    assert.ok(tabLayout.scrollWidth <= tabLayout.clientWidth + 1, 'Shop navigation tabs fit without horizontal scrolling on compact screens')
+    assert.ok(tabLayout.tabs.every(tab => tab.left >= -1 && tab.right <= tabLayout.right + 1), 'All shop tabs remain visible on compact screens')
+  }
   await page.getByRole('button', { name: 'Products', exact: true }).click()
   await page.getByRole('heading', { name: 'Receive supplier stock', exact: true }).waitFor()
   await page.getByRole('heading', { name: 'Recent stock receipts', exact: true }).waitFor()
