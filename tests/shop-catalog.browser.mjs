@@ -519,9 +519,10 @@ try {
   const productReceive=productDialog.locator('.shop-product-stock-receive')
   await productReceive.locator('summary').click()
   if(viewportWidth===390) {
-    const mobileReceive=await productReceive.evaluate(element=>({scrollWidth:element.scrollWidth,clientWidth:element.clientWidth,buttonHeight:element.querySelector('button').getBoundingClientRect().height}))
+    const mobileReceive=await productReceive.evaluate(element=>({scrollWidth:element.scrollWidth,clientWidth:element.clientWidth,buttonHeight:element.querySelector('button').getBoundingClientRect().height,top:element.getBoundingClientRect().top,fieldsTop:element.parentElement.querySelector('.shop-product-fields').getBoundingClientRect().top}))
     assert.ok(mobileReceive.scrollWidth<=mobileReceive.clientWidth+1,'Product receipt form fits the mobile editor width')
     assert.ok(mobileReceive.buttonHeight>=44,'Mobile receipt action has a comfortable tap target')
+    assert.ok(mobileReceive.top<mobileReceive.fieldsTop,'Stock receiving is the first section in the mobile product editor')
     await productDialog.screenshot({path:'tmp/catalog-review/mobile-product-receive.png'})
   }
   await productReceive.getByLabel('Supplier',{exact:true}).fill('Second supplier')

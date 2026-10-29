@@ -1856,6 +1856,42 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 {error}
               </p>
             )}
+            {admin && form.id && form.campus && products.find(product => product.id === form.id)?.campus && <details className="shop-product-stock-receive">
+              <summary>Receive stock for this product</summary>
+              <p>Record this delivery’s supplier cost as a separate stock batch. It does not change the saved selling price or default correction cost.</p>
+              <p className="shop-product-stock-current">Current stock: <strong>{form.quantity_on_hand || 0} units</strong>. Save any product detail changes before recording a delivery.</p>
+              <div className="shop-product-stock-fields">
+                <label>
+                  Supplier
+                  <input maxLength={200} value={productReceiptDraft.supplier_name} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, supplier_name: event.target.value }))} placeholder="Supplier name" />
+                </label>
+                <label>
+                  Supplier reference <span className="shop-optional">Optional</span>
+                  <input maxLength={120} value={productReceiptDraft.supplier_reference} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, supplier_reference: event.target.value }))} placeholder="Invoice or delivery note" />
+                </label>
+                {form.has_variants && <label>
+                  Size
+                  <select aria-label="Size for received stock" value={productReceiptDraft.variant_id} onChange={event => setProductReceiptDraft(current => ({ ...current, variant_id: event.target.value }))}>
+                    <option value="">Choose size</option>
+                    {(form.product_variants || []).filter(variant => variant.active).map(variant => <option key={variant.id} value={variant.id}>{variant.size} · {variant.quantity_on_hand} available</option>)}
+                  </select>
+                </label>}
+                <label>
+                  Quantity to receive
+                  <input type="number" min="1" max="9999999" step="1" inputMode="numeric" value={productReceiptDraft.quantity} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, quantity: event.target.value }))} />
+                </label>
+                <label>
+                  Supplier unit cost ({form.currency || "USD"})
+                  <input type="number" min="0" max="9999999999" step="0.01" inputMode="decimal" value={productReceiptDraft.unit_cost} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, unit_cost: event.target.value }))} placeholder="0.00" />
+                </label>
+              </div>
+              <label className="shop-product-stock-notes">
+                Delivery notes <span className="shop-optional">Optional</span>
+                <textarea maxLength={1000} rows={2} value={productReceiptDraft.notes} onChange={event => setProductReceiptDraft(current => ({ ...current, notes: event.target.value }))} placeholder="Delivery details" />
+              </label>
+              <p className="shop-product-stock-total">Delivery total <strong>{money(Number(productReceiptDraft.quantity || 0) * Number(productReceiptDraft.unit_cost || 0), form.currency || "USD")}</strong></p>
+              <button type="button" className="primary" disabled={busy || !ready} onClick={receiveProductStock}>{busy ? "Recording delivery…" : "Record this delivery"}</button>
+            </details>}
             <fieldset className="shop-product-fields" disabled={busy || imageBusy || variantBusy}>
             <div className="shop-form-grid">
               <label>Currency<select required disabled={Boolean(form.id && !products.find(product => product.id === form.id)?.campus)} value={form.currency || "USD"} onChange={event => setForm({ ...form, currency: event.target.value })}>{FINANCE_CURRENCIES.map(code => <option key={code}>{code}</option>)}</select><small>Changing this affects future sales only; old receipts keep their saved currency.</small></label>
@@ -1919,42 +1955,6 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 </label>
               )}
             </div>
-            {admin && form.id && form.campus && products.find(product => product.id === form.id)?.campus && <details className="shop-product-stock-receive">
-              <summary>Receive stock for this product</summary>
-              <p>Record this delivery’s supplier cost as a separate stock batch. It does not change the saved selling price or default correction cost.</p>
-              <p className="shop-product-stock-current">Current stock: <strong>{form.quantity_on_hand || 0} units</strong>. Save any product detail changes before recording a delivery.</p>
-              <div className="shop-product-stock-fields">
-                <label>
-                  Supplier
-                  <input maxLength={200} value={productReceiptDraft.supplier_name} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, supplier_name: event.target.value }))} placeholder="Supplier name" />
-                </label>
-                <label>
-                  Supplier reference <span className="shop-optional">Optional</span>
-                  <input maxLength={120} value={productReceiptDraft.supplier_reference} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, supplier_reference: event.target.value }))} placeholder="Invoice or delivery note" />
-                </label>
-                {form.has_variants && <label>
-                  Size
-                  <select aria-label="Size for received stock" value={productReceiptDraft.variant_id} onChange={event => setProductReceiptDraft(current => ({ ...current, variant_id: event.target.value }))}>
-                    <option value="">Choose size</option>
-                    {(form.product_variants || []).filter(variant => variant.active).map(variant => <option key={variant.id} value={variant.id}>{variant.size} · {variant.quantity_on_hand} available</option>)}
-                  </select>
-                </label>}
-                <label>
-                  Quantity to receive
-                  <input type="number" min="1" max="9999999" step="1" inputMode="numeric" value={productReceiptDraft.quantity} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, quantity: event.target.value }))} />
-                </label>
-                <label>
-                  Supplier unit cost ({form.currency || "USD"})
-                  <input type="number" min="0" max="9999999999" step="0.01" inputMode="decimal" value={productReceiptDraft.unit_cost} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, unit_cost: event.target.value }))} placeholder="0.00" />
-                </label>
-              </div>
-              <label className="shop-product-stock-notes">
-                Delivery notes <span className="shop-optional">Optional</span>
-                <textarea maxLength={1000} rows={2} value={productReceiptDraft.notes} onChange={event => setProductReceiptDraft(current => ({ ...current, notes: event.target.value }))} placeholder="Delivery details" />
-              </label>
-              <p className="shop-product-stock-total">Delivery total <strong>{money(Number(productReceiptDraft.quantity || 0) * Number(productReceiptDraft.unit_cost || 0), form.currency || "USD")}</strong></p>
-              <button type="button" className="primary" disabled={busy || !ready} onClick={receiveProductStock}>{busy ? "Recording delivery…" : "Record this delivery"}</button>
-            </details>}
             {!form.id && <p className="shop-form-note">New products start with zero stock. Add stock under Receive supplier stock so each delivery’s cost is recorded.</p>}
             {form.imageEditorSource ? <ProductPhotoEditor source={form.imageEditorSource} onApply={applyProductImage} onCancel={() => setForm(current => ({ ...current, imageEditorSource: null }))} /> : <>
             <label className="shop-image-field">
