@@ -60,6 +60,16 @@ const db = {
   financial_events: Array.from({ length: 51 }, (_, index) => ({ id: `financial-${index}`, module: 'pos', action: index % 2 ? 'sale_recorded' : 'sale_reversed', record_id: `sale-${index}`, campus: 'senior', currency: 'USD', actor_name: 'Example Main Admin', actor_role: 'admin', created_at: today, reason: index % 2 ? null : 'Incorrect test entry', details: { stock_changes: [{ size: 'M', before: 4, after: 5 }] } })),
   school_record_changes: Array.from({ length: 51 }, (_, index) => ({ id: `change-${index}`, created_at: new Date(Date.now() - index * 60000).toISOString(), source_table: index % 3 === 0 ? 'academic_records' : index % 3 === 1 ? 'students' : 'attendance', operation: 'UPDATE', actor_name: 'Example Teacher With A Longer Display Name', actor_role: 'teacher', learner_name: index === 50 ? 'Brian Example' : 'Alexandra Example Learner With A Longer Name', campus: campus === 'all' ? 'senior' : campus, context: { subject: 'Combined Science', term: '3', year: 2026 }, old_values: { score: 60 }, new_values: { score: 75 }, changed_fields: ['score'] })),
 }
+if(params.has('subjectCatalog')) {
+ db.curriculum_subject_groups=[
+  ['ecd_a_b','ECD A & B'],['grade_1_2','Grade 1 & 2'],['grade_3_7','Grade 3–7'],['form_1_2_zgc','Form 1 & 2 (ZGC)'],['form_3_4','Form 3 & 4'],
+  ['lower_six_arts','Lower Six · Arts'],['lower_six_commercials','Lower Six · Commercials'],['lower_six_sciences','Lower Six · Sciences'],
+  ['upper_six_arts','Upper Six · Arts'],['upper_six_commercials','Upper Six · Commercials'],['upper_six_sciences','Upper Six · Sciences'],
+ ].map(([group_code,display_name],sort_order)=>({group_code,display_name,sort_order}))
+ db.subject_catalog=[{id:'catalog-shona',subject_code:'chishona',display_name:'Chishona',is_active:true},{id:'catalog-math',subject_code:'mathematics',display_name:'Mathematics',is_active:true}]
+ db.subject_catalog_group_memberships=[{subject_id:'catalog-shona',group_code:'form_1_2_zgc'},{subject_id:'catalog-math',group_code:'form_1_2_zgc'}]
+ db.teacher_class_subject_assignments=[{id:'catalog-allocation',teacher_id:'teacher',subject_id:'catalog-shona',subject:'Shona',class_level:'Form 2',class_stream:'Green',campus:'senior'}]
+}
 if (params.has('multiClassAllocations')) db.school_classes.push({ id: 'class-3', class_level: 'Form 2', class_stream: 'Blue', campus: 'senior', active: true, capacity: 50 }, { id: 'class-4', class_level: 'Form 2', class_stream: 'Green', campus: 'senior', active: true, capacity: 50 })
 if (params.has('printFixture')) {
   const base = { student_id: 'learner-0', term: '3', year: 2026, created_at: today }
@@ -107,7 +117,7 @@ if(params.has('academicLarge')) db.academic_records=Array.from({length:1007},(_,
 if(params.has('academicTeacher')) db.academic_records=[{id:'own-mark',student_id:'learner-0',year:2026,term:'3',subject:'Combined Science',score:0,term_mark:0,exam_mark:null,grade:'U'}, {id:'other-subject',student_id:'learner-0',year:2026,term:'3',subject:'Mathematics',score:90},{id:'other-campus',student_id:'learner-1',year:2026,term:'3',subject:'Combined Science',score:99}];
 if(params.has('academicTeacher')) db.grade_bands=['primary','olevel','alevel'].map(band_group=>({band_group,minimum_score:0,maximum_score:100,grade:'A',points:5,description:'Fixture grade'}));
 if(params.has('legacyAcademicTerm')) { const row=db.academic_records.find(item=>item.student_id==='learner-0'&&item.subject==='Combined Science'); if(row)row.term='Term 3' }
-window.fixtureActiveRole = role; window.fixtureWrites = []; window.fixtureFunctionCalls = []; window.fixtureCaptureCalls=[]
+window.fixtureActiveRole = role; window.fixtureWrites = []; window.fixtureFunctionCalls = []; window.fixtureCaptureCalls=[]; window.fixtureCatalogCalls=[]
 window.fixtureRegisterError=params.has('registerError')
 window.fixtureRegisterRequests=[]
 window.fixtureReportError = params.has('reportError')
@@ -186,6 +196,28 @@ const fixtureMfa = {
 const supabase = {
   from: query,
   rpc(name, payload) {
+    if(name==='save_subject_catalog_entry') {
+      window.fixtureCatalogCalls.push({name,payload})
+      let subject=db.subject_catalog.find(row=>row.id===payload.p_subject_id)
+      if(!subject){subject={id:'catalog-new-'+db.subject_catalog.length,subject_code:payload.p_subject_code,is_active:true};db.subject_catalog.push(subject)}
+      subject.display_name=payload.p_display_name
+      db.subject_catalog_group_memberships=db.subject_catalog_group_memberships.filter(row=>row.subject_id!==subject.id)
+      db.subject_catalog_group_memberships.push(...payload.p_group_codes.map(group_code=>({subject_id:subject.id,group_code})))
+      db.teacher_class_subject_assignments.filter(row=>row.subject_id===subject.id).forEach(row=>row.subject=subject.display_name)
+      return Promise.resolve({data:subject.id,error:null})
+    }
+    if(name==='set_subject_catalog_active') {
+      window.fixtureCatalogCalls.push({name,payload})
+      const subject=db.subject_catalog.find(row=>row.id===payload.p_subject_id)
+      if(subject)subject.is_active=payload.p_is_active
+      return Promise.resolve({data:null,error:null})
+    }
+    if(name==='delete_unused_subject_catalog_entry') {
+      window.fixtureCatalogCalls.push({name,payload})
+      db.subject_catalog=db.subject_catalog.filter(row=>row.id!==payload.p_subject_id)
+      db.subject_catalog_group_memberships=db.subject_catalog_group_memberships.filter(row=>row.subject_id!==payload.p_subject_id)
+      return Promise.resolve({data:null,error:null})
+    }
     if(name==='export_learner_register'){
       window.fixtureRegisterRequests.push(payload)
       const source=params.has('registerLarge')?Array.from({length:1007},(_,n)=>({...learners[0],id:`export-${n}`,full_name:n===0?' \t=HYPERLINK("bad")':`Register Learner ${String(n).padStart(4,'0')}`,admission_number:String(n).padStart(8,'0'),campus:'senior',class_level:'Form 1',class_stream:'Blue',sex:'Female',date_of_birth:'2013-03-15',parent_name:'Guardian, Example',parent_phone:'+263770000001',address:'House "A"\nHarare',birth_cert_no:'001-002',status:n===1?'inactive':'active'})):learners
