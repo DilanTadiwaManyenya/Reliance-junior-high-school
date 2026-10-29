@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { downloadCsv, downloadWorkbook, readAllRows, reportOptions, reportSheets, reportTotals } from '../../lib/operationsExport'
 
-export default function OperationsExports({ supabase, profile, kinds }) {
+export default function OperationsExports({ supabase, profile, kinds, compactOnMobile = false }) {
   const [kind, setKind] = useState(kinds[0])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [compactViewport, setCompactViewport] = useState(() => compactOnMobile && typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches)
+  const [expanded, setExpanded] = useState(false)
   const request = useRef(null)
   useEffect(() => () => request.current?.abort(), [])
+  useEffect(() => {
+    if (!compactOnMobile || typeof window === 'undefined') return
+    const media = window.matchMedia('(max-width: 600px)')
+    const update = () => setCompactViewport(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [compactOnMobile])
   const role = profile?.active_role ?? profile?.role
   if (!['admin','accountant','principal'].includes(role)) return null
   const exportReport = async format => {
@@ -38,13 +48,16 @@ export default function OperationsExports({ supabase, profile, kinds }) {
       if (request.current === controller) { setBusy(false); request.current = null }
     }
   }
-  return <section className="shop-panel" aria-label="Finance and operations exports">
-    <h2>Download records</h2>
-    <p>All dates and statuses within your campus access. USD and ZWG totals are reported separately with no conversion. These downloads include saved records; they do not issue invoices or receipts.</p>
-    <div className="shop-toolbar"><label>Report<select aria-label="Export report" value={kind} disabled={busy} onChange={e => { setKind(e.target.value); setError(''); setMessage('') }}>{kinds.map(value => <option key={value} value={value}>{reportOptions[value][0]}</option>)}</select></label>
-      <button disabled={busy} onClick={() => exportReport('csv')}>{busy ? 'Preparing…' : 'Download CSV'}</button>
-      <button disabled={busy} onClick={() => exportReport('xlsx')}>Download Excel</button>
-    </div>
-    {error && <p role="alert">{error}</p>}{message && <p role="status">{message}</p>}
+  const showOptions = !compactOnMobile || !compactViewport || expanded
+  return <section className={`shop-panel shop-operations-exports${compactOnMobile ? ' shop-operations-exports-compact' : ''}`} aria-label="Finance and operations exports">
+    <div className="shop-exports-heading"><h2>Download records</h2>{compactOnMobile && <button type="button" className="shop-exports-toggle" aria-expanded={showOptions} onClick={() => setExpanded(value => !value)}>{showOptions ? 'Hide export options' : 'Show export options'}</button>}</div>
+    {showOptions && <>
+      <p>All dates and statuses within your campus access. USD and ZWG totals are reported separately with no conversion. These downloads include saved records; they do not issue invoices or receipts.</p>
+      <div className="shop-toolbar"><label>Report<select aria-label="Export report" value={kind} disabled={busy} onChange={e => { setKind(e.target.value); setError(''); setMessage('') }}>{kinds.map(value => <option key={value} value={value}>{reportOptions[value][0]}</option>)}</select></label>
+        <button disabled={busy} onClick={() => exportReport('csv')}>{busy ? 'Preparing…' : 'Download CSV'}</button>
+        <button disabled={busy} onClick={() => exportReport('xlsx')}>Download Excel</button>
+      </div>
+      {error && <p role="alert">{error}</p>}{message && <p role="status">{message}</p>}
+    </>}
   </section>
 }
