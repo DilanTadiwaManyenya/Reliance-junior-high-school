@@ -3,8 +3,9 @@ import AcademicReportCard from './AcademicReportCard'
 import './historicalReports.css'
 
 export default function ReportClassHistory({supabase,campusScope='all',canReview=false}) {
- const [year,setYear]=useState(new Date().getFullYear())
- const [term,setTerm]=useState(Math.floor(new Date().getMonth()/4)+1)
+ const harareNow=new Date(new Date().toLocaleString('en-US',{timeZone:'Africa/Harare'}))
+ const [year,setYear]=useState(harareNow.getFullYear())
+ const [term,setTerm]=useState(Math.floor(harareNow.getMonth()/4)+1)
  const [campus,setCampus]=useState(campusScope==='senior'?'senior':'junior')
  const [query,setQuery]=useState('')
  const [rows,setRows]=useState([])
@@ -15,6 +16,9 @@ export default function ReportClassHistory({supabase,campusScope='all',canReview
  const [classId,setClassId]=useState('')
  const [reason,setReason]=useState('')
  const [staffing,setStaffing]=useState(false)
+ const [captureAdmission,setCaptureAdmission]=useState('')
+ const [captureReason,setCaptureReason]=useState('')
+ const [captureConfirmed,setCaptureConfirmed]=useState(false)
  const [view,setView]=useState(null)
  const [loading,setLoading]=useState(true)
  const [saving,setSaving]=useState(false)
@@ -22,6 +26,7 @@ export default function ReportClassHistory({supabase,campusScope='all',canReview
  const [notice,setNotice]=useState('')
  const [revision,setRevision]=useState(0)
  const activeCampus=campusScope==='all'?campus:campusScope
+ const currentYear=harareNow.getFullYear()
  const reset=()=>{setPage(0);setSelected([]);setClassId('');setRows([]);setLoading(true)}
  useEffect(()=>{
   let active=true,timer
@@ -58,6 +63,24 @@ export default function ReportClassHistory({supabase,campusScope='all',canReview
    setNotice(`${result.data} reporting contexts reviewed.`);reset();setReason('');setStaffing(false);setRevision(value=>value+1)
   }catch(requestError){setError(requestError.message)}finally{clearTimeout(timeout);setSaving(false)}
  }
+ const captureMissingContext=async event=>{
+  event.preventDefault();setSaving(true);setError('');setNotice('')
+  let timeout
+  try{
+   const admission=captureAdmission.trim()
+   const lookup=await supabase.from('students').select('id,full_name,admission_number,campus,class_level,class_stream,enrolled_year,status').eq('admission_number',admission).eq('campus',activeCampus).maybeSingle()
+   if(lookup.error)throw new Error('Could not verify this learner. Please retry.')
+   if(!lookup.data)throw new Error('No learner with that admission number was found in the selected campus.')
+   if(Number(lookup.data.enrolled_year)>Number(year))throw new Error('This learner was not enrolled in the selected academic year.')
+   const result=await Promise.race([
+    supabase.rpc('capture_reviewed_current_report_context',{p_student:lookup.data.id,p_year:Number(year),p_term:Number(term),p_reason:captureReason.trim()}),
+    new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Capture outcome is unconfirmed. Refresh history and check before retrying.')),15000)})
+   ])
+   if(result.error)throw new Error(result.error.message||'Could not capture the report context.')
+   setNotice(`Captured Term ${term} ${year} for ${lookup.data.full_name} (${lookup.data.admission_number}) using the class and staffing currently on the learner record.`)
+   setCaptureAdmission('');setCaptureReason('');setCaptureConfirmed(false);setSelected([]);setRevision(value=>value+1)
+  }catch(requestError){setError(requestError.message)}finally{clearTimeout(timeout);setSaving(false)}
+ }
  if(view)return <section><button type="button" className="btn secondary no-print" onClick={()=>setView(null)}>Back to report history</button>
   <AcademicReportCard key={view.id} supabase={supabase} initialPeriod={{year:view.academic_year,term:view.term}} adminAccess={true} allowReportEditing={false}
    student={{id:view.student_id,full_name:view.learner_name,admission_number:view.admission_number,class_level:view.class_level,class_stream:view.class_stream,campus:view.campus}} />
@@ -75,6 +98,14 @@ export default function ReportClassHistory({supabase,campusScope='all',canReview
   </div>
   {notice&&<p role="status" className="portal-notice">{notice}</p>}
   {error&&<p role="alert" className="portal-notice error">{error}</p>}
+  {canReview&&Number(year)===currentYear&&<form className="report-context-review" onSubmit={captureMissingContext}>
+   <h2>Capture a missing report period</h2>
+   <p>Check the learner’s current class against the school register first. This creates one audited report context for the selected term and does not add or change marks.</p>
+   <label>Admission number<input required maxLength={40} value={captureAdmission} onChange={event=>setCaptureAdmission(event.target.value)} /></label>
+   <label>Review reason<textarea minLength={8} maxLength={500} required value={captureReason} onChange={event=>setCaptureReason(event.target.value)} /></label>
+   <label className="review-checkbox"><input type="checkbox" checked={captureConfirmed} onChange={event=>setCaptureConfirmed(event.target.checked)} />I verified this learner’s current class against the school register</label>
+   <button type="submit" className="btn secondary" disabled={saving||!captureConfirmed||captureReason.trim().length<8}>{saving?'Capturing…':`Capture Term ${term} ${year}`}</button>
+  </form>}
   {loading&&<p role="status">Loading class history…</p>}
   {!loading&&!error&&!rows.length&&<p>No report contexts match this period.</p>}
   {canReview&&rows.length>0&&<button type="button" className="btn secondary" onClick={()=>{setSelected(rows.slice(0,100).map(row=>row.id));setClassId('')}} disabled={saving}>Select loaded contexts (up to 100)</button>}

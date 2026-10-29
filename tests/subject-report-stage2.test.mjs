@@ -2,12 +2,22 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import { PGlite } from '@electric-sql/pglite'
+import { subjectIdentityKey } from '../src/lib/subjectLabels.js'
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 const migration = 'supabase/migrations/20261029110000_canonical_subject_catalog_foundation.sql'
 const reportMigration = 'supabase/migrations/20261029100000_reviewed_current_report_context_capture.sql'
 const uid = '70000000-0000-4000-8000-000000000001'
 const learnerId = '70000000-0000-4000-8000-000000000101'
+
+test('report subject labels reconcile confirmed Senior aliases without changing Junior labels', () => {
+  const senior = { campus: 'senior', class_level: 'Form 2' }
+  const junior = { campus: 'junior', class_level: 'Grade 1' }
+  assert.equal(subjectIdentityKey('Shona', senior), subjectIdentityKey('Chishona', senior))
+  assert.equal(subjectIdentityKey('English', senior), subjectIdentityKey('English Language', senior))
+  assert.equal(subjectIdentityKey('Heritage', senior), subjectIdentityKey('Heritage Studies', senior))
+  assert.notEqual(subjectIdentityKey('Shona', junior), subjectIdentityKey('Chishona', junior))
+})
 
 test('canonical subject migration maps confirmed aliases and preserves legacy labels', async () => {
   const db = new PGlite()

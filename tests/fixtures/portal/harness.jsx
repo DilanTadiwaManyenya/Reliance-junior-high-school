@@ -81,6 +81,7 @@ function contextFor(student,year=2026,term=3,level=student.class_level,stream=st
   report_rules:frozenRules(level,stream),class_teacher:{teacher_name:'Recorded class teacher',signature_initials:'R.C.',assigned_at:'2026-01-01'},subject_teachers:getSubjectsByGradeStream(level,stream).map(subject=>({subject,teacher_name:'Recorded subject teacher',signature_initials:'R.S.'})),provenance:'captured',staffing_verified_at:today,captured_at:today}
 }
 db.report_period_contexts=learners.map(student=>contextFor(student))
+if(params.has('missingReportContext')) db.report_period_contexts=db.report_period_contexts.filter(row=>row.student_id!=='learner-0')
 db.year_rollover_batches=[]
 db.reporting_periods=['junior','senior'].map(c=>({id:`period-${c}`,campus:c,academic_year:2026,term:3,state:'open',is_current:true,revision:1}))
 db.reporting_period_events=[]
@@ -92,7 +93,7 @@ if(params.has('historyPromotion')){
  const current=contextFor(student,2027,1)
  current.subject_teachers=current.subject_teachers.map(row=>({...row,teacher_name:'New year teacher'}))
  db.report_period_contexts=[current,old,...db.report_period_contexts.filter(row=>row.student_id!==student.id)]
- db.academic_records=[{id:'new-math',student_id:student.id,subject:'Mathematics',score:75,term:'1',year:2027,created_at:today},...(!junior?[{id:'old-math',student_id:student.id,subject:'Mathematics',score:75,term:'3',year:2026,created_at:today}]:[])]
+  db.academic_records=[{id:'new-math',student_id:student.id,subject:'Mathematics',score:75,term:'1',year:2027,created_at:today},...(!junior?[{id:'old-math',student_id:student.id,subject:'Mathematics',score:75,term:'3',year:2026,created_at:today}]:[])]
  db.junior_component_marks=junior?getJuniorReportBook('Grade 1').subjects.flatMap(subject=>subject.components.map(component=>({id:subject.subject+component,student_id:student.id,subject:subject.subject,component,score:8,possible_mark:10,year:2026,term:'3'}))):[]
 }
 if(params.has('operationsData')) {
@@ -106,7 +107,7 @@ if(params.has('academicLarge')) db.academic_records=Array.from({length:1007},(_,
 if(params.has('academicTeacher')) db.academic_records=[{id:'own-mark',student_id:'learner-0',year:2026,term:'3',subject:'Combined Science',score:0,term_mark:0,exam_mark:null,grade:'U'}, {id:'other-subject',student_id:'learner-0',year:2026,term:'3',subject:'Mathematics',score:90},{id:'other-campus',student_id:'learner-1',year:2026,term:'3',subject:'Combined Science',score:99}];
 if(params.has('academicTeacher')) db.grade_bands=['primary','olevel','alevel'].map(band_group=>({band_group,minimum_score:0,maximum_score:100,grade:'A',points:5,description:'Fixture grade'}));
 if(params.has('legacyAcademicTerm')) { const row=db.academic_records.find(item=>item.student_id==='learner-0'&&item.subject==='Combined Science'); if(row)row.term='Term 3' }
-window.fixtureActiveRole = role; window.fixtureWrites = []; window.fixtureFunctionCalls = []
+window.fixtureActiveRole = role; window.fixtureWrites = []; window.fixtureFunctionCalls = []; window.fixtureCaptureCalls=[]
 window.fixtureRegisterError=params.has('registerError')
 window.fixtureRegisterRequests=[]
 window.fixtureReportError = params.has('reportError')
@@ -227,6 +228,16 @@ const supabase = {
       window.fixtureReviewCalls.push(payload)
       for(const row of db.report_period_contexts.filter(row=>payload.p_ids.includes(row.id))){row.confirmed_at=new Date().toISOString();if(payload.p_refresh_staffing)row.staffing_verified_at=new Date().toISOString()}
       return Promise.resolve({data:payload.p_ids.length,error:null})
+    }
+    if(name==='capture_reviewed_current_report_context') {
+      window.fixtureCaptureCalls.push(payload)
+      const learner=db.students.find(row=>row.id===payload.p_student)
+      if(!learner)return Promise.resolve({data:null,error:{message:'Synthetic learner not found'}})
+      const context=contextFor(learner,payload.p_year,payload.p_term)
+      context.provenance='captured';context.confirmed_at=new Date().toISOString();context.confirmation_reason=payload.p_reason
+      db.report_period_contexts.push(context)
+      window.fixtureWrites.push({table:`rpc:${name}`,operation:'rpc',payload})
+      return Promise.resolve({data:context.id,error:null})
     }
     if (name === 'preview_year_rollover') {
       window.fixtureRolloverCalls.push(payload)
