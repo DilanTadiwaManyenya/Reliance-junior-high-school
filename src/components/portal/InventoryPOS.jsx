@@ -236,6 +236,14 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
     notes: "",
     items: [{ product_id: "", variant_id: "", quantity: "", unit_cost: "" }],
   });
+  const [productReceiptDraft, setProductReceiptDraft] = useState({
+    supplier_name: "",
+    supplier_reference: "",
+    notes: "",
+    variant_id: "",
+    quantity: "",
+    unit_cost: "",
+  });
   const [receiptRequest, setReceiptRequest] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [reversalReason, setReversalReason] = useState('');
@@ -842,6 +850,60 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
       setNotice(cleanupFailed ? "Product saved. Its previous photo could not be removed from storage." : allocating ? (partialAllocation ? "Stock allocated. The remaining quantity stays in Unassigned." : "All stock allocated to the selected campus.") : "Product saved.");
     });
   };
+  const receiveProductStock = () => {
+    const product = products.find((row) => row.id === form?.id);
+    if (!admin || !product || !product.campus) return;
+    run(async () => {
+      const supplierName = productReceiptDraft.supplier_name.trim();
+      const reference = productReceiptDraft.supplier_reference.trim();
+      const notes = productReceiptDraft.notes.trim();
+      const quantity = Number(productReceiptDraft.quantity);
+      const costText = productReceiptDraft.unit_cost.trim();
+      if (!supplierName || supplierName.length > 200) {
+        throw new Error("Enter a supplier name of 1 to 200 characters.");
+      }
+      if (reference.length > 120 || notes.length > 1000) {
+        throw new Error("Check the supplier reference and notes lengths.");
+      }
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 9999999) {
+        throw new Error("Enter a whole stock quantity from 1 to 9,999,999.");
+      }
+      if (!/^(0|[1-9][0-9]{0,9})(\.[0-9]{1,2})?$/.test(costText)) {
+        throw new Error("Enter the supplier unit cost with no more than two decimal places.");
+      }
+      if (product.has_variants && !productReceiptDraft.variant_id) {
+        throw new Error("Choose the size receiving this delivery.");
+      }
+      const payload = {
+        supplier_name: supplierName,
+        supplier_reference: reference || null,
+        notes: notes || null,
+        items: [{
+          product_id: product.id,
+          variant_id: product.has_variants ? productReceiptDraft.variant_id : null,
+          quantity,
+          unit_cost: Number(costText),
+        }],
+      };
+      const payloadText = JSON.stringify(payload);
+      const requestId = receiptRequest?.payload === payloadText ? receiptRequest.id : crypto.randomUUID();
+      setReceiptRequest({ id: requestId, payload: payloadText });
+      const result = await supabase.rpc("receive_shop_stock", {
+        p_request_id: requestId,
+        p_supplier_name: payload.supplier_name,
+        p_supplier_reference: payload.supplier_reference,
+        p_notes: payload.notes,
+        p_items: payload.items,
+      });
+      if (result.error) throw result.error;
+      setReceiptRequest(null);
+      setForm(null);
+      setProductReceiptDraft({ supplier_name: "", supplier_reference: "", notes: "", variant_id: "", quantity: "", unit_cost: "" });
+      logActivity(supabase, user, profile, { actionType: "create", description: `Received stock for ${product.name}`, targetTable: "shop_stock_receipts", targetId: result.data });
+      await load();
+      setNotice(`Stock received for ${product.name}. This delivery’s supplier cost is recorded separately.`);
+    });
+  };
   const changeMyPassword = async () => {
     const { currentPassword, newPassword, confirmPassword } = securityForm;
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -1072,7 +1134,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
               </button>
             )}
             {canManageProducts && tab === "products" && (
-              <button className="primary" onClick={() => setForm({ ...blank, campus: campusAdmin ? campus : ["junior", "senior"].includes(campusView) ? campusView : "" })}>
+              <button className="primary" onClick={() => { setProductReceiptDraft({ supplier_name: "", supplier_reference: "", notes: "", variant_id: "", quantity: "", unit_cost: "" }); setForm({ ...blank, campus: campusAdmin ? campus : ["junior", "senior"].includes(campusView) ? campusView : "" }); }}>
                 <Plus size={16} /> Add product
               </button>
             )}
@@ -1092,12 +1154,15 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                     onClick={() =>
                       tab === "pos"
                         ? add(p)
-                        : setForm({
-                            ...p,
-                            allocationQuantity: p.quantity_on_hand,
-                            sku: p.sku || "",
-                            category: p.category || "",
-                          })
+                        : (() => {
+                            setProductReceiptDraft({ supplier_name: "", supplier_reference: "", notes: "", variant_id: "", quantity: "", unit_cost: "" });
+                            setForm({
+                              ...p,
+                              allocationQuantity: p.quantity_on_hand,
+                              sku: p.sku || "",
+                              category: p.category || "",
+                            });
+                          })()
                     }
                   >
                     <ProductImage url={p.image_url} name={p.name} className="shop-product-icon" />
@@ -1114,7 +1179,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                       {p.active ? `${p.quantity_on_hand} units available` : "Hidden"}
                     </span>
                     <b>{money(p.selling_price, p.currency || "USD")}</b>
-                    {tab === "products" && <span className="shop-edit-label">Edit product</span>}
+                    {tab === "products" && <span className="shop-edit-label">{admin ? "Edit product · receive stock" : "Edit product"}</span>}
                   </button>
                 ))}
               </div>
@@ -1172,7 +1237,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                   }}
                 >
                   <h2>Receive supplier stock</h2>
-                  <p>Record each delivery separately. Enter the supplier cost for this delivery; it does not change the product’s selling price.</p>
+                  <p>Record each delivery separately. Enter its supplier cost; the product’s selling price stays unchanged. For one product, open its card and choose Receive stock. Use this form to record a delivery with multiple products.</p>
                   <div className="shop-form-grid">
                     <label>
                       Supplier
@@ -1854,6 +1919,42 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
                 </label>
               )}
             </div>
+            {admin && form.id && form.campus && products.find(product => product.id === form.id)?.campus && <details className="shop-product-stock-receive">
+              <summary>Receive stock for this product</summary>
+              <p>Record this delivery’s supplier cost as a separate stock batch. It does not change the saved selling price or default correction cost.</p>
+              <p className="shop-product-stock-current">Current stock: <strong>{form.quantity_on_hand || 0} units</strong>. Save any product detail changes before recording a delivery.</p>
+              <div className="shop-product-stock-fields">
+                <label>
+                  Supplier
+                  <input maxLength={200} value={productReceiptDraft.supplier_name} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, supplier_name: event.target.value }))} placeholder="Supplier name" />
+                </label>
+                <label>
+                  Supplier reference <span className="shop-optional">Optional</span>
+                  <input maxLength={120} value={productReceiptDraft.supplier_reference} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, supplier_reference: event.target.value }))} placeholder="Invoice or delivery note" />
+                </label>
+                {form.has_variants && <label>
+                  Size
+                  <select aria-label="Size for received stock" value={productReceiptDraft.variant_id} onChange={event => setProductReceiptDraft(current => ({ ...current, variant_id: event.target.value }))}>
+                    <option value="">Choose size</option>
+                    {(form.product_variants || []).filter(variant => variant.active).map(variant => <option key={variant.id} value={variant.id}>{variant.size} · {variant.quantity_on_hand} available</option>)}
+                  </select>
+                </label>}
+                <label>
+                  Quantity to receive
+                  <input type="number" min="1" max="9999999" step="1" inputMode="numeric" value={productReceiptDraft.quantity} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, quantity: event.target.value }))} />
+                </label>
+                <label>
+                  Supplier unit cost ({form.currency || "USD"})
+                  <input type="number" min="0" max="9999999999" step="0.01" inputMode="decimal" value={productReceiptDraft.unit_cost} onKeyDown={event => { if (event.key === "Enter" && event.target.matches("input")) event.preventDefault(); }} onChange={event => setProductReceiptDraft(current => ({ ...current, unit_cost: event.target.value }))} placeholder="0.00" />
+                </label>
+              </div>
+              <label className="shop-product-stock-notes">
+                Delivery notes <span className="shop-optional">Optional</span>
+                <textarea maxLength={1000} rows={2} value={productReceiptDraft.notes} onChange={event => setProductReceiptDraft(current => ({ ...current, notes: event.target.value }))} placeholder="Delivery details" />
+              </label>
+              <p className="shop-product-stock-total">Delivery total <strong>{money(Number(productReceiptDraft.quantity || 0) * Number(productReceiptDraft.unit_cost || 0), form.currency || "USD")}</strong></p>
+              <button type="button" className="primary" disabled={busy || !ready} onClick={receiveProductStock}>{busy ? "Recording delivery…" : "Record this delivery"}</button>
+            </details>}
             {!form.id && <p className="shop-form-note">New products start with zero stock. Add stock under Receive supplier stock so each delivery’s cost is recorded.</p>}
             {form.imageEditorSource ? <ProductPhotoEditor source={form.imageEditorSource} onApply={applyProductImage} onCancel={() => setForm(current => ({ ...current, imageEditorSource: null }))} /> : <>
             <label className="shop-image-field">
