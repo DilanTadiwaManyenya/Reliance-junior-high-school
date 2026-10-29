@@ -7,6 +7,8 @@ const runtime = await startPortalBrowser()
 const products = []
 const orders = []
 const sales = []
+const stockReceipts = []
+const stockBatches = []
 const checkoutRequests = []
 const retiredRequests = new Set()
 let interruptNextCheckout = false
@@ -55,12 +57,37 @@ await context.route('**/catalog-api/**', async route => {
     if(interruptNextCheckout){interruptNextCheckout=false;return route.abort('failed')}
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(sale)})
   }
+  if (url.pathname.includes('/rpc/receive_shop_stock')) {
+    const payload = req.postDataJSON()
+    let receipt = stockReceipts.find(row => row.request_id === payload.p_request_id)
+    if (!receipt) {
+      receipt = { id: crypto.randomUUID(), request_id: payload.p_request_id, supplier_name: payload.p_supplier_name, supplier_reference: payload.p_supplier_reference, notes: payload.p_notes, receipt_kind: 'supplier', created_at: new Date().toISOString() }
+      stockReceipts.push(receipt)
+      for (const item of payload.p_items) {
+        const product = products.find(row => row.id === item.product_id)
+        const variant = item.variant_id ? product.product_variants.find(row => row.id === item.variant_id) : null
+        const quantity = Number(item.quantity), unitCost = Number(item.unit_cost)
+        if (variant) {
+          variant.quantity_on_hand += quantity
+          product.quantity_on_hand = product.product_variants.filter(row => row.active).reduce((sum, row) => sum + row.quantity_on_hand, 0)
+        } else product.quantity_on_hand += quantity
+        stockBatches.push({ id: crypto.randomUUID(), receipt_id: receipt.id, product_id: product.id, variant_id: variant?.id || null, campus: product.campus, currency: product.currency || 'USD', quantity_received: quantity, quantity_remaining: quantity, unit_cost: unitCost })
+      }
+    }
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(receipt.id)})
+  }
   if (url.pathname.includes('/rpc/split_unassigned_shop_product')) {
     const { p_product, p_campus, p_quantity, p_details }=req.postDataJSON()
     const source=products.find(product=>product.id===p_product)
-    source.quantity_on_hand-=p_quantity
-    const allocated={ ...source, ...p_details, id:crypto.randomUUID(), campus:p_campus, quantity_on_hand:p_quantity }
-    products.push(allocated)
+    let allocated
+    if(p_quantity===source.quantity_on_hand) {
+      Object.assign(source,p_details,{campus:p_campus,quantity_on_hand:p_quantity})
+      allocated=source
+    } else {
+      source.quantity_on_hand-=p_quantity
+      allocated={ ...source, ...p_details, id:crypto.randomUUID(), campus:p_campus, quantity_on_hand:p_quantity }
+      products.push(allocated)
+    }
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(allocated.id)})
   }
   if (url.pathname.includes('/images/')) {
@@ -69,7 +96,7 @@ await context.route('**/catalog-api/**', async route => {
     return route.fulfill(images.has(url.pathname) ? { status: 200, contentType: 'image/webp', body: images.get(url.pathname) } : { status: 404 })
   }
   const table = url.pathname.split('/').at(-1)
-  const tables = { inventory_products: products, parent_uniform_orders: orders, pos_sales: sales, students: [], shop_audit: [], shop_settings: [{ id: true, store_name: 'Test shop', receipt_header: 'Uniforms', low_stock_alerts_enabled: true }] }
+  const tables = { inventory_products: products, parent_uniform_orders: orders, pos_sales: sales, shop_stock_receipts: stockReceipts, shop_stock_batches: stockBatches, students: [], shop_audit: [], shop_settings: [{ id: true, store_name: 'Test shop', receipt_header: 'Uniforms', low_stock_alerts_enabled: true }] }
   let rows = (tables[table] || []).filter(row => [...url.searchParams].every(([key, value]) => !value.startsWith('eq.') || String(row[key]) === value.slice(3)))
   if (method === 'POST') {
     const payload = req.postDataJSON()
@@ -99,11 +126,23 @@ page.setDefaultTimeout(10000)
 page.on('pageerror', e => errors.push(e.message))
 try {
   await page.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin`, { waitUntil: 'domcontentloaded' })
+  if (viewportWidth <= 1050) {
+    const tabLayout = await page.locator('.shop-tabs').evaluate(element => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+      tabs: [...element.querySelectorAll('button')].map(button => ({ left: button.getBoundingClientRect().left, right: button.getBoundingClientRect().right })),
+      right: element.getBoundingClientRect().right,
+    }))
+    assert.ok(tabLayout.scrollWidth <= tabLayout.clientWidth + 1, 'Shop navigation tabs fit without horizontal scrolling on compact screens')
+    assert.ok(tabLayout.tabs.every(tab => tab.left >= -1 && tab.right <= tabLayout.right + 1), 'All shop tabs remain visible on compact screens')
+  }
   await page.getByRole('button', { name: 'Products', exact: true }).click()
+  await page.getByRole('heading', { name: 'Receive supplier stock', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Recent stock receipts', exact: true }).waitFor()
   await page.getByRole('button', { name: 'Add product', exact: true }).click()
   await page.getByLabel('Product name', { exact: true }).fill('Catalog test shirt')
   await page.getByLabel('Selling price (USD)', { exact: true }).fill('12')
-  await page.getByLabel('Unit cost (USD)', { exact: true }).fill('6')
+  await page.getByLabel('Default correction cost (USD)', { exact: true }).fill('6')
   await page.getByRole('dialog').getByLabel('Campus',{exact:true}).selectOption('junior')
   const image = await page.evaluate(() => { const c=document.createElement('canvas'); c.width=1800;c.height=1200;const ctx=c.getContext('2d');ctx.fillStyle='#3172ad';ctx.fillRect(0,0,c.width,c.height);return c.toDataURL('image/png').split(',')[1] })
   const file = { name: 'shirt.png', mimeType: 'image/png', buffer: Buffer.from(image, 'base64') }
@@ -113,10 +152,20 @@ try {
   assert.equal(uploads.length,0,'Photo is previewed before uploading')
   await page.getByRole('button',{name:'Save product',exact:true}).click()
   await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
-  assert.equal(products.length,1);assert.equal(uploads.length,1)
+  assert.equal(products.length,1);assert.equal(products[0].quantity_on_hand,0);assert.equal(uploads.length,1)
   assert.ok(uploads[0].length < 2*1024*1024)
   const size = await page.evaluate(async url => { const b=await createImageBitmap(await (await fetch(url)).blob());const result={width:b.width,height:b.height};b.close();return result },products[0].image_url)
   assert.equal(size.width,1000);assert.ok(size.height<=1000)
+  stockReceipts.push({ id:'receipt-ledger-test', supplier_name:'Ledger Test Supplier', supplier_reference:'INV-TEST-01', notes:'Browser ledger check', receipt_kind:'supplier', created_at:new Date().toISOString() })
+  stockBatches.push({ id:'batch-ledger-test', receipt_id:'receipt-ledger-test', product_id:products[0].id, variant_id:null, campus:'junior', currency:'USD', quantity_received:10, quantity_remaining:0, unit_cost:6 })
+  await page.getByRole('button',{name:'Refresh',exact:true}).click()
+  const ledgerEntry=page.locator('.shop-stock-ledger-entry').filter({hasText:'Ledger Test Supplier'})
+  await ledgerEntry.locator('summary').click()
+  await ledgerEntry.getByText('INV-TEST-01').waitFor()
+  await ledgerEntry.getByText('Browser ledger check').waitFor()
+  await ledgerEntry.getByText('Catalog test shirt',{exact:true}).waitFor()
+  await ledgerEntry.getByText('10',{exact:true}).waitFor()
+  await ledgerEntry.getByText('6.00',{exact:false}).waitFor()
   await page.getByRole('button',{name:/Catalog test shirt/}).click()
   await page.getByLabel('New size',{exact:true}).fill('Small')
   await page.getByLabel('New size stock',{exact:true}).fill('4')
@@ -439,6 +488,71 @@ try {
   // Close a recovered sale receipt before returning to the staff catalog.
   if(await page.getByRole('dialog',{name:'Sale receipt'}).count()) await page.getByRole('dialog',{name:'Sale receipt'}).getByRole('button',{name:'Close',exact:true}).click()
   await page.getByRole('button',{name:'Products',exact:true}).click()
+  await page.getByLabel('Catalog campus',{exact:true}).selectOption('all')
+  // Receiving the same SKU at different supplier costs preserves each cost lot.
+  const receiptForm = page.locator('.shop-receive-form')
+  await page.getByRole('button',{name:'Add product',exact:true}).click()
+  await page.getByLabel('Product name',{exact:true}).fill('Supplier cost test item')
+  await page.getByLabel('Selling price (USD)',{exact:true}).fill('15')
+  await page.getByLabel('Default correction cost (USD)',{exact:true}).fill('5')
+  await page.getByRole('dialog').getByLabel('Campus',{exact:true}).selectOption('junior')
+  await page.getByRole('button',{name:'Save product',exact:true}).click()
+  await page.getByRole('dialog',{name:'Product editor'}).waitFor({state:'detached'})
+  const receiptProduct = products.at(-1)
+  assert.equal(receiptProduct.quantity_on_hand,0,'New test product starts with no stock')
+  await receiptForm.getByLabel('Supplier',{exact:true}).fill('First supplier')
+  await receiptForm.getByLabel('Supplier reference',{exact:false}).fill('INV-FIRST-01')
+  const receiptLine = receiptForm.locator('.shop-receipt-line').first()
+  await receiptLine.locator('select').first().selectOption(receiptProduct.id)
+  await receiptLine.locator('input[type="number"]').first().fill('2')
+  await receiptLine.locator('input[type="number"]').nth(1).fill('7.25')
+  await receiptForm.getByRole('button',{name:'Record stock receipt',exact:true}).click()
+  await page.getByText('Stock receipt recorded',{exact:false}).waitFor()
+  const firstReceipt = page.locator('.shop-stock-ledger-entry').filter({hasText:'First supplier'})
+  await firstReceipt.locator('summary').click()
+  await firstReceipt.getByText('Supplier cost test item',{exact:true}).waitFor()
+  await firstReceipt.getByText('7.25',{exact:false}).waitFor()
+  assert.equal(receiptProduct.quantity_on_hand,2,'The multi-product receiving form adds its entered quantity')
+  // The product workflow receives a second delivery at a different supplier cost.
+  await page.getByRole('button',{name:/Supplier cost test item/}).click()
+  const productDialog=page.getByRole('dialog',{name:'Product editor'})
+  const productReceive=productDialog.locator('.shop-product-stock-receive')
+  await productReceive.locator('summary').click()
+  if(viewportWidth===390) {
+    const mobileReceive=await productReceive.evaluate(element=>({scrollWidth:element.scrollWidth,clientWidth:element.clientWidth,buttonHeight:element.querySelector('button').getBoundingClientRect().height,top:element.getBoundingClientRect().top,fieldsTop:element.parentElement.querySelector('.shop-product-fields').getBoundingClientRect().top}))
+    assert.ok(mobileReceive.scrollWidth<=mobileReceive.clientWidth+1,'Product receipt form fits the mobile editor width')
+    assert.ok(mobileReceive.buttonHeight>=44,'Mobile receipt action has a comfortable tap target')
+    assert.ok(mobileReceive.top<mobileReceive.fieldsTop,'Stock receiving is the first section in the mobile product editor')
+    await productDialog.screenshot({path:'tmp/catalog-review/mobile-product-receive.png'})
+  }
+  await productReceive.getByLabel('Supplier',{exact:true}).fill('Second supplier')
+  await productReceive.getByLabel('Supplier reference',{exact:false}).fill('INV-SECOND-02')
+  await productReceive.getByLabel('Quantity to receive',{exact:true}).fill('2')
+  await productReceive.getByLabel('Supplier unit cost (USD)',{exact:true}).fill('9.10')
+  await productReceive.getByRole('button',{name:'Record this delivery',exact:true}).click()
+  await productDialog.waitFor({state:'detached'})
+  await page.getByText('Stock received for Supplier cost test item',{exact:false}).waitFor()
+  const secondReceipt=page.locator('.shop-stock-ledger-entry').filter({hasText:'Second supplier'})
+  await secondReceipt.locator('summary').click()
+  await secondReceipt.getByText('Supplier cost test item',{exact:true}).waitFor()
+  await secondReceipt.getByText('9.10',{exact:false}).waitFor()
+  assert.equal(receiptProduct.quantity_on_hand,4,'Both supplier receipts add their received stock')
+  assert.deepEqual(stockReceipts.filter(row=>row.supplier_name.endsWith('supplier')).map(row=>row.supplier_name),['First supplier','Second supplier'])
+  assert.deepEqual(stockBatches.filter(row=>row.product_id===receiptProduct.id).map(row=>row.unit_cost.toFixed(2)),['7.25','9.10'])
+  sales.splice(0,sales.length)
+  sales.push({
+    id:'batch-cost-report-test',receipt_number:'RLC-COST-TEST',created_at:new Date().toISOString(),campus:'junior',currency:'USD',
+    status:'completed',customer_name:'Cost report check',payment_method:'cash',total:50,amount_paid:50,
+    pos_sale_items:[{id:'batch-cost-report-line',product_id:receiptProduct.id,product_name:receiptProduct.name,quantity:2,unit_price:25,unit_cost:8.175,cost_total:16.35,line_total:50}],
+  })
+  await page.getByRole('button',{name:'Refresh',exact:true}).click()
+  await page.getByRole('button',{name:'Profit & loss',exact:true}).click()
+  const profitRow=page.locator('.shop-profit-layout tbody tr').filter({hasText:'Supplier cost test item'})
+  const profitText=(await profitRow.textContent()).replace(/\s+/g,' ')
+  assert.match(profitText,/16\.35/,'P&L uses the cost snapshot from received batches')
+  assert.match(profitText,/33\.65/,'P&L computes gross profit from the batch cost snapshot')
+  assert.match(profitText,/67\.3%/,'P&L computes gross margin from the batch cost snapshot')
+  await page.getByRole('button',{name:'Products',exact:true}).click()
   await parent.getByRole('button',{name:'Refresh catalog',exact:true}).click()
   await parent.getByRole('heading',{name:'Legacy jacket',exact:true}).waitFor()
   for(const target of [page,parent]) for(const result of await layoutProbe(target)) {
@@ -471,5 +585,5 @@ try {
   assert.deepEqual(errors,[])
   const overflow=await parent.evaluate(()=>document.documentElement.scrollWidth>innerWidth)
   assert.equal(overflow,false,'Parent mobile catalog does not overflow')
-  console.log(`PASS (${viewportWidth}px): photo preview/compression/upload/replace/remove, sizes, parent visibility and historical order display; invalid files rejected.`)
+  console.log(`PASS (${viewportWidth}px): product stock receiving, separate supplier batch costs, profit reporting, mobile tap targets and dialog fit.`)
 } finally { await context.close(); await runtime.close() }

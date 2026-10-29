@@ -560,6 +560,10 @@
   }
 }
 @media (max-width: 1050px) {
+  .shop-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
   .shop-checkout-layout {
     grid-template-columns: 1fr;
   }
@@ -668,6 +672,53 @@
   body.printing-shop-receipt .shop-receipt .no-print { display: none !important; }
 }
 
+.shop-receive-form { margin-top: 18px; }
+.shop-receive-form > p { color: #596b82; line-height: 1.55; margin: 0 0 16px; }
+.shop-optional { color: #7b8798; font-size: 11px; font-weight: 500; }
+.shop-receipt-lines { display: grid; gap: 12px; margin: 16px 0; }
+.shop-receipt-line { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(110px, 1fr)) auto; align-items: end; gap: 12px; padding: 14px; border: 1px solid #e0e6ef; border-radius: 12px; background: #f9fbfd; }
+.shop-receipt-line label, .shop-receipt-notes { display: grid; gap: 6px; min-width: 0; color: #334863; font-size: 12px; font-weight: 600; }
+.shop-receive-form :is(input, select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; font: inherit; font-size: 16px; padding: 10px; border: 1px solid #b8c6de; border-radius: 8px; background: #fff; }
+.shop-receipt-line-total { display: grid; gap: 5px; align-self: center; color: #718098; font-size: 11px; white-space: nowrap; }
+.shop-receipt-line-total strong { color: #173a69; font-size: 13px; }
+.shop-receipt-remove { min-height: 42px; color: #9f252b; }
+.shop-receipt-notes { margin: 16px 0; }
+.shop-receipt-notes textarea { resize: vertical; }
+.shop-receive-form > button.primary { margin-top: 14px; }
+.shop-stock-ledger { margin-top: 18px; }
+.shop-stock-ledger > p { color: #596b82; line-height: 1.55; }
+.shop-stock-ledger-list { display: grid; gap: 10px; margin: 16px 0; }
+.shop-stock-ledger-entry { min-width: 0; border: 1px solid #e0e6ef; border-radius: 12px; background: #fff; overflow: hidden; }
+.shop-stock-ledger-entry summary { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer; list-style-position: inside; }
+.shop-stock-ledger-entry summary > span { display: grid; gap: 4px; min-width: 0; }
+.shop-stock-ledger-entry summary strong { color: #173a69; }
+.shop-stock-ledger-entry summary small { color: #718098; font-size: 11px; }
+.shop-stock-ledger-entry .shop-stock-ledger-meta { text-align: right; flex: 0 0 auto; }
+.shop-stock-ledger-entry .shop-stock-ledger-meta b { color: #385173; font-size: 11px; }
+.shop-stock-ledger-notes { margin: 0 16px 12px; color: #596b82; font-size: 12px; }
+.shop-stock-ledger-table { border-top: 1px solid #e7ebf2; }
+.shop-stock-ledger-table table { min-width: 690px; }
+.shop-stock-ledger-table td strong { display: block; }
+.shop-stock-ledger-table td small { display: block; margin-top: 3px; color: #718098; }
+@media (max-width: 850px) {
+  .shop-receipt-line { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shop-receipt-line label:first-child { grid-column: 1 / -1; }
+  .shop-receipt-line-total { align-self: center; }
+}
+@media (max-width: 600px) {
+  .shop-receive-form { padding: 16px; }
+  .shop-stock-ledger { padding: 16px; }
+  .shop-stock-ledger-entry summary { align-items: flex-start; flex-direction: column; }
+  .shop-stock-ledger-entry .shop-stock-ledger-meta { text-align: left; }
+  .shop-receipt-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 12px; }
+  .shop-receipt-line label:first-child { grid-column: 1 / -1; }
+  .shop-receipt-line > label:nth-child(2) { grid-column: 1 / -1; }
+  .shop-receipt-line-total { grid-column: 1 / 2; }
+  .shop-receipt-remove { grid-column: 2 / 3; }
+  .shop-receive-form > button:not(.primary) { width: 100%; min-height: 44px; justify-content: center; }
+  .shop-receive-form > button.primary { width: 100%; min-height: 46px; }
+}
+
 .shop-app .shop-search {
   flex-direction: row;
   margin-bottom: 0;
@@ -718,9 +769,25 @@
 .shop-product-secondary-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
 .shop-product-secondary-actions button { min-height: 44px; white-space: normal; }
 .shop-product-secondary-actions .shop-product-delete { color: #9f252b; border-color: #d9a9ac; }
+.shop-product-stock-receive { margin: 18px 0; padding: 16px; border: 1px solid #d6e0ef; border-radius: 12px; background: #f8faff; }
+.shop-product-stock-receive summary { min-height: 28px; color: #173a69; font-size: 14px; font-weight: 750; cursor: pointer; }
+.shop-product-stock-receive > p { margin: 10px 0; color: #596b82; font-size: 12px; line-height: 1.5; }
+.shop-product-stock-current strong { color: #173a69; }
+.shop-product-stock-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.shop-product-stock-receive label { display: grid !important; gap: 6px !important; min-width: 0; margin: 0 !important; color: #334863; font-size: 12px !important; }
+.shop-product-stock-receive :is(input, select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid #b8c6de; border-radius: 8px; background: #fff; font: inherit; font-size: 16px; }
+.shop-product-stock-receive textarea { resize: vertical; }
+.shop-product-stock-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 10px; border-top: 1px solid #dfe6f0; }
+.shop-product-stock-total strong { color: #173a69; font-size: 15px; }
+.shop-product-stock-receive > button { width: 100%; min-height: 46px; justify-content: center; }
 .shop-product-dialog { scroll-padding-block: 24px 96px; }
 .shop-product-dialog input, .shop-product-dialog select, .shop-product-dialog button { scroll-margin-block: 24px 96px; }
 @media (max-width: 600px) {
+  .shop-product-stock-receive { margin-inline: -4px; padding: 14px; }
+  .shop-product-stock-receive summary { min-height: 36px; display: flex; align-items: center; }
+  .shop-product-stock-fields { grid-template-columns: 1fr; gap: 10px; }
+  .shop-product-stock-receive :is(input, select, textarea) { min-height: 46px; }
+  .shop-product-stock-receive > button { min-height: 48px; }
   .shop-product-dialog .shop-product-save-actions { position: sticky; bottom: -16px; z-index: 2; background: #fff; border-top: 1px solid #dbe1ea; margin: 20px -16px -16px; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
   .shop-product-save-actions > button { min-width: 0; white-space: normal; }
   .shop-product-secondary-actions > button { flex: 1 1 150px; }
