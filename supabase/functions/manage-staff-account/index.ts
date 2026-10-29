@@ -16,16 +16,28 @@ const workingName = (legalFullName: string, workingTitle: string) => {
   const names = legalFullName.trim().split(/\s+/).filter(Boolean)
   return `${workingTitle} ${names.at(-1) ?? ''}`.trim()
 }
-const ensureSubjectSlotsAreAvailable = async (admin: ReturnType<typeof createClient>, campus: string, assignments: { subject: string, class_level: string, class_stream: string }[], excludedTeacherId?: string) => {
+const normalizeSubjectLabel = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+const curriculumGroupsForAssignment = (campus: string, level: string, stream: string) => {
+  if (campus !== 'senior') return []
+  if (['Form 1', 'Form 2'].includes(level)) return ['form_1_2_zgc']
+  if (['Form 3', 'Form 4'].includes(level)) return ['form_3_4']
+  if (level === 'Lower Six' || level === 'Upper Six') {
+    const prefix = level === 'Lower Six' ? 'lower_six_' : 'upper_six_'
+    return stream ? [`${prefix}${stream.toLowerCase()}`] : ['arts', 'commercials', 'sciences'].map(pathway => `${prefix}${pathway}`)
+  }
+  return []
+}
+const ensureSubjectSlotsAreAvailable = async (admin: ReturnType<typeof createClient>, campus: string, assignments: { subject: string, subject_id?: string | null, class_level: string, class_stream: string }[], excludedTeacherId?: string) => {
   if (!assignments.length) return
   const { data: existing, error } = await admin
     .from('teacher_class_subject_assignments')
-    .select('teacher_id, subject, class_level, class_stream')
+    .select('teacher_id, subject, subject_id, class_level, class_stream')
     .eq('campus', campus)
   if (error) throw error
   const conflict = (existing ?? []).find(current => current.teacher_id !== excludedTeacherId && assignments.some(requested =>
     current.class_level === requested.class_level
-    && current.subject.trim().toLowerCase() === requested.subject.trim().toLowerCase()
+    && ((current.subject_id && requested.subject_id && current.subject_id === requested.subject_id)
+      || (!current.subject_id || !requested.subject_id) && normalizeSubjectLabel(current.subject.trim()) === normalizeSubjectLabel(requested.subject.trim()))
     && (!current.class_stream || !requested.class_stream || current.class_stream === requested.class_stream),
   ))
   if (conflict) throw new Error(`${conflict.subject} is already allocated for ${conflict.class_level}. Reassign it from the current teacher before assigning another teacher.`)
@@ -106,6 +118,7 @@ Deno.serve(async (request) => {
     const classSubjectAssignments = Array.isArray(input.class_subject_assignments)
       ? input.class_subject_assignments.map((entry: Record<string, unknown>) => ({
         subject: String(entry?.subject ?? '').trim(),
+        subject_id: String(entry?.subject_id ?? '').trim() || null,
         class_level: String(entry?.class_level ?? '').trim(),
         class_stream: String(entry?.class_stream ?? '').trim(),
       }))
@@ -138,9 +151,34 @@ Deno.serve(async (request) => {
     )) {
       throw new Error('Each subject allocation needs a valid form and subject.')
     }
+    if (target.role === 'teacher' && classSubjectAssignments.length) {
+      const requestedAliases = [...new Set(classSubjectAssignments.map(assignment => normalizeSubjectLabel(assignment.subject)).filter(Boolean))]
+      const requestedGroups = [...new Set(classSubjectAssignments.flatMap(assignment => curriculumGroupsForAssignment(campus, assignment.class_level, assignment.class_stream)))]
+      const [aliasResult, subjectResult] = await Promise.all([
+        requestedGroups.length ? admin.from('subject_catalog_aliases').select('alias_key,subject_id,group_code').in('alias_key', requestedAliases).in('group_code', requestedGroups) : Promise.resolve({ data: [], error: null }),
+        admin.from('subject_catalog').select('id,is_active'),
+      ])
+      if (aliasResult.error) throw aliasResult.error
+      if (subjectResult.error) throw subjectResult.error
+      const activeSubjectIds = new Set((subjectResult.data ?? []).filter(subject => subject.is_active).map(subject => subject.id))
+      for (const assignment of classSubjectAssignments) {
+        const groups = curriculumGroupsForAssignment(campus, assignment.class_level, assignment.class_stream)
+        const aliasKey = normalizeSubjectLabel(assignment.subject)
+        const matches = (aliasResult.data ?? []).filter(alias => alias.alias_key === aliasKey && groups.includes(alias.group_code) && activeSubjectIds.has(alias.subject_id))
+        let resolvedIds = [...new Set(matches.map(alias => alias.subject_id))]
+        if (groups.length > 1 && !assignment.class_stream) {
+          const coveredGroups = new Set(matches.map(alias => alias.group_code))
+          if (groups.some(group => !coveredGroups.has(group))) resolvedIds = []
+        }
+        if (resolvedIds.length > 1) throw new Error(`The subject “${assignment.subject}” is ambiguous in ${assignment.class_level}; choose a specific pathway.`)
+        const resolvedId = resolvedIds[0] ?? null
+        if (assignment.subject_id && assignment.subject_id !== resolvedId) throw new Error(`The selected subject is no longer available in ${assignment.class_level}. Refresh the catalog and choose it again.`)
+        assignment.subject_id = resolvedId
+      }
+    }
     const duplicateSubjectAllocation = new Set<string>()
     for (const assignment of classSubjectAssignments) {
-      const key = `${assignment.subject.toLowerCase()}|${assignment.class_level}|${assignment.class_stream}`
+      const key = `${assignment.subject_id || normalizeSubjectLabel(assignment.subject)}|${assignment.class_level}|${assignment.class_stream}`
       if (duplicateSubjectAllocation.has(key)) throw new Error('A subject can be allocated only once to the same class.')
       duplicateSubjectAllocation.add(key)
     }
@@ -199,6 +237,7 @@ Deno.serve(async (request) => {
           .insert(classSubjectAssignments.map((assignment) => ({
             teacher_id: userId,
             subject: assignment.subject,
+            subject_id: assignment.subject_id,
             class_level: assignment.class_level,
             class_stream: assignment.class_stream,
             campus,

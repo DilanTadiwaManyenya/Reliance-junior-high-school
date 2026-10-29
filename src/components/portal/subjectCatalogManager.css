@@ -1,0 +1,20 @@
+.subject-catalog-manager { display:grid; gap:18px; }
+.subject-catalog-form { display:grid; gap:14px; padding:18px; border:1px solid #d7dfeb; border-radius:14px; background:#fff; }
+.subject-catalog-form h2,.subject-catalog-row h2 { margin:0; color:#172b59; }
+.subject-catalog-form label,.subject-catalog-toolbar label { display:grid; gap:6px; min-width:0; }
+.subject-catalog-form input:not([type=checkbox]),.subject-catalog-toolbar :is(input,select) { min-height:44px; min-width:0; box-sizing:border-box; padding:10px 12px; border:1px solid #ccd5e4; border-radius:8px; font:inherit; background:#fff; color:#172b59; }
+.subject-catalog-form fieldset { min-width:0; margin:0; padding:12px; border:1px solid #d7dfeb; border-radius:10px; }
+.subject-catalog-form legend { padding:0 6px; color:#354c75; font-weight:700; }
+.subject-catalog-groups { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:8px; }
+.subject-catalog-group { display:flex!important; align-items:center; gap:9px!important; min-height:40px; padding:6px 8px; border-radius:8px; background:#f7f9fc; }
+.subject-catalog-group input,.subject-catalog-retired input { width:18px; height:18px; accent-color:#ab2f32; flex:0 0 auto; }
+.subject-catalog-code { color:#66748d; font-size:.88em; }
+.subject-catalog-toolbar { display:grid; grid-template-columns:minmax(180px,1fr) minmax(200px,.8fr) auto auto; gap:12px; align-items:end; }
+.subject-catalog-retired { display:flex!important; align-items:center; gap:8px!important; min-height:44px; }
+.subject-catalog-list { display:grid; gap:10px; }
+.subject-catalog-row { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:16px; border:1px solid #d7dfeb; border-radius:12px; background:#fff; }
+.subject-catalog-row p { margin:7px 0 0; color:#64718a; }
+.subject-catalog-row.is-retired { opacity:.78; background:#f5f6f8; }
+.subject-catalog-status { display:inline-block; margin-left:9px; padding:3px 8px; border-radius:999px; background:#eceff4; color:#59677d; font-size:.7em; vertical-align:middle; }
+.subject-catalog-row .portal-action-row { flex-wrap:wrap; justify-content:flex-end; }
+@media(max-width:720px) { .subject-catalog-toolbar { grid-template-columns:1fr; }.subject-catalog-row { align-items:stretch; flex-direction:column; }.subject-catalog-row .portal-action-row { justify-content:flex-start; }.subject-catalog-row .btn { flex:1 1 auto; } }

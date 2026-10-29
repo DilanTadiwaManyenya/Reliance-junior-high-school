@@ -126,6 +126,13 @@ page.setDefaultTimeout(10000)
 page.on('pageerror', e => errors.push(e.message))
 try {
   await page.goto(`${runtime.base}/tests/fixtures/catalog/index.html?role=admin`, { waitUntil: 'domcontentloaded' })
+  const exportPanel = page.getByRole('region', { name: 'Finance and operations exports' })
+  if (viewportWidth <= 600) {
+    assert.equal(await exportPanel.getByLabel('Export report', { exact: true }).count(), 0, 'Inventory exports start collapsed on phones')
+    assert.equal(await exportPanel.getByRole('button', { name: 'Show export options', exact: true }).isVisible(), true)
+  } else {
+    await exportPanel.getByLabel('Export report', { exact: true }).waitFor()
+  }
   if (viewportWidth <= 1050) {
     const tabLayout = await page.locator('.shop-tabs').evaluate(element => ({
       scrollWidth: element.scrollWidth,

@@ -34,6 +34,7 @@ export default function PortalSidebar({ section, setSection, teacherWorkspace, c
       items: [
         { id: 'bulk-import', label: 'Bulk learner export', iconKey: 'roster', show: activeRole === 'admin' },
         { id: 'report-settings', label: 'Report settings', iconKey: 'entry', show: activeRole === 'admin' },
+        { id: 'subject-catalog', label: 'Subject catalog', iconKey: 'entry', show: isMainAdmin },
         { id: 'grade-bands', label: 'Grade bands', iconKey: 'entry', show: canManageJuniorAcademicSettings },
         { id: 'historical-reports', label: 'Historical reports', iconKey: 'roster', show: manager || accountant },
         { id: 'classes', label: 'Classes', iconKey: 'staff', show: activeRole === 'admin' },

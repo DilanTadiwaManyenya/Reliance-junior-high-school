@@ -156,6 +156,9 @@
 }
 .shop-operational-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-bottom: 20px; }
 .shop-panel h2 svg { color: var(--shop-gold); }
+.shop-operations-exports-compact .shop-exports-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shop-operations-exports-compact .shop-exports-heading h2 { margin: 0; }
+.shop-exports-toggle { display: none !important; }
 .shop-value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .shop-value-grid > div { border: 1px solid #e5eaf1; background: #f9fbfd; border-radius: 10px; padding: 13px; }
 .shop-value-grid span, .shop-health > span { display: block; color: #708097; font-size: 11px; margin-bottom: 7px; }
@@ -629,6 +632,9 @@
   .shop-panel {
     padding: 16px;
   }
+  .shop-operations-exports-compact { padding: 14px 16px; }
+  .shop-operations-exports-compact .shop-exports-heading h2 { font-size: 16px; }
+  .shop-operations-exports-compact .shop-exports-toggle { display: inline-flex !important; flex: 0 0 auto; min-height: 44px; padding-inline: 10px; font-size: 12px; }
   .shop-toolbar { align-items: stretch; padding: 10px; }
   .shop-toolbar > label,
   .shop-toolbar > button,

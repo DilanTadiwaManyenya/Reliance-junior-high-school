@@ -952,7 +952,7 @@ function ShopWorkspace({ supabase, user, profile, checkoutCampus, setCheckoutCam
           <RefreshCw size={16} /> {loading ? "Loading…" : "Refresh"}
         </button>
       </header>
-      <OperationsExports supabase={supabase} profile={profile} kinds={canManageProducts ? ['stock','sales',...(admin ? ['orders'] : [])] : ['sales','orders']} />
+      <OperationsExports supabase={supabase} profile={profile} kinds={canManageProducts ? ['stock','sales',...(admin ? ['orders'] : [])] : ['sales','orders']} compactOnMobile />
       {tab !== "pos" && <label className="shop-currency-filter">View currency<select aria-label="POS report currency" value={reportCurrency} onChange={event => setReportCurrency(event.target.value)}>{FINANCE_CURRENCIES.map(code => <option key={code}>{code}</option>)}</select><small>Totals and reports stay separate by currency.</small></label>}
       <nav className="shop-tabs" aria-label="Shop sections">
         {tabs

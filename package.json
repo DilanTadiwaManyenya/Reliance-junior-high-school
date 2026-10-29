@@ -37,6 +37,7 @@
     "test:record-history": "node --test tests/school-record-history.test.mjs && node tests/school-record-history.browser.mjs",
     "test:rollover-readiness": "node --test tests/year-rollover-readiness.test.mjs && node tests/year-rollover-readiness.browser.mjs",
     "test:historical-reports": "node --test tests/historical-reports.test.mjs && node tests/historical-reports.browser.mjs",
+    "test:subject-report-stage2": "node tests/subject-report-stage2.test.mjs",
     "test:rollover-workflow": "node --test tests/year-rollover-workflow.test.mjs && node tests/year-rollover-workflow.browser.mjs",
     "test:reporting-periods": "node --test tests/reporting-periods.test.mjs && node tests/reporting-periods.browser.mjs",
     "test:learner-export": "node --test tests/learner-register-export.test.mjs tests/class-options.test.mjs && node tests/learner-register-export.browser.mjs",

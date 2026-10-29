@@ -43,6 +43,9 @@ try {
   console.log('PASS fees: exported totals match existing admin/accountant/principal amounts; campus filter and retry verified')
   const shop=await openPortal(runtime.browser,runtime.base,{role:'admin',campus:'all',section:'inventory',operationsData:''},390)
   const exports=shop.getByRole('region',{name:'Finance and operations exports'})
+  assert.equal(await exports.getByLabel('Export report',{exact:true}).count(),0,'Inventory exports collapse on mobile to keep POS near the top')
+  await exports.getByRole('button',{name:'Show export options',exact:true}).click()
+  await exports.getByLabel('Export report',{exact:true}).waitFor()
   for(const kind of ['stock','sales','orders']) {
     await exports.getByLabel('Export report',{exact:true}).selectOption(kind)
     for(const [label,extension] of [['Download CSV','csv'],['Download Excel','xlsx']]) {
@@ -57,7 +60,9 @@ try {
   await shop.close()
   for(const [role,campus,expected] of [['admin','junior',['stock','sales']],['accountant','senior',['sales','orders']]]) {
     const scoped=await openPortal(runtime.browser,runtime.base,{role,campus,section:'inventory'},390)
-    assert.deepEqual(await scoped.getByRole('region',{name:'Finance and operations exports'}).getByLabel('Export report',{exact:true}).locator('option').evaluateAll(options=>options.map(option=>option.value)),expected)
+    const scopedExports=scoped.getByRole('region',{name:'Finance and operations exports'})
+    await scopedExports.getByRole('button',{name:'Show export options',exact:true}).click()
+    assert.deepEqual(await scopedExports.getByLabel('Export report',{exact:true}).locator('option').evaluateAll(options=>options.map(option=>option.value)),expected)
     await scoped.close()
   }
   console.log('PASS stock/size and historical POS/order downloads; campus-admin and accountant export choices preserve existing authority')
