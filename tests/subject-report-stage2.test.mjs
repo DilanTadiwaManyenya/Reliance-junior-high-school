@@ -7,6 +7,7 @@ import { subjectIdentityKey } from '../src/lib/subjectLabels.js'
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 const migration = 'supabase/migrations/20261029110000_canonical_subject_catalog_foundation.sql'
 const reportMigration = 'supabase/migrations/20261029100000_reviewed_current_report_context_capture.sql'
+const catalogManagementMigration = 'supabase/migrations/20261029120000_expand_subject_catalog_and_management.sql'
 const uid = '70000000-0000-4000-8000-000000000001'
 const learnerId = '70000000-0000-4000-8000-000000000101'
 
@@ -46,6 +47,54 @@ test('canonical subject migration maps confirmed aliases and preserves legacy la
     assert.equal((await db.query("select normalize_subject_label('English Language') as label")).rows[0].label, 'englishlanguage')
     assert.equal((await db.query('select count(*)::int as count from curriculum_subject_groups')).rows[0].count, 11)
     assert.equal((await db.query("select subject_id from teacher_class_subject_assignments where campus='junior' and subject='Shona'")).rows[0].subject_id, null)
+  } finally {
+    await db.close()
+  }
+})
+
+test('expanded curriculum catalog is complete and guarded edits preserve allocation identity', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await read('tests/fixtures/security-rpc/schema.sql'))
+    await db.exec(await read('tests/fixtures/security-rpc/baseline.sql'))
+    await db.exec(`
+      create function public.portal_mfa_satisfied() returns boolean language sql stable as $$select true$$;
+      create function public.report_rules_baseline(p_level text,p_stream text) returns jsonb language sql immutable as $$select '{"subjects":["Legacy subject"],"grading_scale":[]}'::jsonb$$;
+      create table public.grade_bands(band_group text,grade text,points int,description text,minimum_score int);
+      alter table teacher_class_subject_assignments add column id uuid default gen_random_uuid();
+      create table teacher_subject_assignments(id uuid primary key default gen_random_uuid(),teacher_id uuid,subject text,form_level text);
+      insert into teacher_class_subject_assignments(teacher_id,campus,class_level,class_stream,subject)
+      values ('${uid}','senior','Form 2','Green','Shona');
+      insert into profiles(id,full_name,role,active_role,campus) values('${uid}','Main Admin','admin','admin','all');
+      insert into user_roles(user_id,role) values('${uid}','admin');
+      select set_config('test.uid','${uid}',false);
+    `)
+    await db.exec(await read(migration))
+    await db.exec(await read(catalogManagementMigration))
+    assert.equal((await db.query('select count(*)::int as count from curriculum_subject_groups')).rows[0].count, 11)
+    assert.ok((await db.query('select count(*)::int as count from subject_catalog')).rows[0].count >= 35)
+    const chishonaId = (await db.query("select id from subject_catalog where subject_code='chishona'")).rows[0].id
+    assert.equal((await db.query('select subject_id from teacher_class_subject_assignments')).rows[0].subject_id, chishonaId)
+    const initialReportRules = (await db.query("select report_rules_for_new_period('Form 2','Green') as rules")).rows[0].rules
+    assert.ok(initialReportRules.subjects.includes('Chishona'))
+    assert.ok(!initialReportRules.subjects.includes('Legacy subject'))
+    await assert.rejects(
+      db.query('select delete_unused_subject_catalog_entry($1)', [chishonaId]),
+      /still has teacher allocations/,
+    )
+    await db.query('select save_subject_catalog_entry($1,$2,$3,$4)', [chishonaId, 'chishona', 'IsiNdebele', ['form_1_2_zgc']])
+    const assignment = (await db.query('select subject,subject_id from teacher_class_subject_assignments')).rows[0]
+    assert.equal(assignment.subject, 'IsiNdebele')
+    assert.equal(assignment.subject_id, chishonaId)
+    const renamedReportRules = (await db.query("select report_rules_for_new_period('Form 2','Green') as rules")).rows[0].rules
+    assert.ok(renamedReportRules.subjects.includes('IsiNdebele'))
+    await db.exec(`insert into teacher_subject_assignments(teacher_id,subject,form_level) values('${uid}','Shona','Form 2'); delete from teacher_class_subject_assignments;`)
+    await assert.rejects(
+      db.query('select delete_unused_subject_catalog_entry($1)', [chishonaId]),
+      /legacy teacher allocations/,
+    )
+    await db.query('select set_subject_catalog_active($1,false)', [chishonaId])
+    assert.equal((await db.query('select is_active from subject_catalog where id=$1', [chishonaId])).rows[0].is_active, false)
   } finally {
     await db.close()
   }

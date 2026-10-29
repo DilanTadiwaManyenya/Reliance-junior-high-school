@@ -1,4 +1,5 @@
 import ReportClassHistory from '../../components/portal/ReportClassHistory'
+import SubjectCatalogManager from '../../components/portal/SubjectCatalogManager'
 import YearRolloverWorkflow from '../../components/portal/YearRolloverWorkflow'
 import ReportingPeriods from '../../components/portal/ReportingPeriods'
 import MobileRecordTable from '../../components/portal/MobileRecordTable'
@@ -879,6 +880,9 @@ export default function StaffDashboard() {
   const [todayAttendance, setTodayAttendance] = useState({});
   const [savingAttendance, setSavingAttendance] = useState({});
   const [schoolClasses, setSchoolClasses] = useState([]);
+  const [catalogSubjects, setCatalogSubjects] = useState([]);
+  const [catalogGroups, setCatalogGroups] = useState([]);
+  const [catalogMemberships, setCatalogMemberships] = useState([]);
   const [attendanceStudent, setAttendanceStudent] = useState(null);
   const [profileStudent, setProfileStudent] = useState(null);
   const [profileInitialTab, setProfileInitialTab] = useState("Summary");
@@ -984,7 +988,7 @@ export default function StaffDashboard() {
     const staffQuery = supabase
       .from("profiles")
       .select(
-        "id, full_name, legal_full_name, working_title, signature_initials, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream), teacher_class_subject_assignments (id, class_level, class_stream, subject, campus)",
+        "id, full_name, legal_full_name, working_title, signature_initials, phone, role, campus, portal_access_enabled, teacher_class_assignments (class_level, class_stream), teacher_class_subject_assignments (id, subject_id, class_level, class_stream, subject, campus)",
       )
       .order("full_name");
     if (adminCampusScope) staffQuery.eq("campus", adminCampusScope);
@@ -1001,6 +1005,19 @@ export default function StaffDashboard() {
     const { data } = await classQuery;
     setSchoolClasses(data ?? []);
   }, [supabase, adminCampusScope]);
+  const loadSubjectCatalog = useCallback(async () => {
+    if (!manager) return;
+    const [subjectsResult, groupsResult, membershipsResult] = await Promise.all([
+      supabase.from("subject_catalog").select("id,subject_code,display_name,is_active").eq("is_active", true).order("display_name"),
+      supabase.from("curriculum_subject_groups").select("group_code,display_name,sort_order").order("sort_order"),
+      supabase.from("subject_catalog_group_memberships").select("subject_id,group_code"),
+    ]);
+    if (subjectsResult.error || groupsResult.error || membershipsResult.error) return;
+    setCatalogSubjects(subjectsResult.data || []);
+    setCatalogGroups(groupsResult.data || []);
+    setCatalogMemberships(membershipsResult.data || []);
+  }, [manager, supabase]);
+  useEffect(() => { void loadSubjectCatalog(); }, [loadSubjectCatalog]);
 
   const handleToggleAttendance = async (studentId, currentStatus) => {
     if (savingAttendance[studentId]) return;
@@ -1423,7 +1440,7 @@ export default function StaffDashboard() {
       classAllocationStream: "",
       editingClassAssignmentIndex: null,
       allocationTab: "classes",
-      subjectAssignments: [...new Map((row.teacher_class_subject_assignments || []).map((assignment) => { const normalized = { ...assignment, class_level: canonicalizeClassLevel(assignment.class_level) }; return [`${normalized.subject.toLowerCase()}::${normalized.class_level}::${normalized.class_stream || ""}`, normalized] })).values()],
+      subjectAssignments: [...new Map((row.teacher_class_subject_assignments || []).map((assignment) => { const normalized = { ...assignment, class_level: canonicalizeClassLevel(assignment.class_level) }; return [`${normalized.subject_id || normalized.subject.toLowerCase()}::${normalized.class_level}::${normalized.class_stream || ""}`, normalized] })).values()],
       subjectName: "",
       subjectLevel: "",
       subjectStream: "",
@@ -1438,6 +1455,7 @@ export default function StaffDashboard() {
     const subject = staffEditor.subjectName.trim();
     const classLevel = staffEditor.subjectLevel;
     const classStream = staffEditor.subjectStream === "__all__" ? "" : staffEditor.subjectStream;
+    const selectedOption = subjectOptionsForLevel(classLevel, staffEditor.campus, staffEditor.subjectStream).find(option => option.subject === subject);
     if (!subject || !classLevel) {
       showError("Choose a form and subject before adding the subject allocation.");
       return;
@@ -1447,7 +1465,7 @@ export default function StaffDashboard() {
       return;
     }
     const exists = staffEditor.subjectAssignments.some((assignment) =>
-      assignment.subject.toLowerCase() === subject.toLowerCase()
+      (selectedOption?.subject_id && assignment.subject_id ? assignment.subject_id === selectedOption.subject_id : assignment.subject.toLowerCase() === subject.toLowerCase())
       && canonicalizeClassLevel(assignment.class_level) === canonicalizeClassLevel(classLevel)
       && (assignment.class_stream || "") === classStream,
     );
@@ -1455,7 +1473,7 @@ export default function StaffDashboard() {
     setError("");
     setStaffEditor((value) => ({
       ...value,
-      subjectAssignments: [...value.subjectAssignments, { subject, class_level: classLevel, class_stream: classStream, campus: value.campus }],
+      subjectAssignments: [...value.subjectAssignments, { subject, subject_id: selectedOption?.subject_id || null, class_level: classLevel, class_stream: classStream, campus: value.campus }],
       subjectName: "",
       subjectStream: "",
     }));
@@ -1478,6 +1496,7 @@ export default function StaffDashboard() {
       class_assignments: staffEditor.classAssignments,
       class_subject_assignments: staffEditor.subjectAssignments.map((assignment) => ({
         subject: assignment.subject,
+        subject_id: assignment.subject_id || null,
         class_level: assignment.class_level,
         class_stream: assignment.class_stream || "",
       })),
@@ -1627,10 +1646,26 @@ export default function StaffDashboard() {
     // usable for the confirmed Senior stream structure in that short gap.
     return [...new Map([...establishedStreams, ...recordedStreams].filter(Boolean).map((stream) => [String(stream).trim().toLowerCase(), String(stream).trim()])).values()];
   };
-  const subjectOptionsForLevel = (level, campus) => {
+  const subjectOptionsForLevel = (level, campus, streamScope = "") => {
     if (!level) return [];
-    if (campus !== "senior") return getSubjectsByGradeStream(level, "Blue");
-    return [...new Set(streamsForAdminLevel(level).flatMap((stream) => getSubjectsByGradeStream(level, stream)))];
+    let groupCodes = [];
+    if (campus === "junior") {
+      groupCodes = [/^ECD [AB]$/.test(level) ? "ecd_a_b" : /^Grade [12]$/.test(level) ? "grade_1_2" : /^Grade [3-7]$/.test(level) ? "grade_3_7" : null].filter(Boolean);
+    } else if (["Form 1", "Form 2"].includes(level)) groupCodes = ["form_1_2_zgc"];
+    else if (["Form 3", "Form 4"].includes(level)) groupCodes = ["form_3_4"];
+    else if (["Lower Six", "Upper Six"].includes(level)) {
+      const prefix = level === "Lower Six" ? "lower_six_" : "upper_six_";
+      groupCodes = streamScope && streamScope !== "__all__" ? [`${prefix}${streamScope.toLowerCase()}`] : ["arts", "commercials", "sciences"].map(pathway => `${prefix}${pathway}`);
+    }
+    if (groupCodes.length && catalogSubjects.length && catalogGroups.length) {
+      const subjectIds = new Set(catalogMemberships.filter(membership => groupCodes.includes(membership.group_code)).map(membership => membership.subject_id));
+      const managedChoices = catalogSubjects.filter(subject => subjectIds.has(subject.id)).map(subject => ({ subject: subject.display_name, subject_id: subject.id }));
+      if (managedChoices.length) return [...new Map(managedChoices.map(option => [option.subject_id, option])).values()].sort((a, b) => a.subject.localeCompare(b.subject));
+    }
+    const legacyChoices = campus === "senior"
+      ? [...new Set((streamScope && streamScope !== "__all__" ? [streamScope] : streamsForAdminLevel(level)).flatMap(stream => getSubjectsByGradeStream(level, stream)))]
+      : getSubjectsByGradeStream(level, "Blue");
+    return legacyChoices.map(subject => ({ subject, subject_id: null }));
   };
   const addStaffClassAssignment = () => {
     const class_level = canonicalizeClassLevel(staffForm.classLevel);
@@ -1997,6 +2032,8 @@ export default function StaffDashboard() {
     return <div className="staff-content-area"><ProgressReports students={filteredStudents} loading={loading} scopeLabel={isTeacher ? teacherScopeLabel : managerCampusScope ? `${managerCampusScope === "junior" ? "Junior" : "Senior"} School` : "All school"} query={progressQuery} onQueryChange={setProgressQuery} onOpenProgress={student => openLearnerProfile(student, { initialTab: isTeacher ? "Summary" : "Academics", origin: "progress-reports" })} /></div>;
   if (section === "historical-reports" && (manager || isAccountant))
     return <div className="staff-content-area"><ReportClassHistory supabase={supabase} campusScope={managerCampusScope || "all"} canReview={isAdmin} /></div>;
+  if (section === "subject-catalog" && isMainAdmin)
+    return <div className="staff-content-area"><SubjectCatalogManager supabase={supabase} /></div>;
 
   if (section === "library-support" && (isAdmin || accountant))
     return <div className="staff-content-area"><LibrarySupport key={`${activeRole}:${profile?.campus}`} /></div>;
@@ -2714,7 +2751,7 @@ export default function StaffDashboard() {
                         <div className="portal-action-row">
                           <select value={staffForm.subjectName} disabled={!staffForm.classLevel} onChange={(e) => setStaffForm((x) => ({ ...x, subjectName: e.target.value }))}>
                             <option value="">Choose subject</option>
-                            {subjectOptionsForLevel(staffForm.classLevel, staffForm.campus).map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                            {subjectOptionsForLevel(staffForm.classLevel, staffForm.campus, staffForm.classStream).map(({ subject }) => <option key={subject} value={subject}>{subject}</option>)}
                           </select>
                           <Button type="button" variant="secondary" onClick={() => setStaffForm((x) => !x.subjectName ? x : ({ ...x, subjectAssignments: x.subjectAssignments.includes(x.subjectName) ? x.subjectAssignments : [...x.subjectAssignments, x.subjectName], subjectName: "" }))}>Add subject</Button>
                         </div>
@@ -2816,7 +2853,7 @@ export default function StaffDashboard() {
                           <div className="portal-form" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", alignItems: "end" }}>
                             <label>Class<select value={staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectLevel: e.target.value, subjectStream: "" }))}><option value="">Choose class</option>{adminClassLevels.filter((level) => staffEditor.campus === "junior" ? isJuniorLevel(level) : !isJuniorLevel(level)).map((level) => <option key={level} value={level}>{level}</option>)}</select></label>
                             <label>Teaching scope<select required={staffEditor.campus === "senior"} value={staffEditor.subjectStream} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectStream: e.target.value }))}><option value="">{staffEditor.campus === "senior" ? "Choose a stream scope" : "Junior class · no streams"}</option>{staffEditor.campus === "senior" && <option value="__all__">All streams · whole form</option>}{streamsForAdminLevel(staffEditor.subjectLevel).map((stream) => <option key={stream} value={stream}>{stream} only</option>)}</select></label>
-                            <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{subjectOptionsForLevel(staffEditor.subjectLevel, staffEditor.campus).map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
+                            <label>Subject<select value={staffEditor.subjectName} disabled={!staffEditor.subjectLevel} onChange={(e) => setStaffEditor((value) => ({ ...value, subjectName: e.target.value }))}><option value="">Choose subject</option>{subjectOptionsForLevel(staffEditor.subjectLevel, staffEditor.campus, staffEditor.subjectStream).map(({ subject }) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
                             <Button type="button" onClick={addSubjectAllocation}>Add subject</Button>
                           </div>
                           {staffEditor.subjectAssignments.length ? <div className="allocation-chip-list">{staffEditor.subjectAssignments.map((assignment, index) => <span className="allocation-chip" key={`${assignment.subject}-${assignment.class_level}-${assignment.class_stream}-${index}`}>{assignment.subject} · {assignment.class_level} · {assignment.class_stream || "Whole form"}<button type="button" aria-label={`Remove ${assignment.subject} from ${assignment.class_level}`} onClick={() => setStaffEditor((value) => ({ ...value, subjectAssignments: value.subjectAssignments.filter((_, position) => position !== index) }))}>×</button></span>)}</div> : <p className="muted">No subjects allocated yet.</p>}
